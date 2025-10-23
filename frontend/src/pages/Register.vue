@@ -13,15 +13,44 @@
         <!-- Register Form -->
         <form @submit.prevent="handleRegister" class="register-form">
           <div class="form-group">
-            <label for="username">Username</label>
+            <label for="nickname">Nickname</label>
             <input
-              id="username"
-              v-model="username"
+              id="nickname"
+              v-model="nickname"
               type="text"
-              placeholder="Choose a username"
+              placeholder="Choose a nickname"
+              autocomplete="off"
               required
               class="form-input"
             />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input
+                id="firstName"
+                v-model="firstName"
+                type="text"
+                placeholder="First name"
+                autocomplete="off"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input
+                id="lastName"
+                v-model="lastName"
+                type="text"
+                placeholder="Last name"
+                autocomplete="off"
+                required
+                class="form-input"
+              />
+            </div>
           </div>
 
           <div class="form-group">
@@ -31,6 +60,7 @@
               v-model="email"
               type="email"
               placeholder="Enter your email"
+              autocomplete="off"
               required
               class="form-input"
             />
@@ -42,7 +72,8 @@
               id="password"
               v-model="password"
               type="password"
-              placeholder="Create a password"
+              placeholder="Create a password (min 6 characters)"
+              autocomplete="off"
               required
               class="form-input"
             />
@@ -55,13 +86,14 @@
               v-model="confirmPassword"
               type="password"
               placeholder="Confirm your password"
+              autocomplete="off"
               required
               class="form-input"
             />
           </div>
 
-          <button type="submit" class="register-button">
-            Create Account
+          <button type="submit" class="register-button" :disabled="loading">
+            {{ loading ? 'Creating Account...' : 'Create Account' }}
           </button>
         </form>
 
@@ -86,53 +118,65 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/authStore'
 
 const router = useRouter()
-const username = ref('')
+const authStore = useAuthStore()
+const nickname = ref('')
+const firstName = ref('')
+const lastName = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const error = ref('')
+const loading = ref(false)
 
 const handleRegister = async () => {
   error.value = ''
+  loading.value = true
 
   // Basic validation
-  if (!username.value || !email.value || !password.value || !confirmPassword.value) {
+  if (!nickname.value || !firstName.value || !lastName.value || !email.value || !password.value || !confirmPassword.value) {
     error.value = 'Please fill in all fields'
+    loading.value = false
     return
   }
 
   if (password.value !== confirmPassword.value) {
     error.value = 'Passwords do not match'
+    loading.value = false
     return
   }
 
   if (password.value.length < 6) {
     error.value = 'Password must be at least 6 characters long'
+    loading.value = false
     return
   }
 
   try {
-    // TODO: Implement actual registration logic with backend
-    console.log('Registration attempt:', {
-      username: username.value,
-      email: email.value
+    const result = await authStore.register({
+      nickname: nickname.value,
+      first_name: firstName.value,
+      last_name: lastName.value,
+      email: email.value,
+      password: password.value,
+      user_type: 'individual'
     })
 
-    // Placeholder for API call
-    // const response = await axios.post('/api/auth/register', {
-    //   username: username.value,
-    //   email: email.value,
-    //   password: password.value
-    // })
-
-    // After successful registration, redirect to login
-    // router.push('/login?registered=true')
-
-    error.value = 'Registration functionality will be connected to backend'
+    if (result.success) {
+      // Log out immediately after registration to force user to login
+      authStore.logout()
+      // Redirect to login page with success message
+      router.push('/login?registered=true')
+    } else {
+      error.value = result.error || 'Registration failed. Please try again.'
+    }
   } catch (err) {
-    error.value = err.response?.data?.message || 'Registration failed. Please try again.'
+    error.value = 'An unexpected error occurred. Please try again.'
+    console.error('Registration error:', err)
+  } finally {
+    loading.value = false
   }
 }
 </script>
@@ -207,6 +251,12 @@ const handleRegister = async () => {
   margin-bottom: 1.5rem;
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -260,6 +310,12 @@ const handleRegister = async () => {
 
 .register-button:active {
   transform: translateY(0);
+}
+
+.register-button:disabled {
+  background: #99ccee;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .error-message {
@@ -346,6 +402,10 @@ const handleRegister = async () => {
 
   .register-form {
     gap: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
   }
 
   .form-input {

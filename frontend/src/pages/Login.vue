@@ -24,6 +24,7 @@
               v-model="email"
               type="email"
               placeholder="Enter your email"
+              autocomplete="off"
               required
               class="form-input"
             />
@@ -36,13 +37,14 @@
               v-model="password"
               type="password"
               placeholder="Enter your password"
+              autocomplete="off"
               required
               class="form-input"
             />
           </div>
 
-          <button type="submit" class="login-button">
-            Sign In
+          <button type="submit" class="login-button" :disabled="loading">
+            {{ loading ? 'Signing in...' : 'Sign In' }}
           </button>
         </form>
 
@@ -67,37 +69,43 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/authStore'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const error = ref('')
+const loading = ref(false)
 
 const handleLogin = async () => {
   error.value = ''
+  loading.value = true
 
   // Basic validation
   if (!email.value || !password.value) {
     error.value = 'Please fill in all fields'
+    loading.value = false
     return
   }
 
   try {
-    // TODO: Implement actual login logic with backend
-    console.log('Login attempt:', { email: email.value })
+    const result = await authStore.login({
+      email: email.value,
+      password: password.value
+    })
 
-    // Placeholder for API call
-    // const response = await axios.post('/api/auth/login', {
-    //   email: email.value,
-    //   password: password.value
-    // })
-
-    // For now, just redirect to home
-    // router.push('/')
-
-    error.value = 'Login functionality will be connected to backend'
+    if (result.success) {
+      // Redirect to home page after successful login
+      router.push('/')
+    } else {
+      error.value = result.error || 'Login failed. Please try again.'
+    }
   } catch (err) {
-    error.value = err.response?.data?.message || 'Login failed. Please try again.'
+    error.value = 'An unexpected error occurred. Please try again.'
+    console.error('Login error:', err)
+  } finally {
+    loading.value = false
   }
 }
 </script>
@@ -236,6 +244,12 @@ const handleLogin = async () => {
 
 .login-button:active {
   transform: translateY(0);
+}
+
+.login-button:disabled {
+  background: #99ccee;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .error-message {
