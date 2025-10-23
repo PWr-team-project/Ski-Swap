@@ -1,0 +1,21 @@
+# Generated .gitignore patterns
+
+# Dependencies
+node_modules/
+vendor/
+packages/
+
+# Log Files
+*.log
+*.log.*
+logs/
+log/
+/logs
+/log
+
+# IDE Files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+.vs/
