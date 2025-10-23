@@ -1,6 +1,6 @@
 <template>
-  <Navbar/>
   <div class="landing-page">
+    <Navbar/>
     <!-- Hero Section with Background Image -->
     <div class="hero-section">
       <!-- Background image placeholder -->
@@ -19,7 +19,7 @@
               <span class="icon location-icon">📍</span>
               <input 
                 type="text" 
-                placeholder="Location (e.g., Aspen, CO)"
+                placeholder="Location (e.g., Wroclaw, Poland)"
                 v-model="location"
               />
             </div>
@@ -67,32 +67,32 @@
 
     <!-- Carousels Section -->
     <div class="carousels-section">
-      <Carousel 
-        title="Skis" 
+      <Carousel
+        title="Premium Skis" 
         :items="skisItems" 
         carousel-id="skis"
         @view-all="handleViewAll"
         @item-click="handleItemClick"
       />
       
-      <Carousel 
-        title="Snowboards" 
+      <Carousel
+        title="Premium Snowboards" 
         :items="snowboardsItems" 
         carousel-id="snowboards"
         @view-all="handleViewAll"
         @item-click="handleItemClick"
       />
       
-      <Carousel 
+      <Carousel
         title="Accessories" 
         :items="accessoriesItems" 
         carousel-id="accessories"
         @view-all="handleViewAll"
         @item-click="handleItemClick"
       />
-      <WhyChooseSection />
     </div>
-    <Footer />
+    <WhyChooseSection/>
+    <Footer/>
   </div>
 </template>
 
@@ -102,16 +102,13 @@ import Navbar from '../components/Navbar.vue';
 import Carousel from '../components/Carousel.vue';
 import WhyChooseSection from '../components/WhyChooseSection.vue';
 import Footer from '../components/Footer.vue';
-
-
-
 // State
 const location = ref('');
 const startDate = ref('');
 const endDate = ref('');
 const showDatePicker = ref(false);
 
-// Mock data for carousels
+// Sample data for carousels
 const skisItems = ref([
   {
     id: 1,
@@ -152,20 +149,12 @@ const skisItems = ref([
     price: 55,
     location: 'Whistler, BC',
     image: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=400&h=300&fit=crop'
-  },
-  {
-    id: 6,
-    category: 'Skis',
-    name: 'Völkl M6 Mantra',
-    price: 52,
-    location: 'Telluride, CO',
-    image: 'https://images.unsplash.com/photo-1483381719261-1d24c6f0f7b0?w=400&h=300&fit=crop'
   }
 ]);
 
 const snowboardsItems = ref([
   {
-    id: 7,
+    id: 6,
     category: 'Snowboards',
     name: 'Burton Custom X',
     price: 40,
@@ -173,7 +162,7 @@ const snowboardsItems = ref([
     image: 'https://images.unsplash.com/photo-1608447272409-a46ab38c6c90?w=400&h=300&fit=crop'
   },
   {
-    id: 8,
+    id: 7,
     category: 'Snowboards',
     name: 'Lib Tech T.Rice Pro',
     price: 45,
@@ -181,7 +170,7 @@ const snowboardsItems = ref([
     image: 'https://images.unsplash.com/photo-1519315901367-dd6f52257273?w=400&h=300&fit=crop'
   },
   {
-    id: 9,
+    id: 8,
     category: 'Snowboards',
     name: 'Jones Mountain Twin',
     price: 38,
@@ -189,7 +178,7 @@ const snowboardsItems = ref([
     image: 'https://images.unsplash.com/photo-1579189214311-f8e0f0f8f9f5?w=400&h=300&fit=crop'
   },
   {
-    id: 10,
+    id: 9,
     category: 'Snowboards',
     name: 'Capita DOA',
     price: 42,
@@ -197,26 +186,18 @@ const snowboardsItems = ref([
     image: 'https://images.unsplash.com/photo-1600362834097-1c1c4a212024?w=400&h=300&fit=crop'
   },
   {
-    id: 11,
+    id: 10,
     category: 'Snowboards',
     name: 'Ride Warpig',
     price: 43,
     location: 'Mammoth, CA',
     image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop'
-  },
-  {
-    id: 12,
-    category: 'Snowboards',
-    name: 'GNU Rider\'s Choice',
-    price: 39,
-    location: 'Alta, UT',
-    image: 'https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=400&h=300&fit=crop'
   }
 ]);
 
 const accessoriesItems = ref([
   {
-    id: 13,
+    id: 11,
     category: 'Accessories',
     name: 'Smith I/O Mag Goggles',
     price: 15,
@@ -224,7 +205,7 @@ const accessoriesItems = ref([
     image: 'https://images.unsplash.com/photo-1605606274249-2e41f6e8a5b0?w=400&h=300&fit=crop'
   },
   {
-    id: 14,
+    id: 12,
     category: 'Accessories',
     name: 'POC Obex SPIN Helmet',
     price: 12,
@@ -232,7 +213,7 @@ const accessoriesItems = ref([
     image: 'https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=400&h=300&fit=crop'
   },
   {
-    id: 15,
+    id: 13,
     category: 'Accessories',
     name: 'Black Diamond Poles',
     price: 8,
@@ -240,7 +221,7 @@ const accessoriesItems = ref([
     image: 'https://images.unsplash.com/photo-1483381719261-1d24c6f0f7b0?w=400&h=300&fit=crop'
   },
   {
-    id: 16,
+    id: 14,
     category: 'Accessories',
     name: 'Burton Backpack 25L',
     price: 10,
@@ -248,28 +229,12 @@ const accessoriesItems = ref([
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=300&fit=crop'
   },
   {
-    id: 17,
+    id: 15,
     category: 'Accessories',
     name: 'Dakine Boot Bag',
     price: 5,
     location: 'Whistler, BC',
     image: 'https://images.unsplash.com/photo-1585435465455-d1d0c66c5b7e?w=400&h=300&fit=crop'
-  },
-  {
-    id: 18,
-    category: 'Accessories',
-    name: 'Oakley Flight Deck XM',
-    price: 14,
-    location: 'Breckenridge, CO',
-    image: 'https://images.unsplash.com/photo-1600421464494-5b4c2ebf3d7f?w=400&h=300&fit=crop'
-  },
-  {
-    id: 19,
-    category: 'Accessories',
-    name: 'Giro Range MIPS Helmet',
-    price: 13,
-    location: 'Tahoe, CA',
-    image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=300&fit=crop'
   }
 ]);
 
@@ -298,19 +263,16 @@ const handleSearch = () => {
     endDate: endDate.value
   });
   // TODO: Implement search logic
-  // This would typically filter the items or navigate to a search results page
 };
 
 const handleViewAll = (carouselId) => {
   console.log('View all clicked for:', carouselId);
-  // TODO: Navigate to category page
-  // Example: router.push(`/category/${carouselId}`)
+  // TODO: Navigate to category page or show filtered results
 };
 
 const handleItemClick = (item) => {
   console.log('Item clicked:', item);
   // TODO: Navigate to item detail page or show modal
-  // Example: router.push(`/item/${item.id}`)
 };
 </script>
 
@@ -325,12 +287,15 @@ const handleItemClick = (item) => {
   width: 100%;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 .hero-section {
   position: relative;
   width: 100%;
-  min-height: 70vh; /* reduced from 100vh */
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -341,11 +306,14 @@ const handleItemClick = (item) => {
   position: absolute;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
   background-image: url('assets/images/background4.png');
   background-size: cover;
-  background-position: center 40%; /* shift up a bit for better framing */
+  background-position: center;
+  background-repeat: no-repeat;
   z-index: 1;
 }
 
@@ -362,23 +330,24 @@ const handleItemClick = (item) => {
 
 .hero-content {
   position: relative;
+  top:-100px;
   z-index: 3;
   text-align: center;
-  padding: 3rem 2rem;
-  max-width: 1000px;
+  padding: 2rem;
+  max-width: 1200px;
   width: 100%;
-  top: -50px;
 }
 
 .hero-title {
-  font-size: 3rem;
+  font-size: 3.5rem;
   font-weight: 700;
   color: white;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .hero-subtitle {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   color: white;
   margin-bottom: 3rem;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
@@ -430,13 +399,8 @@ const handleItemClick = (item) => {
 
 .date-input {
   cursor: pointer;
-  z-index: 2;
 }
 
-.carousels-section {
-  position: relative;
-  z-index: 1;
-}
 .search-button {
   display: flex;
   align-items: center;
@@ -543,8 +507,6 @@ const handleItemClick = (item) => {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.3s ease;
-  position: relative;
-  z-index: 11;
 }
 
 .apply-btn:hover {
@@ -558,33 +520,58 @@ const handleItemClick = (item) => {
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .hero-content {
+    top: -50px;
+  }
+  
+  .hero-title {
+    font-size: 3rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.35rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .hero-content {
+    top: 0;
+    padding: 1.5rem;
+  }
+
   .hero-title {
     font-size: 2.5rem;
+    margin-bottom: 0.75rem;
   }
   
   .hero-subtitle {
     font-size: 1.25rem;
+    margin-bottom: 2rem;
   }
   
   .search-bar {
     flex-direction: column;
     border-radius: 20px;
+    padding: 0.75rem;
   }
   
   .search-input {
     min-width: 100%;
+    padding: 1rem 1.25rem;
   }
   
   .search-button {
     width: 100%;
     justify-content: center;
+    padding: 1rem 2rem;
   }
   
   .date-picker-popup {
     min-width: 90vw;
-    left: 5vw;
-    transform: none;
+    max-width: 90vw;
+    left: 50%;
+    transform: translateX(-50%);
   }
   
   .date-inputs {
@@ -597,12 +584,82 @@ const handleItemClick = (item) => {
 }
 
 @media (max-width: 480px) {
+  .hero-section {
+    min-height: 100vh;
+  }
+
+  .hero-content {
+    padding: 1rem;
+    width: 100%;
+  }
+
   .hero-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    line-height: 1.2;
   }
   
   .hero-subtitle {
     font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .search-container {
+    max-width: 100%;
+  }
+
+  .search-bar {
+    padding: 0.5rem;
+  }
+
+  .search-input {
+    padding: 0.875rem 1rem;
+  }
+
+  .icon {
+    font-size: 1.1rem;
+  }
+
+  .search-input input {
+    font-size: 0.95rem;
+  }
+
+  .search-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .date-picker-popup {
+    min-width: 95vw;
+    max-width: 95vw;
+    padding: 1.25rem;
+  }
+
+  .date-picker-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .carousels-section {
+    padding: 2rem 0.75rem;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .search-input {
+    padding: 0.75rem;
+  }
+
+  .search-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
   }
 }
 </style>

@@ -53,7 +53,6 @@ function buttonHover(button, hover) {
   padding: 1rem 2rem;
   color: white;
   border-bottom: 5px solid white; /* Thick white bottom border */
-  border-radius: 10px;
 }
 
 .logo {

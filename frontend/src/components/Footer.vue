@@ -7,12 +7,11 @@
       <!-- Logo and Description -->
       <div class="footer-section brand-section">
         <div class="footer-logo">
-          <!-- Replace with your actual logo image -->
           <img src="/assets/images/logo.png" alt="Ski-Swap Logo" class="footer-logo-img" />
           <span class="footer-logo-text">Ski-Swap</span>
         </div>
         <p class="footer-description">
-          Your trusted platform for renting and snowboard equipment.
+          Your trusted platform for renting ski and snowboard equipment.
         </p>
       </div>
 
@@ -102,6 +101,7 @@
   font-size: 0.9rem;
   line-height: 1.5;
   opacity: 0.95;
+  text-align: center;
 }
 
 .footer-heading {
