@@ -1,10 +1,9 @@
 <script setup>
-
-import LandingPage from './pages/LandingPage.vue'
+// Router will handle page navigation
 </script>
 
 <template>
-<LandingPage/>
+  <router-view />
 </template>
 
 <style scoped>

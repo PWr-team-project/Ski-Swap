@@ -1,26 +1,35 @@
 <!-- components/Navbar.vue -->
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // Example props for icon customization (optional)
 const iconButtons = ref([
-  { id: 1, color: '#66D1FF', hoverColor: '#0088CC', imgSrc: '/assets/images/chat_icon.png', alt: 'Minus' },
-  { id: 2, color: '#66D1FF', hoverColor: '#0088CC', imgSrc: '/assets/images/profile_icon.png', alt: 'User' }
+  { id: 1, color: '#66D1FF', hoverColor: '#0088CC', imgSrc: '/assets/images/chat_icon.png', alt: 'Chat', action: null },
+  { id: 2, color: '#66D1FF', hoverColor: '#0088CC', imgSrc: '/assets/images/profile_icon.png', alt: 'Profile', action: 'login' }
 ])
-
 
 function buttonHover(button, hover) {
   button.color = hover ? button.hoverColor : '#66D1FF'
+}
+
+function handleIconClick(button) {
+  if (button.action === 'login') {
+    router.push('/login')
+  }
+  // Add more actions as needed for other buttons
 }
 </script>
 
 <template>
   <header class="navbar">
     <!-- Logo on the left -->
-    <div class="logo">
+    <router-link to="/" class="logo">
       <img src="/assets/images/logo.png" alt="Logo" class="logo-img" />
       <span class="logo-text">Ski-Swap</span>
-    </div>
+    </router-link>
 
     <!-- Right side buttons -->
     <div class="nav-actions">
@@ -36,6 +45,7 @@ function buttonHover(button, hover) {
         :style="{ backgroundColor: button.color }"
         @mouseover="buttonHover(button, true)"
         @mouseleave="buttonHover(button, false)"
+        @click="handleIconClick(button)"
       >
         <img v-if="button.imgSrc" :src="button.imgSrc" :alt="button.alt" class="icon-img" />
         <!-- fallback to svg if needed -->
@@ -60,6 +70,14 @@ function buttonHover(button, hover) {
   align-items: center;
   font-weight: bold;
   font-size: 1.8rem;
+  text-decoration: none;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.logo:hover {
+  opacity: 0.9;
 }
 
 .logo-img {
