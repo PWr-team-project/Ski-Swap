@@ -1,6 +1,8 @@
 <script setup>
 
-import LandingPage from './pages/LandingPage.vue'
+import BrowseItems from './pages/BrowseItems.vue';
+import CreateListing from './pages/CreateListing.vue';
+import LandingPage from './pages/LandingPage.vue';
 </script>
 
 <template>
