@@ -82,8 +82,7 @@ function handleIconClick(action) {
   } else if (action === 'profile') {
     toggleProfileDropdown()
   } else if (action === 'messages') {
-    // Navigate to messages page (to be implemented)
-    console.log('Navigate to messages')
+    router.push('/messages')
   }
 }
 
