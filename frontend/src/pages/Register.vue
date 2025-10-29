@@ -11,7 +11,7 @@
         <h2 class="register-title">Create Account</h2>
 
         <!-- Register Form -->
-        <form @submit.prevent="handleRegister" class="register-form">
+        <form @submit.prevent="handleRegister" class="register-form" autocomplete="off">
           <div class="form-group">
             <label for="nickname">Nickname</label>
             <input
@@ -19,7 +19,7 @@
               v-model="nickname"
               type="text"
               placeholder="Choose a nickname"
-              autocomplete="off"
+              autocomplete="new-nickname"
               required
               class="form-input"
             />
@@ -33,7 +33,7 @@
                 v-model="firstName"
                 type="text"
                 placeholder="First name"
-                autocomplete="off"
+                autocomplete="new-first-name"
                 required
                 class="form-input"
               />
@@ -46,7 +46,7 @@
                 v-model="lastName"
                 type="text"
                 placeholder="Last name"
-                autocomplete="off"
+                autocomplete="new-last-name"
                 required
                 class="form-input"
               />
@@ -60,7 +60,7 @@
               v-model="email"
               type="email"
               placeholder="Enter your email"
-              autocomplete="off"
+              autocomplete="new-email"
               required
               class="form-input"
             />
@@ -73,7 +73,7 @@
               v-model="password"
               type="password"
               placeholder="Create a password (min 6 characters)"
-              autocomplete="off"
+              autocomplete="new-password"
               required
               class="form-input"
             />
@@ -86,7 +86,7 @@
               v-model="confirmPassword"
               type="password"
               placeholder="Confirm your password"
-              autocomplete="off"
+              autocomplete="new-password"
               required
               class="form-input"
             />
