@@ -1,7 +1,5 @@
 <template>
   <div class="messages-page">
-    <Navbar />
-
     <div class="messages-container">
       <div class="messages-content">
         <!-- Left Panel - Conversation List -->
@@ -28,16 +26,12 @@
         </div>
       </div>
     </div>
-
-    <Footer />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
-import Navbar from '../components/Navbar.vue'
-import Footer from '../components/Footer.vue'
 import ConversationList from '../components/messages/ConversationList.vue'
 import MessageThread from '../components/messages/MessageThread.vue'
 import socketService from '../services/socketService'

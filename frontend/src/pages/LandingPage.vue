@@ -1,6 +1,5 @@
 <template>
   <div class="landing-page">
-    <Navbar/>
     <!-- Hero Section with Background Image -->
     <div class="hero-section">
       <!-- Background image placeholder -->
@@ -92,16 +91,16 @@
       />
     </div>
     <WhyChooseSection/>
-    <Footer/>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import Navbar from '../components/Navbar.vue';
+import { useRouter } from 'vue-router';
 import Carousel from '../components/Carousel.vue';
 import WhyChooseSection from '../components/WhyChooseSection.vue';
-import Footer from '../components/Footer.vue';
+
+const router = useRouter();
 // State
 const location = ref('');
 const startDate = ref('');
@@ -257,12 +256,15 @@ const applyDates = () => {
 };
 
 const handleSearch = () => {
-  console.log('Searching...', {
-    location: location.value,
-    startDate: startDate.value,
-    endDate: endDate.value
+  // Navigate to BrowseItems with query parameters
+  router.push({
+    name: 'BrowseItems',
+    query: {
+      location: location.value || '',
+      startDate: startDate.value || '',
+      endDate: endDate.value || ''
+    }
   });
-  // TODO: Implement search logic
 };
 
 const handleViewAll = (carouselId) => {

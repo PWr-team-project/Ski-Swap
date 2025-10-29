@@ -19,9 +19,9 @@
       <div class="footer-section">
         <h3 class="footer-heading">Company</h3>
         <ul class="footer-links">
-          <li><a href="#about">About Us</a></li>
-          <li><a href="#contact">Contact</a></li>
-          <li><a href="#partnership">Partnership</a></li>
+          <li><router-link to="/about">About Us</router-link></li>
+          <li><router-link to="/contact">Contact</router-link></li>
+          <li><router-link to="/partnership">Partnership</router-link></li>
         </ul>
       </div>
 
@@ -29,9 +29,9 @@
       <div class="footer-section">
         <h3 class="footer-heading">Support</h3>
         <ul class="footer-links">
-          <li><a href="#help">FAQ</a></li>
-          <li><a href="#trust">Trust & Safety</a></li>
-          <li><a href="#messaging">Message Us</a></li>
+          <li><router-link to="/faq">FAQ</router-link></li>
+          <li><router-link to="/trust-safety">Trust & Safety</router-link></li>
+          <li><router-link to="/message-us">Message Us</router-link></li>
         </ul>
       </div>
 
@@ -39,9 +39,9 @@
       <div class="footer-section">
         <h3 class="footer-heading">Legal</h3>
         <ul class="footer-links">
-          <li><a href="#terms">Terms & Conditions</a></li>
-          <li><a href="#privacy">Privacy Policy</a></li>
-          <li><a href="#cookies">Cookie Policy</a></li>
+          <li><router-link to="/terms">Terms & Conditions</router-link></li>
+          <li><router-link to="/privacy">Privacy Policy</router-link></li>
+          <li><router-link to="/cookies">Cookie Policy</router-link></li>
         </ul>
       </div>
     </div>

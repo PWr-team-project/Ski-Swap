@@ -87,8 +87,7 @@ function handleIconClick(action) {
 }
 
 function handleCreateListing() {
-  // Navigate to create listing page (to be implemented)
-  console.log('Navigate to create listing')
+  router.push('/create-listing')
 }
 
 function handleLogout() {

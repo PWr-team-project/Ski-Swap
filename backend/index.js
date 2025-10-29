@@ -9,6 +9,7 @@ const app = express();
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const listingRoutes = require('./routes/listingRoutes');
 
 app.use(cors());
 app.use(express.json());
@@ -20,6 +21,7 @@ app.use('/uploads', express.static('uploads'));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/listings', listingRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend API is running!' });
