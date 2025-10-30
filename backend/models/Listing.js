@@ -57,6 +57,10 @@ const listingSchema = new mongoose.Schema({
     type: Number,
     min: 0
   },
+  estimated_value: {
+    type: Number,
+    min: 0
+  },
   condition: {
     type: String,
     enum: ['new', 'like new', 'good', 'fair', 'used'],

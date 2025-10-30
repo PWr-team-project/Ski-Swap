@@ -388,6 +388,15 @@ const createListing = async () => {
     formData.append('model', listingData.value.model || '');
     formData.append('size', listingData.value.size || '');
     formData.append('dailyRate', listingData.value.pricing.daily);
+    if (listingData.value.pricing.weekly) {
+      formData.append('weeklyRate', listingData.value.pricing.weekly);
+    }
+    if (listingData.value.pricing.monthly) {
+      formData.append('monthlyRate', listingData.value.pricing.monthly);
+    }
+    if (listingData.value.estimatedValue) {
+      formData.append('estimatedValue', listingData.value.estimatedValue);
+    }
     formData.append('condition', listingData.value.condition);
     formData.append('city', city);
     formData.append('state', state);

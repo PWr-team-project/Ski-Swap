@@ -87,9 +87,7 @@ function handleMenuClick(action) {
   if (action === 'profile') {
     router.push('/profile')
   } else if (action === 'listings') {
-    // Navigate to user's listings page
-    // TODO: Create route for user listings
-    console.log('Navigate to my listings')
+    router.push('/my-listings')
   } else if (action === 'rentals') {
     // Navigate to user's rentals page
     // TODO: Create route for user rentals
