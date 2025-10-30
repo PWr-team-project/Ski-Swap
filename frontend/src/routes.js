@@ -7,6 +7,7 @@ import BrowseItems from './pages/BrowseItems.vue'
 import CreateListing from './pages/CreateListing.vue'
 import MyListings from './pages/MyListings.vue'
 import UpdateListing from './pages/UpdateListing.vue'
+import GoogleAuthCallback from './pages/GoogleAuthCallback.vue'
 
 // Static pages
 import AboutUs from './pages/static/AboutUs.vue'
@@ -40,6 +41,11 @@ const routes = [
     name: 'Messages',
     component: Messages,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/auth/google/success',
+    name: 'GoogleAuthCallback',
+    component: GoogleAuthCallback
   },
   {
     path: '/browse',

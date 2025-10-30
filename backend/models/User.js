@@ -41,7 +41,21 @@ const userSchema = new mongoose.Schema({
   },
   password_hash: {
     type: String,
-    required: true
+    required: function() {
+      // Password is required only if not using OAuth
+      return !this.googleId;
+    }
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows null values while maintaining uniqueness for non-null values
+    default: null
+  },
+  oauth_provider: {
+    type: String,
+    enum: ['local', 'google'],
+    default: 'local'
   },
   phone_number: {
     type: String,

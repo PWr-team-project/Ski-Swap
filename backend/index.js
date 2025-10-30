@@ -1,8 +1,11 @@
+require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const socketIO = require('socket.io');
-require('dotenv').config();
+const session = require('express-session');
+const passport = require('./config/passport');
 
 const app = express();
 
@@ -10,16 +13,36 @@ const app = express();
 const authRoutes = require('./routes/authRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const listingRoutes = require('./routes/listingRoutes');
+const googleAuthRoutes = require('./routes/googleAuthRoutes');
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session configuration (required for passport)
+app.use(session({
+  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Serve static files for uploaded images
 app.use('/uploads', express.static('uploads'));
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', googleAuthRoutes); // Google OAuth routes
 app.use('/api/messages', messageRoutes);
 app.use('/api/listings', listingRoutes);
 
