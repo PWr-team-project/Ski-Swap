@@ -4,8 +4,7 @@
       <div class="login-card">
         <!-- Logo and Title -->
         <div class="header-section">
-          <img src="/assets/images/logo.png" alt="Ski-Swap Logo" class="app-logo" />
-          <h1 class="app-title">Ski-Swap</h1>
+          <img src="/assets/images/logo_black.png" alt="Ski-Swap Logo" class="app-logo" />
         </div>
 
         <h2 class="login-title">Welcome Back</h2>
@@ -116,7 +115,7 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #00AAFF 0%, #66D1FF 100%);
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
   padding: 2rem;
 }
 

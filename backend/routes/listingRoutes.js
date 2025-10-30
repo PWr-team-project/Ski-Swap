@@ -29,14 +29,20 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit per file
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    // Allowed image extensions
+    const allowedExtensions = /jpeg|jpg|jfif|jpe|png|gif|webp|bmp|heic|heif|svg/i;
 
-    if (mimetype && extname) {
+    // Allowed MIME types
+    const allowedMimeTypes = /image\/(jpeg|jpg|jfif|png|gif|webp|bmp|heic|heif|svg\+xml)/i;
+
+    const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.test(file.mimetype);
+
+    // Allow if either extension or mimetype matches (some systems don't set proper MIME types)
+    if (mimetype || extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'));
+      cb(new Error(`Only image files are allowed! File type: ${file.mimetype}, Extension: ${path.extname(file.originalname)}`));
     }
   }
 });
@@ -80,6 +86,9 @@ router.post('/create', authMiddleware, upload.array('photos', 10), async (req, r
       model,
       size,
       dailyRate,
+      weeklyRate,
+      monthlyRate,
+      estimatedValue,
       condition,
       city,
       state,
@@ -136,6 +145,9 @@ router.post('/create', authMiddleware, upload.array('photos', 10), async (req, r
       model: model || '',
       size: size || '',
       daily_rate: parseFloat(dailyRate),
+      weekly_rate: weeklyRate ? parseFloat(weeklyRate) : undefined,
+      monthly_rate: monthlyRate ? parseFloat(monthlyRate) : undefined,
+      estimated_value: estimatedValue ? parseFloat(estimatedValue) : undefined,
       condition,
       location_id: location._id,
       available: true
@@ -157,6 +169,21 @@ router.post('/create', authMiddleware, upload.array('photos', 10), async (req, r
   }
 });
 
+// Get user's own listings (must come BEFORE /:id route)
+router.get('/my/listings', authMiddleware, async (req, res) => {
+  try {
+    const listings = await Listing.find({ owner_id: req.userId })
+      .populate('category_id', 'name')
+      .populate('location_id')
+      .sort({ createdAt: -1 });
+
+    res.json({ listings });
+  } catch (error) {
+    console.error('Error fetching user listings:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get all listings
 router.get('/', async (req, res) => {
   try {
@@ -173,7 +200,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get a single listing by ID
+// Get a single listing by ID (must come AFTER specific routes like /my/listings)
 router.get('/:id', async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id)
@@ -188,21 +215,6 @@ router.get('/:id', async (req, res) => {
     res.json({ listing });
   } catch (error) {
     console.error('Error fetching listing:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get user's own listings
-router.get('/my/listings', authMiddleware, async (req, res) => {
-  try {
-    const listings = await Listing.find({ owner_id: req.userId })
-      .populate('category_id', 'name')
-      .populate('location_id')
-      .sort({ createdAt: -1 });
-
-    res.json({ listings });
-  } catch (error) {
-    console.error('Error fetching user listings:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -229,6 +241,9 @@ router.put('/:id', authMiddleware, upload.array('photos', 10), async (req, res) 
       model,
       size,
       dailyRate,
+      weeklyRate,
+      monthlyRate,
+      estimatedValue,
       condition,
       available
     } = req.body;
@@ -240,6 +255,9 @@ router.put('/:id', authMiddleware, upload.array('photos', 10), async (req, res) 
     if (model) listing.model = model;
     if (size) listing.size = size;
     if (dailyRate) listing.daily_rate = parseFloat(dailyRate);
+    if (weeklyRate !== undefined) listing.weekly_rate = weeklyRate ? parseFloat(weeklyRate) : undefined;
+    if (monthlyRate !== undefined) listing.monthly_rate = monthlyRate ? parseFloat(monthlyRate) : undefined;
+    if (estimatedValue !== undefined) listing.estimated_value = estimatedValue ? parseFloat(estimatedValue) : undefined;
     if (condition) listing.condition = condition;
     if (available !== undefined) listing.available = available === 'true' || available === true;
 

@@ -5,6 +5,8 @@ import Register from './pages/Register.vue'
 import Messages from './pages/Messages.vue'
 import BrowseItems from './pages/BrowseItems.vue'
 import CreateListing from './pages/CreateListing.vue'
+import MyListings from './pages/MyListings.vue'
+import UpdateListing from './pages/UpdateListing.vue'
 
 // Static pages
 import AboutUs from './pages/static/AboutUs.vue'
@@ -48,6 +50,18 @@ const routes = [
     path: '/create-listing',
     name: 'CreateListing',
     component: CreateListing,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/my-listings',
+    name: 'MyListings',
+    component: MyListings,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/update-listing/:id',
+    name: 'UpdateListing',
+    component: UpdateListing,
     meta: { requiresAuth: true }
   },
   // Company
