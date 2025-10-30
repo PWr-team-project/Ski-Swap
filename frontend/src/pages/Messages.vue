@@ -175,14 +175,10 @@ onUnmounted(() => {
 
 <style scoped>
 .messages-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f5f5;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
 }
 
 .messages-container {
-  flex: 1;
   padding: 2rem;
   max-width: 1400px;
   width: 100%;
@@ -195,7 +191,7 @@ onUnmounted(() => {
   gap: 1.5rem;
   height: calc(100vh - 200px);
   background: white;
-  border-radius: 12px;
+  border-radius: 25px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }

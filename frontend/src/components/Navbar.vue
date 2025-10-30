@@ -68,14 +68,6 @@ const iconButtons = computed(() => {
   }
 })
 
-function buttonHover(event, hoverColor, originalColor) {
-  event.target.style.backgroundColor = hoverColor || originalColor
-}
-
-function buttonLeave(event, originalColor) {
-  event.target.style.backgroundColor = originalColor
-}
-
 function handleIconClick(action) {
   if (action === 'login') {
     router.push('/login')
@@ -117,9 +109,6 @@ function handleLogout() {
       <div v-for="button in iconButtons" :key="button.id" class="icon-wrapper">
         <button
           class="icon-button"
-          :style="{ backgroundColor: button.color }"
-          @mouseover="(e) => buttonHover(e, button.hoverColor, button.color)"
-          @mouseleave="(e) => buttonLeave(e, button.color)"
           @click="handleIconClick(button.action)"
         >
           <img v-if="button.imgSrc" :src="button.imgSrc" :alt="button.alt" class="icon-img" />
@@ -219,18 +208,25 @@ function handleLogout() {
 
 .icon-button {
   border: none;
-  border-radius: 50%;
+  background: transparent;
   padding: 0.4rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  border-radius: 20px;
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
 }
 
 .icon-img {
   width: 36px;
   height: 36px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .login-button {
