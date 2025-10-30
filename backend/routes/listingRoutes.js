@@ -7,6 +7,7 @@ const Listing = require('../models/Listing');
 const Category = require('../models/Category');
 const Location = require('../models/Location');
 const jwt = require('jsonwebtoken');
+const {auth, isAdmin} = require('../middleware/auth');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/listings');
@@ -47,23 +48,6 @@ const upload = multer({
   }
 });
 
-// Auth middleware
-const authMiddleware = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-};
-
 // Get all categories
 router.get('/categories', async (req, res) => {
   try {
@@ -76,7 +60,7 @@ router.get('/categories', async (req, res) => {
 });
 
 // Create a new listing
-router.post('/create', authMiddleware, upload.array('photos', 10), async (req, res) => {
+router.post('/create', auth, upload.array('photos', 10), async (req, res) => {
   try {
     const {
       title,
@@ -136,7 +120,7 @@ router.post('/create', authMiddleware, upload.array('photos', 10), async (req, r
 
     // Create listing
     const listing = new Listing({
-      owner_id: req.userId,
+      owner_id: req.user.userId,
       title,
       description,
       photos,
@@ -170,9 +154,9 @@ router.post('/create', authMiddleware, upload.array('photos', 10), async (req, r
 });
 
 // Get user's own listings (must come BEFORE /:id route)
-router.get('/my/listings', authMiddleware, async (req, res) => {
+router.get('/my/listings', auth, async (req, res) => {
   try {
-    const listings = await Listing.find({ owner_id: req.userId })
+    const listings = await Listing.find({ owner_id: req.user.userId })
       .populate('category_id', 'name')
       .populate('location_id')
       .sort({ createdAt: -1 });
@@ -220,7 +204,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update a listing
-router.put('/:id', authMiddleware, upload.array('photos', 10), async (req, res) => {
+router.put('/:id', auth, upload.array('photos', 10), async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
 
@@ -229,7 +213,7 @@ router.put('/:id', authMiddleware, upload.array('photos', 10), async (req, res) 
     }
 
     // Check if user is the owner
-    if (listing.owner_id.toString() !== req.userId) {
+    if (listing.owner_id.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'Not authorized to update this listing' });
     }
 
@@ -292,7 +276,7 @@ router.put('/:id', authMiddleware, upload.array('photos', 10), async (req, res) 
 });
 
 // Delete a listing
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
 
@@ -301,7 +285,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     // Check if user is the owner
-    if (listing.owner_id.toString() !== req.userId) {
+    if (listing.owner_id.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'Not authorized to delete this listing' });
     }
 

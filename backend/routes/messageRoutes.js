@@ -7,6 +7,7 @@ const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const {auth, isAdmin} = require('../middleware/auth');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/messages');
@@ -41,28 +42,11 @@ const upload = multer({
   }
 });
 
-// Auth middleware
-const authMiddleware = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-};
-
 // Get all conversations for the logged-in user
-router.get('/conversations', authMiddleware, async (req, res) => {
+router.get('/conversations', auth, async (req, res) => {
   try {
     const conversations = await Conversation.find({
-      participants: req.userId
+      participants: req.user.userId
     })
       .populate('participants', 'nickname first_name last_name profile_photo')
       .populate({
@@ -73,12 +57,12 @@ router.get('/conversations', authMiddleware, async (req, res) => {
 
     // Format conversations for frontend
     const formattedConversations = await Promise.all(conversations.map(async (conv) => {
-      const otherUser = conv.participants.find(p => p._id.toString() !== req.userId);
+      const otherUser = conv.participants.find(p => p._id.toString() !== req.user.userId);
 
       // Count unread messages
       const unreadCount = await Message.countDocuments({
         sender_id: otherUser._id,
-        receiver_id: req.userId,
+        receiver_id: req.user.userId,
         is_read: false
       });
 
@@ -108,7 +92,7 @@ router.get('/conversations', authMiddleware, async (req, res) => {
 });
 
 // Get messages for a specific conversation
-router.get('/conversation/:conversationId', authMiddleware, async (req, res) => {
+router.get('/conversation/:conversationId', auth, async (req, res) => {
   try {
     const { conversationId } = req.params;
 
@@ -119,18 +103,18 @@ router.get('/conversation/:conversationId', authMiddleware, async (req, res) => 
     }
 
     // Check if user is a participant
-    if (!conversation.isParticipant(req.userId)) {
+    if (!conversation.isParticipant(req.user.userId)) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
     // Get other participant
-    const otherUserId = conversation.participants.find(p => p.toString() !== req.userId);
+    const otherUserId = conversation.participants.find(p => p.toString() !== req.user.userId);
 
     // Find all messages between these two users
     const messages = await Message.find({
       $or: [
-        { sender_id: req.userId, receiver_id: otherUserId },
-        { sender_id: otherUserId, receiver_id: req.userId }
+        { sender_id: req.user.userId, receiver_id: otherUserId },
+        { sender_id: otherUserId, receiver_id: req.user.userId }
       ],
       deleted_by_sender: false,
       deleted_by_receiver: false
@@ -143,7 +127,7 @@ router.get('/conversation/:conversationId', authMiddleware, async (req, res) => 
     await Message.updateMany(
       {
         sender_id: otherUserId,
-        receiver_id: req.userId,
+        receiver_id: req.user.userId,
         is_read: false
       },
       {
@@ -181,7 +165,7 @@ try {
 }
 
 // Send a message
-router.post('/send', authMiddleware, upload.single('image'), async (req, res) => {
+router.post('/send', auth, upload.single('image'), async (req, res) => {
   try {
     const { conversationId, content, receiverId } = req.body;
     let conversation;
@@ -194,18 +178,18 @@ router.post('/send', authMiddleware, upload.single('image'), async (req, res) =>
         return res.status(404).json({ message: 'Conversation not found' });
       }
 
-      if (!conversation.isParticipant(req.userId)) {
+      if (!conversation.isParticipant(req.user.userId)) {
         return res.status(403).json({ message: 'Access denied' });
       }
     } else if (receiverId) {
       // Create or find conversation
       conversation = await Conversation.findOne({
-        participants: { $all: [req.userId, receiverId] }
+        participants: { $all: [req.user.userId, receiverId] }
       });
 
       if (!conversation) {
         conversation = new Conversation({
-          participants: [req.userId, receiverId]
+          participants: [req.user.userId, receiverId]
         });
         await conversation.save();
       }
@@ -214,7 +198,7 @@ router.post('/send', authMiddleware, upload.single('image'), async (req, res) =>
     }
 
     // Get receiver ID
-    const receiverUserId = conversation.participants.find(p => p.toString() !== req.userId);
+    const receiverUserId = conversation.participants.find(p => p.toString() !== req.user.userId);
 
     // Validate message has content or image
     if (!content && !req.file) {
@@ -223,7 +207,7 @@ router.post('/send', authMiddleware, upload.single('image'), async (req, res) =>
 
     // Create message
     const newMessage = new Message({
-      sender_id: req.userId,
+      sender_id: req.user.userId,
       receiver_id: receiverUserId,
       message_text: content || '',
       attachment: req.file ? req.file.path : null,
@@ -266,7 +250,7 @@ router.post('/send', authMiddleware, upload.single('image'), async (req, res) =>
 });
 
 // Start a new conversation
-router.post('/start-conversation', authMiddleware, async (req, res) => {
+router.post('/start-conversation', auth, async (req, res) => {
   try {
     const { receiverId } = req.body;
 
@@ -282,19 +266,19 @@ router.post('/start-conversation', authMiddleware, async (req, res) => {
 
     // Check if conversation already exists
     let conversation = await Conversation.findOne({
-      participants: { $all: [req.userId, receiverId] }
+      participants: { $all: [req.user.userId, receiverId] }
     });
 
     if (!conversation) {
       conversation = new Conversation({
-        participants: [req.userId, receiverId]
+        participants: [req.user.userId, receiverId]
       });
       await conversation.save();
     }
 
     await conversation.populate('participants', 'nickname first_name last_name profile_photo');
 
-    const otherUser = conversation.participants.find(p => p._id.toString() !== req.userId);
+    const otherUser = conversation.participants.find(p => p._id.toString() !== req.user.userId);
 
     res.status(201).json({
       conversation: {
