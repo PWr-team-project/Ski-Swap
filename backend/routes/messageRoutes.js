@@ -7,6 +7,7 @@ const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const {auth, isAdmin} = require('../middleware/auth');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/messages');
@@ -41,25 +42,8 @@ const upload = multer({
   }
 });
 
-// Auth middleware
-const authMiddleware = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-};
-
 // Get all conversations for the logged-in user
-router.get('/conversations', authMiddleware, async (req, res) => {
+router.get('/conversations', auth, async (req, res) => {
   try {
     const conversations = await Conversation.find({
       participants: req.userId
@@ -108,7 +92,7 @@ router.get('/conversations', authMiddleware, async (req, res) => {
 });
 
 // Get messages for a specific conversation
-router.get('/conversation/:conversationId', authMiddleware, async (req, res) => {
+router.get('/conversation/:conversationId', auth, async (req, res) => {
   try {
     const { conversationId } = req.params;
 
@@ -181,7 +165,7 @@ try {
 }
 
 // Send a message
-router.post('/send', authMiddleware, upload.single('image'), async (req, res) => {
+router.post('/send', auth, upload.single('image'), async (req, res) => {
   try {
     const { conversationId, content, receiverId } = req.body;
     let conversation;
@@ -266,7 +250,7 @@ router.post('/send', authMiddleware, upload.single('image'), async (req, res) =>
 });
 
 // Start a new conversation
-router.post('/start-conversation', authMiddleware, async (req, res) => {
+router.post('/start-conversation', auth, async (req, res) => {
   try {
     const { receiverId } = req.body;
 
