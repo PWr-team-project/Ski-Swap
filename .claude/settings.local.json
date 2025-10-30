@@ -5,7 +5,8 @@
       "Bash(dir \"C:\\Users\\Patryk\\Documents\\GitHub\\Ski-Swap\\frontend\\src\\services\")",
       "Bash(npm run dev:*)",
       "Bash(netstat:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(node scripts/populateListings.js:*)"
     ],
     "deny": [],
     "ask": []

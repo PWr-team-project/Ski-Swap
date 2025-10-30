@@ -95,8 +95,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 import Carousel from '../components/Carousel.vue';
 import WhyChooseSection from '../components/WhyChooseSection.vue';
 
@@ -107,135 +108,49 @@ const startDate = ref('');
 const endDate = ref('');
 const showDatePicker = ref(false);
 
-// Sample data for carousels
-const skisItems = ref([
-  {
-    id: 1,
-    category: 'Skis',
-    name: 'K2 Mindbender 99Ti Skis',
-    price: 45,
-    location: 'Aspen, CO',
-    image: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=300&fit=crop'
-  },
-  {
-    id: 2,
-    category: 'Skis',
-    name: 'Rossignol Experience 88 Ti',
-    price: 50,
-    location: 'Jackson Hole, WY',
-    image: 'https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=400&h=300&fit=crop'
-  },
-  {
-    id: 3,
-    category: 'Skis',
-    name: 'Atomic Maverick 95',
-    price: 42,
-    location: 'Park City, UT',
-    image: 'https://images.unsplash.com/photo-1551524164-687a55dd1126?w=400&h=300&fit=crop'
-  },
-  {
-    id: 4,
-    category: 'Skis',
-    name: 'Salomon QST 92',
-    price: 48,
-    location: 'Vail, CO',
-    image: 'https://images.unsplash.com/photo-1609390621955-48e37fe2d7de?w=400&h=300&fit=crop'
-  },
-  {
-    id: 5,
-    category: 'Skis',
-    name: 'Blizzard Rustler 10',
-    price: 55,
-    location: 'Whistler, BC',
-    image: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=400&h=300&fit=crop'
-  }
-]);
+// Real data from API
+const skisItems = ref([]);
+const snowboardsItems = ref([]);
+const accessoriesItems = ref([]);
 
-const snowboardsItems = ref([
-  {
-    id: 6,
-    category: 'Snowboards',
-    name: 'Burton Custom X',
-    price: 40,
-    location: 'Breckenridge, CO',
-    image: 'https://images.unsplash.com/photo-1608447272409-a46ab38c6c90?w=400&h=300&fit=crop'
-  },
-  {
-    id: 7,
-    category: 'Snowboards',
-    name: 'Lib Tech T.Rice Pro',
-    price: 45,
-    location: 'Tahoe, CA',
-    image: 'https://images.unsplash.com/photo-1519315901367-dd6f52257273?w=400&h=300&fit=crop'
-  },
-  {
-    id: 8,
-    category: 'Snowboards',
-    name: 'Jones Mountain Twin',
-    price: 38,
-    location: 'Steamboat, CO',
-    image: 'https://images.unsplash.com/photo-1579189214311-f8e0f0f8f9f5?w=400&h=300&fit=crop'
-  },
-  {
-    id: 9,
-    category: 'Snowboards',
-    name: 'Capita DOA',
-    price: 42,
-    location: 'Big Sky, MT',
-    image: 'https://images.unsplash.com/photo-1600362834097-1c1c4a212024?w=400&h=300&fit=crop'
-  },
-  {
-    id: 10,
-    category: 'Snowboards',
-    name: 'Ride Warpig',
-    price: 43,
-    location: 'Mammoth, CA',
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop'
-  }
-]);
+// Fetch listings from API
+const fetchListings = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/listings');
+    const listings = response.data.listings || [];
 
-const accessoriesItems = ref([
-  {
-    id: 11,
-    category: 'Accessories',
-    name: 'Smith I/O Mag Goggles',
-    price: 15,
-    location: 'Aspen, CO',
-    image: 'https://images.unsplash.com/photo-1605606274249-2e41f6e8a5b0?w=400&h=300&fit=crop'
-  },
-  {
-    id: 12,
-    category: 'Accessories',
-    name: 'POC Obex SPIN Helmet',
-    price: 12,
-    location: 'Park City, UT',
-    image: 'https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=400&h=300&fit=crop'
-  },
-  {
-    id: 13,
-    category: 'Accessories',
-    name: 'Black Diamond Poles',
-    price: 8,
-    location: 'Jackson Hole, WY',
-    image: 'https://images.unsplash.com/photo-1483381719261-1d24c6f0f7b0?w=400&h=300&fit=crop'
-  },
-  {
-    id: 14,
-    category: 'Accessories',
-    name: 'Burton Backpack 25L',
-    price: 10,
-    location: 'Vail, CO',
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=300&fit=crop'
-  },
-  {
-    id: 15,
-    category: 'Accessories',
-    name: 'Dakine Boot Bag',
-    price: 5,
-    location: 'Whistler, BC',
-    image: 'https://images.unsplash.com/photo-1585435465455-d1d0c66c5b7e?w=400&h=300&fit=crop'
+    // Transform listings to match carousel component format
+    const transformListing = (listing) => ({
+      id: listing._id,
+      category: listing.category_id?.name || 'Unknown',
+      name: listing.title,
+      price: listing.daily_rate,
+      location: `${listing.location_id?.city}, ${listing.location_id?.country}`,
+      image: listing.photos && listing.photos.length > 0
+        ? (listing.photos[0].startsWith('http') ? listing.photos[0] : `http://localhost:5000${listing.photos[0]}`)
+        : 'https://via.placeholder.com/400x300'
+    });
+
+    // Filter and populate each category
+    skisItems.value = listings
+      .filter(l => l.category_id?.name === 'Skis')
+      .map(transformListing)
+      .slice(0, 10);
+
+    snowboardsItems.value = listings
+      .filter(l => l.category_id?.name === 'Snowboards')
+      .map(transformListing)
+      .slice(0, 10);
+
+    accessoriesItems.value = listings
+      .filter(l => ['Accessories', 'Goggles', 'Helmets', 'Boots', 'Poles'].includes(l.category_id?.name))
+      .map(transformListing)
+      .slice(0, 10);
+
+  } catch (error) {
+    console.error('Error fetching listings:', error);
   }
-]);
+};
 
 // Computed 
 const dateRange = computed(() => {
@@ -273,9 +188,13 @@ const handleViewAll = (carouselId) => {
 };
 
 const handleItemClick = (item) => {
-  console.log('Item clicked:', item);
-  // TODO: Navigate to item detail page or show modal
+  router.push(`/listing/${item.id}`);
 };
+
+// Lifecycle
+onMounted(() => {
+  fetchListings();
+});
 </script>
 
 <style scoped>
