@@ -120,7 +120,7 @@ router.post('/create', auth, upload.array('photos', 10), async (req, res) => {
 
     // Create listing
     const listing = new Listing({
-      owner_id: req.user.userId,
+      owner_id: req.userId,
       title,
       description,
       photos,
@@ -156,7 +156,7 @@ router.post('/create', auth, upload.array('photos', 10), async (req, res) => {
 // Get user's own listings (must come BEFORE /:id route)
 router.get('/my/listings', auth, async (req, res) => {
   try {
-    const listings = await Listing.find({ owner_id: req.user.userId })
+    const listings = await Listing.find({ owner_id: req.userId })
       .populate('category_id', 'name')
       .populate('location_id')
       .sort({ createdAt: -1 });
@@ -213,7 +213,7 @@ router.put('/:id', auth, upload.array('photos', 10), async (req, res) => {
     }
 
     // Check if user is the owner
-    if (listing.owner_id.toString() !== req.user.userId) {
+    if (listing.owner_id.toString() !== req.userId) {
       return res.status(403).json({ message: 'Not authorized to update this listing' });
     }
 
@@ -285,7 +285,7 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     // Check if user is the owner
-    if (listing.owner_id.toString() !== req.user.userId) {
+    if (listing.owner_id.toString() !== req.userId) {
       return res.status(403).json({ message: 'Not authorized to delete this listing' });
     }
 
