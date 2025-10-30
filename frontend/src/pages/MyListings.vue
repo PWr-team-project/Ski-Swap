@@ -39,14 +39,14 @@
               :key="listing._id"
               class="listing-card"
             >
-              <div class="listing-image">
+              <div class="listing-image" @click="viewListing(listing._id)">
                 <img
                   :src="getImageUrl(listing.photos[0])"
                   :alt="listing.title"
                   @error="handleImageError"
                 />
               </div>
-              <div class="listing-info">
+              <div class="listing-info" @click="viewListing(listing._id)">
                 <h3 class="listing-title">{{ listing.title }}</h3>
                 <p class="listing-category">
                   {{ listing.category_id?.name || 'Unknown' }}
@@ -54,10 +54,10 @@
                 <p class="listing-price">${{ listing.daily_rate }}/day</p>
               </div>
               <div class="listing-actions">
-                <button @click="editListing(listing._id)" class="btn btn-edit">
+                <button @click.stop="editListing(listing._id)" class="btn btn-edit">
                   Edit
                 </button>
-                <button @click="hideListing(listing._id)" class="btn btn-hide">
+                <button @click.stop="hideListing(listing._id)" class="btn btn-hide">
                   Hide
                 </button>
               </div>
@@ -83,7 +83,7 @@
               :key="listing._id"
               class="listing-card inactive"
             >
-              <div class="listing-image">
+              <div class="listing-image" @click="viewListing(listing._id)">
                 <img
                   :src="getImageUrl(listing.photos[0])"
                   :alt="listing.title"
@@ -93,7 +93,7 @@
                   <span class="inactive-badge">HIDDEN</span>
                 </div>
               </div>
-              <div class="listing-info">
+              <div class="listing-info" @click="viewListing(listing._id)">
                 <h3 class="listing-title">{{ listing.title }}</h3>
                 <p class="listing-category">
                   {{ listing.category_id?.name || 'Unknown' }}
@@ -101,10 +101,10 @@
                 <p class="listing-price">${{ listing.daily_rate }}/day</p>
               </div>
               <div class="listing-actions">
-                <button @click="editListing(listing._id)" class="btn btn-edit">
+                <button @click.stop="editListing(listing._id)" class="btn btn-edit">
                   Edit
                 </button>
-                <button @click="publishListing(listing._id)" class="btn btn-publish">
+                <button @click.stop="publishListing(listing._id)" class="btn btn-publish">
                   Publish
                 </button>
               </div>
@@ -175,6 +175,10 @@ const fetchListings = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const viewListing = (listingId) => {
+  router.push(`/listing/${listingId}`);
 };
 
 const editListing = (listingId) => {
@@ -413,6 +417,7 @@ onMounted(() => {
   height: 250px;
   overflow: hidden;
   background: #f0f0f0;
+  cursor: pointer;
 }
 
 .listing-image img {
@@ -454,6 +459,7 @@ onMounted(() => {
 
 .listing-info {
   padding: 1.5rem;
+  cursor: pointer;
 }
 
 .listing-title {
