@@ -22,4 +22,7 @@ log/
 frontend/nul
 nul
 
+
+CLAUDE.md
 .claude/
+claude.json
