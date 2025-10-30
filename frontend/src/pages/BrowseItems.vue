@@ -1,7 +1,5 @@
 <template>
   <div class="browse-page">
-    <Navbar/>
-
     <!-- Main Content Section -->
     <div class="main-content">
       <!-- Page Header -->
@@ -178,20 +176,20 @@
       </div>
     </div>
 
-    <Footer/>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import Navbar from '../components/Navbar.vue';
-import Footer from '../components/Footer.vue';
+import { ref, computed } from 'vue';
+import { useRoute } from 'vue-router';
 
-// Search Parameters (can be pre-filled from route params or query)
+const route = useRoute();
+
+// Search Parameters (populated from route query parameters)
 const searchParams = ref({
-  location: 'Wroclaw, Poland',
-  startDate: '2025-10-20',
-  endDate: '2025-10-13',
+  location: route.query.location || '',
+  startDate: route.query.startDate || '',
+  endDate: route.query.endDate || '',
   searchQuery: '',
   category: '',
   sortBy: 'recommended'
@@ -558,11 +556,7 @@ const handleItemClick = (item) => {
   // TODO: Navigate to item detail page
 };
 
-// Initialize with route params if available
-onMounted(() => {
-  // You can populate searchParams from route query params here
-  // Example: searchParams.value.location = route.query.location || '';
-});
+// Search parameters are automatically populated from route query on component initialization
 </script>
 
 <style scoped>

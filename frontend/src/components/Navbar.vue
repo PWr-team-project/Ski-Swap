@@ -68,28 +68,33 @@ const iconButtons = computed(() => {
   }
 })
 
-function buttonHover(event, hoverColor, originalColor) {
-  event.target.style.backgroundColor = hoverColor || originalColor
-}
-
-function buttonLeave(event, originalColor) {
-  event.target.style.backgroundColor = originalColor
-}
-
 function handleIconClick(action) {
   if (action === 'login') {
     router.push('/login')
   } else if (action === 'profile') {
     toggleProfileDropdown()
   } else if (action === 'messages') {
-    // Navigate to messages page (to be implemented)
-    console.log('Navigate to messages')
+    router.push('/messages')
   }
 }
 
 function handleCreateListing() {
-  // Navigate to create listing page (to be implemented)
-  console.log('Navigate to create listing')
+  router.push('/create-listing')
+}
+
+function handleMenuClick(action) {
+  closeProfileDropdown()
+  if (action === 'profile') {
+    router.push('/profile')
+  } else if (action === 'listings') {
+    // Navigate to user's listings page
+    // TODO: Create route for user listings
+    console.log('Navigate to my listings')
+  } else if (action === 'rentals') {
+    // Navigate to user's rentals page
+    // TODO: Create route for user rentals
+    console.log('Navigate to my rentals')
+  }
 }
 
 function handleLogout() {
@@ -119,9 +124,6 @@ function handleLogout() {
       <div v-for="button in iconButtons" :key="button.id" class="icon-wrapper">
         <button
           class="icon-button"
-          :style="{ backgroundColor: button.color }"
-          @mouseover="(e) => buttonHover(e, button.hoverColor, button.color)"
-          @mouseleave="(e) => buttonLeave(e, button.color)"
           @click="handleIconClick(button.action)"
         >
           <img v-if="button.imgSrc" :src="button.imgSrc" :alt="button.alt" class="icon-img" />
@@ -129,12 +131,42 @@ function handleLogout() {
 
         <!-- Profile dropdown - only show for profile button -->
         <div v-if="button.action === 'profile' && showProfileDropdown" class="profile-dropdown">
-          <div class="dropdown-header">
-            <p class="user-name">{{ currentUser?.nickname || 'User' }}</p>
-            <p class="user-email">{{ currentUser?.email || '' }}</p>
+          <!-- Profile Section - Clickable Header -->
+          <button @click="handleMenuClick('profile')" class="dropdown-header">
+            <div class="profile-avatar">
+              <img
+                v-if="currentUser?.profile_photo"
+                :src="currentUser.profile_photo"
+                alt="Profile"
+                class="avatar-img"
+              />
+              <div v-else class="avatar-placeholder">
+                {{ (currentUser?.nickname || 'U')[0].toUpperCase() }}
+              </div>
+            </div>
+            <div class="profile-info">
+              <p class="user-name">My Profile</p>
+              <p class="user-email">{{ currentUser?.email || '' }}</p>
+            </div>
+          </button>
+
+          <!-- Menu Items -->
+          <div class="dropdown-menu">
+            <button @click="handleMenuClick('listings')" class="menu-item">
+              <img src="/assets/images/listings_icon.png" alt="Listings" class="menu-icon-img" />
+              <span class="menu-text">Listings</span>
+            </button>
+
+            <button @click="handleMenuClick('rentals')" class="menu-item">
+              <img src="/assets/images/bookings_icon.png" alt="Rentals" class="menu-icon-img" />
+              <span class="menu-text">Rentals</span>
+            </button>
           </div>
+
           <div class="dropdown-divider"></div>
+
           <button @click="handleLogout" class="logout-button">
+            <img src="/assets/images/logout_icon.png" alt="Logout" class="logout-icon-img" />
             <span>Logout</span>
           </button>
         </div>
@@ -221,18 +253,25 @@ function handleLogout() {
 
 .icon-button {
   border: none;
-  border-radius: 50%;
+  background: transparent;
   padding: 0.4rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  border-radius: 20px;
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
 }
 
 .icon-img {
   width: 36px;
   height: 36px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .login-button {
@@ -262,7 +301,7 @@ function handleLogout() {
   background-color: white;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  min-width: 220px;
+  min-width: 260px;
   z-index: 1000;
   overflow: hidden;
   animation: slideDown 0.2s ease-out;
@@ -280,27 +319,118 @@ function handleLogout() {
 }
 
 .dropdown-header {
+  width: 100%;
   padding: 1rem;
-  background-color: #f8f9fa;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-align: left;
+}
+
+.dropdown-header:hover {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+}
+
+.profile-avatar {
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #00AAFF;
+}
+
+.avatar-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #00AAFF;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border: 2px solid #00AAFF;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .user-name {
   font-weight: 600;
   font-size: 1rem;
-  color: #333;
+  color: #1a1a1a;
   margin: 0 0 0.25rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-email {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #666;
   margin: 0;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dropdown-divider {
   height: 1px;
   background-color: #e0e0e0;
+  margin: 0;
+}
+
+.dropdown-menu {
+  padding: 0.5rem 0;
+}
+
+.menu-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: white;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.menu-icon {
+  font-size: 1.25rem;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-icon-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.menu-text {
+  flex: 1;
 }
 
 .logout-button {
@@ -311,12 +441,29 @@ function handleLogout() {
   text-align: left;
   cursor: pointer;
   transition: background-color 0.2s;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   color: #d32f2f;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .logout-button:hover {
-  background-color: #f5f5f5;
+  background-color: #ffebee;
+}
+
+.logout-icon {
+  font-size: 1.25rem;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-icon-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 </style>

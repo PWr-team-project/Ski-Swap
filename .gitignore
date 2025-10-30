@@ -19,3 +19,5 @@ log/
 *.sublime-workspace
 *.sublime-project
 .vs/
+frontend/nul
+nul

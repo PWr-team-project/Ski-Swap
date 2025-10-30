@@ -16,7 +16,7 @@
         </p>
 
         <!-- Login Form -->
-        <form @submit.prevent="handleLogin" class="login-form">
+        <form @submit.prevent="handleLogin" class="login-form" autocomplete="off">
           <div class="form-group">
             <label for="email">Email</label>
             <input
@@ -24,7 +24,7 @@
               v-model="email"
               type="email"
               placeholder="Enter your email"
-              autocomplete="off"
+              autocomplete="new-email"
               required
               class="form-input"
             />
@@ -37,7 +37,7 @@
               v-model="password"
               type="password"
               placeholder="Enter your password"
-              autocomplete="off"
+              autocomplete="new-password"
               required
               class="form-input"
             />

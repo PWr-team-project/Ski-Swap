@@ -1,7 +1,5 @@
 <template>
   <div class="create-listing-page">
-    <Navbar/>
-
     <div class="main-content">
       <!-- Page Header -->
       <div class="page-header">
@@ -49,16 +47,63 @@
           </div>
         </div>
 
-        <!-- 3. Description -->
+        <!-- 3. Item Details -->
         <div class="form-section">
           <div class="section-header">
             <span class="section-number">3</span>
+            <h2 class="section-title">Item Details</h2>
+          </div>
+          <div class="details-grid">
+            <div class="input-wrapper">
+              <label class="input-label">Brand (Optional)</label>
+              <input
+                type="text"
+                v-model="listingData.brand"
+                placeholder="e.g., K2, Burton, Rossignol"
+                class="text-input"
+              />
+            </div>
+            <div class="input-wrapper">
+              <label class="input-label">Model (Optional)</label>
+              <input
+                type="text"
+                v-model="listingData.model"
+                placeholder="e.g., Mindbender 99Ti"
+                class="text-input"
+              />
+            </div>
+            <div class="input-wrapper">
+              <label class="input-label">Size (Optional)</label>
+              <input
+                type="text"
+                v-model="listingData.size"
+                placeholder="e.g., 180cm, XL, 10.5"
+                class="text-input"
+              />
+            </div>
+            <div class="input-wrapper">
+              <label class="input-label">Condition</label>
+              <select v-model="listingData.condition" class="text-input">
+                <option value="new">New</option>
+                <option value="like new">Like New</option>
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="used">Used</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Description -->
+        <div class="form-section">
+          <div class="section-header">
+            <span class="section-number">4</span>
             <h2 class="section-title">Description</h2>
           </div>
           <div class="input-wrapper">
             <textarea
               v-model="listingData.description"
-              placeholder="Describe your item, its condition, size, and any important details..."
+              placeholder="Describe your item, its condition, any important details..."
               maxlength="400"
               rows="6"
               class="textarea-input"
@@ -67,10 +112,10 @@
           </div>
         </div>
 
-        <!-- 4. Upload Photos -->
+        <!-- 5. Upload Photos -->
         <div class="form-section">
           <div class="section-header">
-            <span class="section-number">4</span>
+            <span class="section-number">5</span>
             <h2 class="section-title">Upload Photos</h2>
           </div>
           <p class="section-note">First photo will be your main listing image</p>
@@ -103,10 +148,10 @@
           </div>
         </div>
 
-        <!-- 5. Pricing -->
+        <!-- 6. Pricing -->
         <div class="form-section">
           <div class="section-header">
-            <span class="section-number">5</span>
+            <span class="section-number">6</span>
             <h2 class="section-title">Set Your Price</h2>
           </div>
           <p class="section-note" v-if="suggestedPrice">
@@ -164,10 +209,10 @@
           </div>
         </div>
 
-        <!-- 6. Location -->
+        <!-- 7. Location -->
         <div class="form-section">
           <div class="section-header">
-            <span class="section-number">6</span>
+            <span class="section-number">7</span>
             <h2 class="section-title">Item Location</h2>
           </div>
           <div class="input-wrapper">
@@ -181,10 +226,10 @@
           </div>
         </div>
 
-        <!-- 7. Estimated Value -->
+        <!-- 8. Estimated Value -->
         <div class="form-section">
           <div class="section-header">
-            <span class="section-number">7</span>
+            <span class="section-number">8</span>
             <h2 class="section-title">Estimated Value</h2>
           </div>
           <p class="section-note">Enter the approximate retail value of your item</p>
@@ -210,15 +255,17 @@
         </div>
       </div>
     </div>
-
-    <Footer/>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import Navbar from '../components/Navbar.vue';
-import Footer from '../components/Footer.vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/authStore';
+import axios from 'axios';
+
+const router = useRouter();
+const authStore = useAuthStore();
 
 // Categories
 const categories = [
@@ -247,7 +294,12 @@ const listingData = ref({
   category: '',
   title: '',
   description: '',
+  brand: '',
+  model: '',
+  size: '',
+  condition: 'good',
   photos: [],
+  photoFiles: [], // Store actual file objects
   pricing: {
     daily: null,
     weekly: null,
@@ -290,6 +342,10 @@ const handlePhotoUpload = (event) => {
   const filesToAdd = files.slice(0, remainingSlots);
 
   filesToAdd.forEach((file) => {
+    // Store the actual file object
+    listingData.value.photoFiles.push(file);
+
+    // Create preview URL
     const reader = new FileReader();
     reader.onload = (e) => {
       listingData.value.photos.push(e.target.result);
@@ -300,19 +356,67 @@ const handlePhotoUpload = (event) => {
 
 const removePhoto = (index) => {
   listingData.value.photos.splice(index, 1);
+  listingData.value.photoFiles.splice(index, 1);
 };
 
-const createListing = () => {
+const createListing = async () => {
   if (!isFormValid.value) {
     alert('Please fill in all required fields');
     return;
   }
 
-  console.log('Creating listing:', listingData.value);
-  alert('Listing created successfully! (This is a demo)');
+  try {
+    const token = authStore.token;
+    if (!token) {
+      alert('You must be logged in to create a listing');
+      router.push('/login');
+      return;
+    }
 
-  // In production, this would be an API call
-  // Then redirect to the listing page or browse page
+    // Parse location (simple implementation - in production, use a proper geocoding API)
+    const locationParts = listingData.value.location.split(',').map(s => s.trim());
+    const city = locationParts[0] || 'Unknown';
+    const country = locationParts[locationParts.length - 1] || 'Unknown';
+    const state = locationParts.length > 2 ? locationParts[1] : '';
+
+    // Create FormData for multipart/form-data
+    const formData = new FormData();
+    formData.append('title', listingData.value.title);
+    formData.append('description', listingData.value.description);
+    formData.append('category', listingData.value.category);
+    formData.append('brand', listingData.value.brand || '');
+    formData.append('model', listingData.value.model || '');
+    formData.append('size', listingData.value.size || '');
+    formData.append('dailyRate', listingData.value.pricing.daily);
+    formData.append('condition', listingData.value.condition);
+    formData.append('city', city);
+    formData.append('state', state);
+    formData.append('country', country);
+    // Default coordinates (in production, use geocoding API)
+    formData.append('latitude', '51.1079');
+    formData.append('longitude', '17.0385');
+
+    // Append all photos
+    listingData.value.photoFiles.forEach((file) => {
+      formData.append('photos', file);
+    });
+
+    const response = await axios.post('http://localhost:5000/api/listings/create', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    alert('Listing created successfully!');
+    console.log('Created listing:', response.data);
+
+    // Redirect to browse page or listing detail
+    router.push('/browse');
+  } catch (error) {
+    console.error('Error creating listing:', error);
+    alert(error.response?.data?.message || 'Failed to create listing. Please try again.');
+  }
 };
 </script>
 
@@ -464,9 +568,30 @@ const createListing = () => {
   color: white;
 }
 
+/* Details Grid */
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Text Inputs */
 .input-wrapper {
   position: relative;
+}
+
+.input-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
 }
 
 .text-input {

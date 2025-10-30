@@ -1,10 +1,26 @@
 <script setup>
-// Router will handle page navigation
+import Navbar from './components/Navbar.vue'
+import Footer from './components/Footer.vue'
 </script>
 
 <template>
-  <router-view />
+  <div class="app-container">
+    <Navbar />
+    <main class="main-content">
+      <router-view />
+    </main>
+    <Footer />
+  </div>
 </template>
 
 <style scoped>
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+}
 </style>
