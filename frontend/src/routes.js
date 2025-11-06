@@ -9,6 +9,7 @@ import MyListings from './pages/MyListings.vue'
 import UpdateListing from './pages/UpdateListing.vue'
 import GoogleAuthCallback from './pages/GoogleAuthCallback.vue'
 import SingleListing from './pages/SingleListing.vue'
+import ProfileSettings from './pages/ProfileSettings.vue'
 
 // Static pages
 import AboutUs from './pages/static/AboutUs.vue'
@@ -75,6 +76,12 @@ const routes = [
     path: '/listing/:id',
     name: 'SingleListing',
     component: SingleListing
+  },
+  {
+    path: '/profile-settings',
+    name: 'ProfileSettings',
+    component: ProfileSettings,
+    meta: { requiresAuth: true }
   },
   // Company
   {

@@ -3,7 +3,45 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const User = require('../models/User');
+const { auth } = require('../middleware/auth');
+
+// Create uploads directory for profile photos
+const uploadsDir = path.join(__dirname, '../uploads/profiles');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for profile photo uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedExtensions = /jpeg|jpg|png|gif|webp/i;
+    const allowedMimeTypes = /image\/(jpeg|jpg|png|gif|webp)/i;
+    const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.test(file.mimetype);
+
+    if (mimetype || extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
 
 // Register route
 router.post(
@@ -197,6 +235,164 @@ router.get('/verify', async (req, res) => {
     }
     console.error('Token verification error:', error);
     res.status(500).json({ message: 'Server error', authenticated: false });
+  }
+});
+
+// Update profile route (with photo upload)
+router.put('/profile', auth, upload.single('profile_photo'), async (req, res) => {
+  try {
+    const { first_name, last_name, phone_number, address } = req.body;
+    const userId = req.userId;
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update fields
+    if (first_name) user.first_name = first_name;
+    if (last_name) user.last_name = last_name;
+    if (phone_number !== undefined) user.phone_number = phone_number || null;
+    if (address !== undefined) user.address = address || null;
+
+    // Handle profile photo upload
+    if (req.file) {
+      // Delete old photo if it exists
+      if (user.profile_photo) {
+        const oldPhotoPath = path.join(__dirname, '..', user.profile_photo);
+        if (fs.existsSync(oldPhotoPath)) {
+          fs.unlinkSync(oldPhotoPath);
+        }
+      }
+      // Store relative path for serving via static middleware
+      user.profile_photo = `/uploads/profiles/${req.file.filename}`;
+    }
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        nickname: user.nickname,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        phone_number: user.phone_number,
+        address: user.address,
+        profile_photo: user.profile_photo,
+        user_type: user.user_type,
+        oauth_provider: user.oauth_provider
+      }
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ message: 'Server error during profile update' });
+  }
+});
+
+// Change password route
+router.put(
+  '/change-password',
+  auth,
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters')
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.userId;
+
+      // Find user
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Check if user is OAuth user
+      if (user.oauth_provider === 'google') {
+        return res.status(400).json({ message: 'Cannot change password for Google accounts' });
+      }
+
+      // Verify current password
+      const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+
+      // Check if new password is different from current
+      const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+      if (isSamePassword) {
+        return res.status(400).json({ message: 'New password must be different from current password' });
+      }
+
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      user.password_hash = await bcrypt.hash(newPassword, salt);
+
+      await user.save();
+
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      console.error('Password change error:', error);
+      res.status(500).json({ message: 'Server error during password change' });
+    }
+  }
+);
+
+// Delete account route
+router.delete('/account', auth, async (req, res) => {
+  try {
+    const { password } = req.body;
+    const userId = req.userId;
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // If not OAuth user, verify password
+    if (user.oauth_provider !== 'google') {
+      if (!password) {
+        return res.status(400).json({ message: 'Password is required' });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password_hash);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Incorrect password' });
+      }
+    }
+
+    // Delete profile photo if it exists
+    if (user.profile_photo) {
+      const photoPath = path.join(__dirname, '..', user.profile_photo);
+      if (fs.existsSync(photoPath)) {
+        fs.unlinkSync(photoPath);
+      }
+    }
+
+    // TODO: Delete related data (listings, messages, etc.)
+    // This should be handled based on your data model
+    // For example:
+    // await Listing.deleteMany({ user_id: userId });
+    // await Message.deleteMany({ sender_id: userId });
+    // await Conversation.deleteMany({ participants: userId });
+
+    // Delete user
+    await User.findByIdAndDelete(userId);
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Account deletion error:', error);
+    res.status(500).json({ message: 'Server error during account deletion' });
   }
 });
 

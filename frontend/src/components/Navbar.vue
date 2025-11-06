@@ -92,6 +92,8 @@ function handleMenuClick(action) {
     // Navigate to user's rentals page
     // TODO: Create route for user rentals
     console.log('Navigate to my rentals')
+  } else if (action === 'settings') {
+    router.push('/profile-settings')
   }
 }
 
@@ -158,6 +160,14 @@ function handleLogout() {
             <button @click="handleMenuClick('rentals')" class="menu-item">
               <img src="/assets/images/bookings_icon.png" alt="Rentals" class="menu-icon-img" />
               <span class="menu-text">Rentals</span>
+            </button>
+
+            <button @click="handleMenuClick('settings')" class="menu-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="menu-icon-svg">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6m-6-6h6m6 0h6M4.22 4.22l4.24 4.24m8.48 0l4.24-4.24M4.22 19.78l4.24-4.24m8.48 0l4.24 4.24"/>
+              </svg>
+              <span class="menu-text">Profile Settings</span>
             </button>
           </div>
 
@@ -425,6 +435,12 @@ function handleLogout() {
   width: 32px;
   height: 32px;
   object-fit: contain;
+}
+
+.menu-icon-svg {
+  width: 20px;
+  height: 20px;
+  color: #666;
 }
 
 .menu-text {

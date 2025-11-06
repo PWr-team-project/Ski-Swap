@@ -61,6 +61,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  address: {
+    type: String,
+    trim: true,
+    default: null
+  },
   profile_photo: {
     type: String, // URL or path to the image
     default: null
