@@ -274,6 +274,7 @@ const closeImageModal = () => {
   padding: 1.25rem 1.5rem;
   border-bottom: 2px solid #e0e0e0;
   background: white;
+  flex-shrink: 0;
 }
 
 .other-user-info {
@@ -326,6 +327,7 @@ const closeImageModal = () => {
   overflow-y: auto;
   padding: 1.5rem;
   background: #f9f9f9;
+  min-height: 0;
 }
 
 .loading-messages,

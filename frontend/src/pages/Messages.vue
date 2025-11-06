@@ -188,23 +188,26 @@ onUnmounted(() => {
 <style scoped>
 .messages-page {
   background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
+  min-height: calc(100vh - 140px);
+  padding: 2rem;
 }
 
 .messages-container {
-  padding: 2rem;
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
+  height: calc(100vh - 180px);
 }
 
 .messages-content {
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 1.5rem;
-  height: calc(100vh - 200px);
+  height: 100%;
   background: white;
   border-radius: 25px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 170, 255, 0.12);
+  border: 1px solid rgba(0, 170, 255, 0.1);
   overflow: hidden;
 }
 
@@ -236,13 +239,16 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .messages-content {
-    grid-template-columns: 1fr;
-    height: calc(100vh - 180px);
+  .messages-page {
+    padding: 1rem;
   }
 
   .messages-container {
-    padding: 1rem;
+    height: calc(100vh - 160px);
+  }
+
+  .messages-content {
+    grid-template-columns: 1fr;
   }
 }
 </style>

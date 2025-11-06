@@ -411,8 +411,8 @@ onMounted(() => {
   border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 170, 255, 0.1);
-  border: 1px solid rgba(0, 170, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 170, 255, 0.12);
+  border: 1px solid rgba(0, 170, 255, 0.15);
 }
 
 /* Location and Date Row */
@@ -693,16 +693,16 @@ onMounted(() => {
   background: white;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 170, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 170, 255, 0.12);
   transition: all 0.3s ease;
   cursor: pointer;
-  border: 1px solid rgba(0, 170, 255, 0.1);
+  border: 1px solid rgba(0, 170, 255, 0.15);
 }
 
 .item-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 12px 28px rgba(0, 170, 255, 0.25);
-  border-color: rgba(0, 170, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 12px 32px rgba(0, 170, 255, 0.3);
+  border-color: rgba(0, 170, 255, 0.4);
 }
 
 .item-image {

@@ -465,7 +465,8 @@ watch(() => route.params.id, () => {
   border-radius: 20px;
   padding: 2rem;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 170, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 170, 255, 0.15);
+  border: 1px solid rgba(0, 170, 255, 0.1);
 }
 
 .header-left {
@@ -512,7 +513,8 @@ watch(() => route.params.id, () => {
   border-radius: 20px;
   overflow: hidden;
   background: white;
-  box-shadow: 0 4px 20px rgba(0, 170, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 170, 255, 0.15);
+  border: 1px solid rgba(0, 170, 255, 0.1);
 }
 
 .main-photo img {
@@ -564,8 +566,8 @@ watch(() => route.params.id, () => {
   background: white;
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 170, 255, 0.1);
-  border: 1px solid rgba(0, 170, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 170, 255, 0.15);
+  border: 1px solid rgba(0, 170, 255, 0.15);
 }
 
 .price-display {
@@ -655,7 +657,8 @@ watch(() => route.params.id, () => {
   border-radius: 20px;
   padding: 2rem;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 170, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 170, 255, 0.15);
+  border: 1px solid rgba(0, 170, 255, 0.1);
 }
 
 .owner-header {
@@ -733,7 +736,8 @@ watch(() => route.params.id, () => {
   border-radius: 20px;
   padding: 2rem;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 170, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 170, 255, 0.15);
+  border: 1px solid rgba(0, 170, 255, 0.1);
 }
 
 .section-title {

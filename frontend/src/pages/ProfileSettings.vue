@@ -119,7 +119,8 @@ const tabs = [
 .settings-content {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 170, 255, 0.12);
+  border: 1px solid rgba(0, 170, 255, 0.1);
   overflow: hidden;
 }
 
