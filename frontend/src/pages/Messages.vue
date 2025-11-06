@@ -31,12 +31,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import ConversationList from '../components/messages/ConversationList.vue'
 import MessageThread from '../components/messages/MessageThread.vue'
 import socketService from '../services/socketService'
 import axios from 'axios'
 
+const route = useRoute()
 const authStore = useAuthStore()
 
 const conversations = ref([])
@@ -151,7 +153,7 @@ const setupSocketListeners = () => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
   // Connect to Socket.IO
   socketService.connect(authStore.user?.id)
 
@@ -159,7 +161,17 @@ onMounted(() => {
   setupSocketListeners()
 
   // Fetch initial data
-  fetchConversations()
+  await fetchConversations()
+
+  // Check if conversationId is in query params (from Contact Seller button)
+  if (route.query.conversationId) {
+    const conversationId = route.query.conversationId
+    // Check if conversation exists in the list
+    const conversation = conversations.value.find(c => c._id === conversationId)
+    if (conversation) {
+      await handleSelectConversation(conversationId)
+    }
+  }
 })
 
 onUnmounted(() => {
@@ -176,23 +188,26 @@ onUnmounted(() => {
 <style scoped>
 .messages-page {
   background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
+  min-height: calc(100vh - 140px);
+  padding: 2rem;
 }
 
 .messages-container {
-  padding: 2rem;
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
+  height: calc(100vh - 180px);
 }
 
 .messages-content {
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 1.5rem;
-  height: calc(100vh - 200px);
+  height: 100%;
   background: white;
   border-radius: 25px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 170, 255, 0.12);
+  border: 1px solid rgba(0, 170, 255, 0.1);
   overflow: hidden;
 }
 
@@ -224,13 +239,16 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .messages-content {
-    grid-template-columns: 1fr;
-    height: calc(100vh - 180px);
+  .messages-page {
+    padding: 1rem;
   }
 
   .messages-container {
-    padding: 1rem;
+    height: calc(100vh - 160px);
+  }
+
+  .messages-content {
+    grid-template-columns: 1fr;
   }
 }
 </style>

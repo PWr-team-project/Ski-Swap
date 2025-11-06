@@ -7,6 +7,7 @@ const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const {auth, isAdmin} = require('../middleware/auth');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/messages');
@@ -41,25 +42,8 @@ const upload = multer({
   }
 });
 
-// Auth middleware
-const authMiddleware = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-};
-
 // Get all conversations for the logged-in user
-router.get('/conversations', authMiddleware, async (req, res) => {
+router.get('/conversations', auth, async (req, res) => {
   try {
     const conversations = await Conversation.find({
       participants: req.userId
@@ -108,7 +92,7 @@ router.get('/conversations', authMiddleware, async (req, res) => {
 });
 
 // Get messages for a specific conversation
-router.get('/conversation/:conversationId', authMiddleware, async (req, res) => {
+router.get('/conversation/:conversationId', auth, async (req, res) => {
   try {
     const { conversationId } = req.params;
 
@@ -137,6 +121,14 @@ router.get('/conversation/:conversationId', authMiddleware, async (req, res) => 
     })
       .populate('sender_id', 'nickname first_name last_name profile_photo')
       .populate('receiver_id', 'nickname first_name last_name profile_photo')
+      .populate({
+        path: 'listing_id',
+        select: 'title daily_rate photos category_id location_id',
+        populate: [
+          { path: 'category_id', select: 'name' },
+          { path: 'location_id', select: 'city country' }
+        ]
+      })
       .sort({ sent_at: 1 });
 
     // Mark messages as read
@@ -153,17 +145,36 @@ router.get('/conversation/:conversationId', authMiddleware, async (req, res) => 
     );
 
     // Format messages for frontend
-    const formattedMessages = messages.map(msg => ({
-      _id: msg._id,
-      sender: {
-        _id: msg.sender_id._id,
-        nickname: msg.sender_id.nickname
-      },
-      content: msg.message_text,
-      image: msg.attachment ? `/uploads/messages/${path.basename(msg.attachment)}` : null,
-      createdAt: msg.sent_at,
-      read: msg.is_read
-    }));
+    const formattedMessages = messages.map(msg => {
+      const baseMessage = {
+        _id: msg._id,
+        sender: {
+          _id: msg.sender_id._id,
+          nickname: msg.sender_id.nickname
+        },
+        content: msg.message_text,
+        messageType: msg.message_type || 'text',
+        image: msg.attachment ? `/uploads/messages/${path.basename(msg.attachment)}` : null,
+        createdAt: msg.sent_at,
+        read: msg.is_read
+      };
+
+      // Add listing data if it's a listing inquiry
+      if (msg.message_type === 'listing_inquiry' && msg.listing_id) {
+        baseMessage.listing = {
+          _id: msg.listing_id._id,
+          title: msg.listing_id.title,
+          dailyRate: msg.listing_id.daily_rate,
+          photo: msg.listing_id.photos && msg.listing_id.photos.length > 0
+            ? (msg.listing_id.photos[0].startsWith('http') ? msg.listing_id.photos[0] : `http://localhost:5000${msg.listing_id.photos[0]}`)
+            : null,
+          category: msg.listing_id.category_id?.name || 'Unknown',
+          location: msg.listing_id.location_id ? `${msg.listing_id.location_id.city}, ${msg.listing_id.location_id.country}` : 'Unknown'
+        };
+      }
+
+      return baseMessage;
+    });
 
     res.json({ messages: formattedMessages });
   } catch (error) {
@@ -181,7 +192,7 @@ try {
 }
 
 // Send a message
-router.post('/send', authMiddleware, upload.single('image'), async (req, res) => {
+router.post('/send', auth, upload.single('image'), async (req, res) => {
   try {
     const { conversationId, content, receiverId } = req.body;
     let conversation;
@@ -266,7 +277,7 @@ router.post('/send', authMiddleware, upload.single('image'), async (req, res) =>
 });
 
 // Start a new conversation
-router.post('/start-conversation', authMiddleware, async (req, res) => {
+router.post('/start-conversation', auth, async (req, res) => {
   try {
     const { receiverId } = req.body;
 
@@ -313,6 +324,121 @@ router.post('/start-conversation', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Error starting conversation:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Start a conversation about a listing
+router.post('/start-listing-conversation', auth, async (req, res) => {
+  try {
+    const { listingId, sellerId } = req.body;
+
+    if (!listingId || !sellerId) {
+      return res.status(400).json({ message: 'listingId and sellerId are required' });
+    }
+
+    // Prevent user from messaging themselves
+    if (req.userId === sellerId) {
+      return res.status(400).json({ message: 'Cannot message yourself' });
+    }
+
+    // Check if seller exists
+    const seller = await User.findById(sellerId);
+    if (!seller) {
+      return res.status(404).json({ message: 'Seller not found' });
+    }
+
+    // Check if listing exists
+    const Listing = require('../models/Listing');
+    const listing = await Listing.findById(listingId)
+      .populate('category_id', 'name')
+      .populate('location_id', 'city country');
+
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    // Check if conversation already exists
+    let conversation = await Conversation.findOne({
+      participants: { $all: [req.userId, sellerId] }
+    });
+
+    if (!conversation) {
+      conversation = new Conversation({
+        participants: [req.userId, sellerId]
+      });
+      await conversation.save();
+    }
+
+    // Create the initial listing inquiry message
+    const initialMessage = new Message({
+      sender_id: req.userId,
+      receiver_id: sellerId,
+      message_text: `Hi! I'm interested in your listing: ${listing.title}`,
+      message_type: 'listing_inquiry',
+      listing_id: listingId,
+      sent_at: new Date()
+    });
+
+    await initialMessage.save();
+
+    // Update conversation
+    conversation.lastMessage = initialMessage._id;
+    conversation.lastMessageTime = initialMessage.sent_at;
+    await conversation.save();
+
+    // Populate sender info
+    await initialMessage.populate('sender_id', 'nickname first_name last_name profile_photo');
+    await initialMessage.populate('listing_id', 'title daily_rate photos');
+
+    // Populate conversation participants
+    await conversation.populate('participants', 'nickname first_name last_name profile_photo');
+
+    const otherUser = conversation.participants.find(p => p._id.toString() !== req.userId);
+
+    // Format the message
+    const formattedMessage = {
+      _id: initialMessage._id,
+      sender: {
+        _id: initialMessage.sender_id._id,
+        nickname: initialMessage.sender_id.nickname
+      },
+      content: initialMessage.message_text,
+      messageType: 'listing_inquiry',
+      listing: {
+        _id: listing._id,
+        title: listing.title,
+        dailyRate: listing.daily_rate,
+        photo: listing.photos && listing.photos.length > 0
+          ? (listing.photos[0].startsWith('http') ? listing.photos[0] : `http://localhost:5000${listing.photos[0]}`)
+          : null,
+        category: listing.category_id?.name || 'Unknown',
+        location: listing.location_id ? `${listing.location_id.city}, ${listing.location_id.country}` : 'Unknown'
+      },
+      createdAt: initialMessage.sent_at,
+      read: initialMessage.is_read
+    };
+
+    // Emit real-time event to conversation room
+    if (io) {
+      io.to(conversation._id.toString()).emit('message:received', formattedMessage);
+    }
+
+    res.status(201).json({
+      conversation: {
+        _id: conversation._id,
+        otherUser: {
+          _id: otherUser._id,
+          nickname: otherUser.nickname,
+          first_name: otherUser.first_name,
+          last_name: otherUser.last_name,
+          profile_photo: otherUser.profile_photo
+        }
+      },
+      message: formattedMessage
+    });
+  } catch (error) {
+    console.error('Error starting listing conversation:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

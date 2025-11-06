@@ -1,6 +1,7 @@
 <script setup>
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
+import ChatbotWidget from './components/ChatbotWidget.vue'
 </script>
 
 <template>
@@ -10,6 +11,7 @@ import Footer from './components/Footer.vue'
       <router-view />
     </main>
     <Footer />
+    <ChatbotWidget />
   </div>
 </template>
 

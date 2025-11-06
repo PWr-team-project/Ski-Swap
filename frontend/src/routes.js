@@ -7,6 +7,9 @@ import BrowseItems from './pages/BrowseItems.vue'
 import CreateListing from './pages/CreateListing.vue'
 import MyListings from './pages/MyListings.vue'
 import UpdateListing from './pages/UpdateListing.vue'
+import GoogleAuthCallback from './pages/GoogleAuthCallback.vue'
+import SingleListing from './pages/SingleListing.vue'
+import ProfileSettings from './pages/ProfileSettings.vue'
 
 // Static pages
 import AboutUs from './pages/static/AboutUs.vue'
@@ -42,6 +45,11 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/auth/google/success',
+    name: 'GoogleAuthCallback',
+    component: GoogleAuthCallback
+  },
+  {
     path: '/browse',
     name: 'BrowseItems',
     component: BrowseItems
@@ -62,6 +70,17 @@ const routes = [
     path: '/update-listing/:id',
     name: 'UpdateListing',
     component: UpdateListing,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/listing/:id',
+    name: 'SingleListing',
+    component: SingleListing
+  },
+  {
+    path: '/profile-settings',
+    name: 'ProfileSettings',
+    component: ProfileSettings,
     meta: { requiresAuth: true }
   },
   // Company

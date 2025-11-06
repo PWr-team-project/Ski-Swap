@@ -21,4 +21,5 @@ log/
 .vs/
 frontend/nul
 nul
-.claude/settings.local.json
+
+.claude/
