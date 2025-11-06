@@ -66,8 +66,8 @@
               <button class="request-button" :disabled="!canBook">
                 Send Request
               </button>
-              <button class="contact-button">
-                Contact Seller
+              <button class="contact-button" @click="handleContactSeller" :disabled="isOwner">
+                {{ isOwner ? 'Your Listing' : 'Contact Seller' }}
               </button>
             </div>
           </div>
@@ -151,12 +151,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/authStore'
 import axios from 'axios'
 import DateRangeCalendar from '../components/DateRangeCalendar.vue'
 import ListingCarousel from '../components/ListingCarousel.vue'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 // State
 const listing = ref(null)
@@ -241,7 +243,47 @@ const ownerRating = computed(() => {
   return listing.value?.owner?.rating || '5.0'
 })
 
+const isOwner = computed(() => {
+  return authStore.user?.id === listing.value?.owner?.id
+})
+
 // Methods
+const handleContactSeller = async () => {
+  if (!authStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+
+  if (isOwner.value) {
+    return
+  }
+
+  try {
+    const token = authStore.token
+    const response = await axios.post(
+      'http://localhost:5000/api/messages/start-listing-conversation',
+      {
+        listingId: listing.value.id,
+        sellerId: listing.value.owner.id
+      },
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    )
+
+    const { conversation } = response.data
+
+    // Redirect to messages page with the conversation
+    router.push({
+      path: '/messages',
+      query: { conversationId: conversation._id }
+    })
+  } catch (error) {
+    console.error('Error contacting seller:', error)
+    alert(error.response?.data?.message || 'Failed to contact seller')
+  }
+}
+
 const fetchListing = async () => {
   loading.value = true
   error.value = ''

@@ -31,12 +31,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import ConversationList from '../components/messages/ConversationList.vue'
 import MessageThread from '../components/messages/MessageThread.vue'
 import socketService from '../services/socketService'
 import axios from 'axios'
 
+const route = useRoute()
 const authStore = useAuthStore()
 
 const conversations = ref([])
@@ -151,7 +153,7 @@ const setupSocketListeners = () => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
   // Connect to Socket.IO
   socketService.connect(authStore.user?.id)
 
@@ -159,7 +161,17 @@ onMounted(() => {
   setupSocketListeners()
 
   // Fetch initial data
-  fetchConversations()
+  await fetchConversations()
+
+  // Check if conversationId is in query params (from Contact Seller button)
+  if (route.query.conversationId) {
+    const conversationId = route.query.conversationId
+    // Check if conversation exists in the list
+    const conversation = conversations.value.find(c => c._id === conversationId)
+    if (conversation) {
+      await handleSelectConversation(conversationId)
+    }
+  }
 })
 
 onUnmounted(() => {
