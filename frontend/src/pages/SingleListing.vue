@@ -11,18 +11,16 @@
     </div>
 
     <div v-else-if="listing" class="listing-content">
-      <!-- Header Section -->
-      <div class="listing-header">
-        <div class="header-left">
-          <h1 class="listing-title">{{ listing.title }}</h1>
-          <div class="category-badge">{{ listing.category }}</div>
-        </div>
-      </div>
-
       <!-- Main Content Grid -->
       <div class="main-grid">
-        <!-- Left Side: Photos -->
+        <!-- Left Side: Title & Photos -->
         <div class="photos-section">
+          <!-- Title Section -->
+          <div class="listing-header-compact">
+            <h1 class="listing-title">{{ listing.title }}</h1>
+            <div class="category-badge">{{ listing.category }}</div>
+          </div>
+
           <!-- Main Photo -->
           <div class="main-photo">
             <img :src="currentPhoto" :alt="listing.title" />
@@ -40,74 +38,83 @@
               <img :src="photo" :alt="`${listing.title} - Photo ${index + 1}`" />
             </div>
           </div>
+
+          <!-- Owner Business Card -->
+          <OwnerCard
+            :owner="ownerData"
+            :location="locationData"
+            :is-owner="isOwner"
+            @send-message="handleContactSeller"
+          />
+
+          <!-- Description Section -->
+          <div class="description-section-left">
+            <h2 class="section-title">Description</h2>
+            <p class="description-text">{{ listing.description }}</p>
+          </div>
         </div>
 
         <!-- Right Side: Calendar & Booking -->
         <div class="booking-section">
           <div class="booking-card">
-            <div class="price-display">
-              <span class="price-amount">${{ listing.dailyRate }}</span>
-              <span class="price-period">/day</span>
-            </div>
-
             <!-- Calendar Component -->
             <DateRangeCalendar v-model="selectedDates" />
 
-            <!-- Price Calculation -->
-            <div v-if="totalPrice > 0" class="price-breakdown">
-              <div class="breakdown-row">
-                <span>{{ rentalDays }} days</span>
-                <span>${{ totalPrice.toFixed(2) }}</span>
+            <!-- Selected Dates Display -->
+            <div class="selected-dates-display">
+              <div class="dates-row">
+                <div class="date-box">
+                  <div class="date-label">Pickup</div>
+                  <div class="date-value">{{ formatDate(selectedDates.pickupDate) || 'Select date' }}</div>
+                </div>
+                <div class="date-box">
+                  <div class="date-label">Drop off</div>
+                  <div class="date-value">{{ formatDate(selectedDates.dropoffDate) || 'Select date' }}</div>
+                </div>
+              </div>
+              <button @click="clearDates" class="clear-dates-button">Clear dates</button>
+            </div>
+
+            <!-- Price Calculation Display -->
+            <div class="total-price-display">
+              <div v-if="totalPrice > 0">
+                <div class="price-total">€{{ totalPrice.toFixed(2) }}</div>
+                <div class="price-details">for {{ rentalDays }} days (including {{ bookingFee }}€ booking fee)</div>
+              </div>
+              <div v-else>
+                <div class="price-placeholder">Select rental period</div>
+                <div class="price-details" style="visibility: hidden;">placeholder text for spacing</div>
               </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-              <button class="request-button" :disabled="!canBook">
-                Send Request
-              </button>
-              <button class="contact-button" @click="handleContactSeller" :disabled="isOwner">
-                {{ isOwner ? 'Your Listing' : 'Contact Seller' }}
-              </button>
+            <!-- Action Button -->
+            <button class="request-button" :disabled="!canBook">
+              Send Request
+            </button>
+
+            <!-- Price Display -->
+            <div class="price-display-bottom">
+              <div class="price-item">
+                <span class="price-label">Daily:</span>
+                <span class="price-value">${{ listing.dailyRate }}</span>
+              </div>
+              <div v-if="listing.weeklyRate" class="price-item">
+                <span class="price-label">Weekly:</span>
+                <span class="price-value">${{ listing.weeklyRate }}</span>
+              </div>
+              <div v-if="listing.monthlyRate" class="price-item">
+                <span class="price-label">Monthly:</span>
+                <span class="price-value">${{ listing.monthlyRate }}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Owner Business Card -->
-      <div class="owner-card">
-        <div class="owner-header">
-          <div class="owner-avatar">
-            <img :src="ownerAvatar" :alt="ownerName" />
-          </div>
-          <div class="owner-info">
-            <h3 class="owner-name">{{ ownerName }}</h3>
-            <div class="owner-badges">
-              <span class="verified-badge">✓ Verified</span>
-              <span class="member-badge">Member since {{ memberSince }}</span>
-            </div>
-            <div class="owner-stats">
-              <span class="stat-item">{{ ownerListingsCount }} listings</span>
-              <span class="stat-item">{{ ownerRating }} ★</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Description Section -->
-      <div class="description-section">
-        <h2 class="section-title">Description</h2>
-        <p class="description-text">{{ listing.description }}</p>
       </div>
 
       <!-- Properties Section -->
       <div class="properties-section">
         <h2 class="section-title">Item Details</h2>
         <div class="properties-grid">
-          <div class="property-item">
-            <span class="property-label">Category</span>
-            <span class="property-value">{{ listing.category }}</span>
-          </div>
           <div class="property-item" v-if="listing.brand">
             <span class="property-label">Brand</span>
             <span class="property-value">{{ listing.brand }}</span>
@@ -122,11 +129,7 @@
           </div>
           <div class="property-item">
             <span class="property-label">Condition</span>
-            <span class="property-value">{{ listing.condition }}</span>
-          </div>
-          <div class="property-item">
-            <span class="property-label">Location</span>
-            <span class="property-value">{{ listing.city }}, {{ listing.country }}</span>
+            <span class="property-value">{{ listing.condition.charAt(0).toUpperCase() + listing.condition.slice(1).toLowerCase() }}</span>
           </div>
         </div>
       </div>
@@ -155,6 +158,7 @@ import { useAuthStore } from '../stores/authStore'
 import axios from 'axios'
 import DateRangeCalendar from '../components/DateRangeCalendar.vue'
 import ListingCarousel from '../components/ListingCarousel.vue'
+import OwnerCard from '../components/OwnerCard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -211,36 +215,42 @@ const totalPrice = computed(() => {
   return price
 })
 
+const bookingFee = computed(() => {
+  if (totalPrice.value === 0) return 0
+  return Math.ceil(totalPrice.value * 0.05)
+})
+
 const canBook = computed(() => {
   return selectedDates.value.pickupDate && selectedDates.value.dropoffDate && totalPrice.value > 0
 })
 
-// Owner info computed properties
-const ownerAvatar = computed(() => {
-  return listing.value?.owner?.profilePicture || 'https://via.placeholder.com/80'
+// Owner info computed properties for OwnerCard component
+const ownerData = computed(() => {
+  if (!listing.value?.owner) return null
+  return {
+    id: listing.value.owner.id,
+    firstName: listing.value.owner.firstName,
+    lastName: listing.value.owner.lastName,
+    nickname: listing.value.owner.nickname,
+    profilePicture: listing.value.owner.profilePicture,
+    rating: listing.value.owner.rating,
+    user_type: listing.value.owner.user_type || 'individual',
+    isVerified: listing.value.owner.isVerified || false
+  }
 })
 
-const ownerName = computed(() => {
-  if (!listing.value?.owner) return 'Unknown'
-  return `${listing.value.owner.firstName} ${listing.value.owner.lastName}`
+const locationData = computed(() => {
+  if (!listing.value) return null
+  return {
+    city: listing.value.city,
+    country: listing.value.country,
+    latitude: listing.value.latitude || 51.5074, // Default to London if not available
+    longitude: listing.value.longitude || -0.1278
+  }
 })
 
 const ownerFirstName = computed(() => {
   return listing.value?.owner?.firstName || 'this owner'
-})
-
-const memberSince = computed(() => {
-  if (!listing.value?.owner?.createdAt) return '2024'
-  const date = new Date(listing.value.owner.createdAt)
-  return date.getFullYear()
-})
-
-const ownerListingsCount = computed(() => {
-  return ownerOtherItems.value.length + 1 // +1 for current listing
-})
-
-const ownerRating = computed(() => {
-  return listing.value?.owner?.rating || '5.0'
 })
 
 const isOwner = computed(() => {
@@ -248,6 +258,27 @@ const isOwner = computed(() => {
 })
 
 // Methods
+const formatDate = (date) => {
+  if (!date) return ''
+
+  const options = { weekday: 'short', month: 'long', day: 'numeric' }
+  const formatted = date.toLocaleDateString('en-US', options)
+
+  // Add ordinal suffix to day
+  const day = date.getDate()
+  const suffix = ['th', 'st', 'nd', 'rd'][day % 10 > 3 ? 0 : (day % 100 - day % 10 !== 10) * day % 10]
+
+  // Format: "Tue, November 11th"
+  return formatted.replace(/(\d+)/, `$1${suffix}`)
+}
+
+const clearDates = () => {
+  selectedDates.value = {
+    pickupDate: null,
+    dropoffDate: null
+  }
+}
+
 const handleContactSeller = async () => {
   if (!authStore.isAuthenticated) {
     router.push('/login')
@@ -308,6 +339,8 @@ const fetchListing = async () => {
       estimatedValue: data.estimated_value,
       city: data.location_id?.city || 'Unknown',
       country: data.location_id?.country || 'Unknown',
+      latitude: data.location_id?.latitude || null,
+      longitude: data.location_id?.longitude || null,
       photos: (data.photos || []).map(photo =>
         photo.startsWith('http') ? photo : `http://localhost:5000${photo}`
       ),
@@ -318,7 +351,9 @@ const fetchListing = async () => {
         nickname: data.owner_id?.nickname || 'user',
         profilePicture: data.owner_id?.profile_photo || null,
         createdAt: data.owner_id?.createdAt,
-        rating: data.owner_id?.rating_avg || 5.0
+        rating: data.owner_id?.rating_avg || 5.0,
+        user_type: data.owner_id?.user_type || 'individual',
+        isVerified: data.owner_id?.id_verified || false
       }
     }
 
@@ -459,37 +494,37 @@ watch(() => route.params.id, () => {
   margin: 0 auto;
 }
 
-/* Header */
-.listing-header {
+/* Compact Header in Left Column */
+.listing-header-compact {
   background: white;
-  border-radius: 20px;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  border-radius: 15px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 170, 255, 0.15);
   border: 1px solid rgba(0, 170, 255, 0.1);
-}
-
-.header-left {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
 .listing-title {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0;
+  flex: 1;
+  min-width: 200px;
 }
 
 .category-badge {
-  padding: 0.5rem 1.5rem;
+  padding: 0.5rem 1.25rem;
   background: linear-gradient(135deg, #00AAFF 0%, #0088cc 100%);
   color: white;
   border-radius: 50px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Main Grid */
@@ -498,6 +533,7 @@ watch(() => route.params.id, () => {
   grid-template-columns: 1fr 450px;
   gap: 2rem;
   margin-bottom: 2rem;
+  align-items: start;
 }
 
 /* Photos Section */
@@ -558,7 +594,7 @@ watch(() => route.params.id, () => {
 /* Booking Section */
 .booking-section {
   position: sticky;
-  top: 2rem;
+  top: 0.5rem;
   height: fit-content;
 }
 
@@ -568,54 +604,125 @@ watch(() => route.params.id, () => {
   padding: 2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 170, 255, 0.15);
   border: 1px solid rgba(0, 170, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.price-display {
+/* Selected Dates Display */
+.selected-dates-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.dates-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  background: #f8fbff;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  max-width: 320px;
+  width: 100%;
+}
+
+.date-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.date-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.date-value {
+  font-size: 0.8rem;
+  color: #666;
   text-align: center;
-  padding-bottom: 1.5rem;
-  border-bottom: 2px solid #e3f2fd;
-  margin-bottom: 1.5rem;
+  line-height: 1.2;
 }
 
-.price-amount {
+.clear-dates-button {
+  background: none;
+  border: none;
+  color: #00AAFF;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.clear-dates-button:hover {
+  color: #0088CC;
+}
+
+/* Total Price Calculation Display */
+.total-price-display {
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.price-total,
+.price-placeholder {
   font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+}
+
+.price-details {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.25rem;
+  font-weight: 400;
+}
+
+/* Price Display at Bottom */
+.price-display-bottom {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: #f8fbff;
+  border-radius: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.price-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.price-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.price-value {
+  font-size: 1.25rem;
   font-weight: 700;
   color: #00AAFF;
 }
 
-.price-period {
-  font-size: 1.2rem;
-  color: #666;
-  margin-left: 0.5rem;
-}
-
-/* Price Breakdown */
-.price-breakdown {
-  background: #f8fbff;
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.breakdown-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #333;
-}
-
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.request-button,
-.contact-button {
+/* Request Button */
+.request-button {
   width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
   padding: 1rem;
   border: none;
   border-radius: 12px;
@@ -623,9 +730,6 @@ watch(() => route.params.id, () => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-}
-
-.request-button {
   background: linear-gradient(135deg, #00AAFF 0%, #0088cc 100%);
   color: white;
 }
@@ -640,97 +744,30 @@ watch(() => route.params.id, () => {
   cursor: not-allowed;
 }
 
-.contact-button {
+/* Description Section in Left Column */
+.description-section-left {
   background: white;
-  color: #00AAFF;
-  border: 2px solid #00AAFF;
-}
-
-.contact-button:hover {
-  background: #00AAFF;
-  color: white;
-}
-
-/* Owner Card */
-.owner-card {
-  background: white;
-  border-radius: 20px;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  border-radius: 15px;
+  padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 170, 255, 0.15);
   border: 1px solid rgba(0, 170, 255, 0.1);
 }
 
-.owner-header {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.owner-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid #00AAFF;
-}
-
-.owner-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.owner-info {
-  flex: 1;
-}
-
-.owner-name {
+.description-section-left .section-title {
   font-size: 1.5rem;
   font-weight: 700;
   color: #1a1a1a;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 1rem 0;
 }
 
-.owner-badges {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
+.description-section-left .description-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #555;
+  margin: 0;
 }
 
-.verified-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  background: #d4edda;
-  color: #155724;
-  border-radius: 50px;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.member-badge {
-  padding: 0.25rem 0.75rem;
-  background: #e3f2fd;
-  color: #00AAFF;
-  border-radius: 50px;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.owner-stats {
-  display: flex;
-  gap: 1.5rem;
-  color: #666;
-  font-size: 0.95rem;
-}
-
-.stat-item {
-  font-weight: 600;
-}
-
-/* Description Section */
-.description-section,
+/* Properties Section */
 .properties-section {
   background: white;
   border-radius: 20px;
@@ -807,11 +844,6 @@ watch(() => route.params.id, () => {
 
   .properties-grid {
     grid-template-columns: 1fr;
-  }
-
-  .owner-header {
-    flex-direction: column;
-    text-align: center;
   }
 }
 </style>

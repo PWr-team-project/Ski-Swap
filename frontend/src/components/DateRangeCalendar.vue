@@ -29,17 +29,6 @@
         </div>
       </div>
     </div>
-
-    <div class="date-selection-info">
-      <div class="date-info-row">
-        <span class="date-label">Pickup:</span>
-        <span class="date-value">{{ pickupDate ? formatDate(pickupDate) : 'Select date' }}</span>
-      </div>
-      <div class="date-info-row">
-        <span class="date-label">Drop-off:</span>
-        <span class="date-value">{{ dropoffDate ? formatDate(dropoffDate) : 'Select date' }}</span>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -81,22 +70,26 @@ const currentMonthYear = computed(() => {
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 })
 
-const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 const calendarDays = computed(() => {
   const firstDay = new Date(currentYear.value, currentMonth.value, 1)
   const lastDay = new Date(currentYear.value, currentMonth.value + 1, 0)
   const prevLastDay = new Date(currentYear.value, currentMonth.value, 0)
 
-  const firstDayOfWeek = firstDay.getDay()
+  // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  let firstDayOfWeek = firstDay.getDay()
+  // Convert to Monday-based (0 = Monday, 1 = Tuesday, ..., 6 = Sunday)
+  firstDayOfWeek = (firstDayOfWeek + 6) % 7
+
   const lastDateOfMonth = lastDay.getDate()
   const prevLastDate = prevLastDay.getDate()
 
-  const days = []
+  const allDays = []
 
   // Previous month days
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-    days.push({
+    allDays.push({
       date: prevLastDate - i,
       month: currentMonth.value - 1,
       year: currentYear.value,
@@ -106,7 +99,7 @@ const calendarDays = computed(() => {
 
   // Current month days
   for (let i = 1; i <= lastDateOfMonth; i++) {
-    days.push({
+    allDays.push({
       date: i,
       month: currentMonth.value,
       year: currentYear.value,
@@ -114,10 +107,10 @@ const calendarDays = computed(() => {
     })
   }
 
-  // Next month days
-  const remainingDays = 42 - days.length
+  // Next month days to complete the grid
+  const remainingDays = Math.ceil(allDays.length / 7) * 7 - allDays.length
   for (let i = 1; i <= remainingDays; i++) {
-    days.push({
+    allDays.push({
       date: i,
       month: currentMonth.value + 1,
       year: currentYear.value,
@@ -125,7 +118,17 @@ const calendarDays = computed(() => {
     })
   }
 
-  return days
+  // Filter out weeks that contain no days from the current month
+  const filteredDays = []
+  for (let i = 0; i < allDays.length; i += 7) {
+    const week = allDays.slice(i, i + 7)
+    // Only include week if it has at least one day from current month
+    if (week.some(day => !day.otherMonth)) {
+      filteredDays.push(...week)
+    }
+  }
+
+  return filteredDays
 })
 
 // Methods
@@ -189,15 +192,11 @@ const isPastDate = (day) => {
   today.setHours(0, 0, 0, 0)
   return date < today
 }
-
-const formatDate = (date) => {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 </script>
 
 <style scoped>
 .calendar-container {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .calendar-header {
@@ -231,7 +230,7 @@ const formatDate = (date) => {
 }
 
 .calendar-grid {
-  margin-bottom: 1rem;
+  margin-bottom: 0.25rem;
 }
 
 .calendar-weekdays {
@@ -293,30 +292,5 @@ const formatDate = (date) => {
 .calendar-day.in-range {
   background: rgba(0, 170, 255, 0.2);
   color: #00AAFF;
-}
-
-.date-selection-info {
-  background: #f8fbff;
-  border-radius: 12px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.date-info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.date-label {
-  font-weight: 600;
-  color: #666;
-}
-
-.date-value {
-  color: #00AAFF;
-  font-weight: 600;
 }
 </style>

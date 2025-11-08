@@ -11,9 +11,11 @@
   "dependencies": {
     "@vueuse/core": "^13.9.0",
     "axios": "^1.12.2",
+    "leaflet": "^1.9.4",
     "pinia": "^3.0.3",
     "socket.io-client": "^4.8.1",
     "vue": "^3.5.22",
+    "vue-leaflet": "^0.1.0",
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
