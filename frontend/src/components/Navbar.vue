@@ -88,10 +88,8 @@ function handleMenuClick(action) {
     router.push('/profile')
   } else if (action === 'listings') {
     router.push('/my-listings')
-  } else if (action === 'rentals') {
-    // Navigate to user's rentals page
-    // TODO: Create route for user rentals
-    console.log('Navigate to my rentals')
+  } else if (action === 'bookings') {
+    router.push('/my-bookings')
   } else if (action === 'settings') {
     router.push('/profile-settings')
   }
@@ -132,7 +130,7 @@ function handleLogout() {
         <!-- Profile dropdown - only show for profile button -->
         <div v-if="button.action === 'profile' && showProfileDropdown" class="profile-dropdown">
           <!-- Profile Section - Clickable Header -->
-          <button @click="handleMenuClick('profile')" class="dropdown-header">
+          <button @click="handleMenuClick('settings')" class="dropdown-header">
             <div class="profile-avatar">
               <img
                 v-if="currentUser?.profile_photo"
@@ -157,17 +155,9 @@ function handleLogout() {
               <span class="menu-text">Listings</span>
             </button>
 
-            <button @click="handleMenuClick('rentals')" class="menu-item">
-              <img src="/assets/images/bookings_icon.png" alt="Rentals" class="menu-icon-img" />
-              <span class="menu-text">Rentals</span>
-            </button>
-
-            <button @click="handleMenuClick('settings')" class="menu-item">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="menu-icon-svg">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 1v6m0 6v6m-6-6h6m6 0h6M4.22 4.22l4.24 4.24m8.48 0l4.24-4.24M4.22 19.78l4.24-4.24m8.48 0l4.24 4.24"/>
-              </svg>
-              <span class="menu-text">Profile Settings</span>
+            <button @click="handleMenuClick('bookings')" class="menu-item">
+              <img src="/assets/images/bookings_icon.png" alt="Bookings" class="menu-icon-img" />
+              <span class="menu-text">My bookings</span>
             </button>
           </div>
 

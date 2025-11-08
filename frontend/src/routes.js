@@ -6,6 +6,7 @@ import Messages from './pages/Messages.vue'
 import BrowseItems from './pages/BrowseItems.vue'
 import CreateListing from './pages/CreateListing.vue'
 import MyListings from './pages/MyListings.vue'
+import MyBookings from './pages/MyBookings.vue'
 import UpdateListing from './pages/UpdateListing.vue'
 import GoogleAuthCallback from './pages/GoogleAuthCallback.vue'
 import SingleListing from './pages/SingleListing.vue'
@@ -64,6 +65,12 @@ const routes = [
     path: '/my-listings',
     name: 'MyListings',
     component: MyListings,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/my-bookings',
+    name: 'MyBookings',
+    component: MyBookings,
     meta: { requiresAuth: true }
   },
   {
