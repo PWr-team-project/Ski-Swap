@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/authStore'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 // Computed property to check if user is logged in
 const isLoggedIn = computed(() => authStore.isLoggedIn)
@@ -100,6 +101,15 @@ function handleLogout() {
   authStore.logout()
   router.push('/')
 }
+
+// Helper function to get full photo URL
+function getPhotoUrl(photoPath) {
+  if (!photoPath) return null
+  // If it's already a full URL (starts with http), return as is
+  if (photoPath.startsWith('http')) return photoPath
+  // Otherwise, prepend the API URL
+  return `${API_URL}${photoPath}`
+}
 </script>
 
 <template>
@@ -134,7 +144,7 @@ function handleLogout() {
             <div class="profile-avatar">
               <img
                 v-if="currentUser?.profile_photo"
-                :src="currentUser.profile_photo"
+                :src="getPhotoUrl(currentUser.profile_photo)"
                 alt="Profile"
                 class="avatar-img"
               />

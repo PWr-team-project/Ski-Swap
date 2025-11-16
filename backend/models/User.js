@@ -113,6 +113,17 @@ const userSchema = new mongoose.Schema({
     max: 5,
     default: 0
   },
+  reponse_rate:{
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 100
+  },
+  reponse_time:{
+    enum: ['few hours', 'within a day', 'within a few days'],
+    type: String,
+    default: 'few hours'
+  },
   location_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Location',
