@@ -143,9 +143,10 @@ const handleSendMessage = () => {
 }
 
 const navigateToProfile = () => {
-  // TODO: Implement profile page navigation
-  console.log('Navigate to profile - not implemented yet')
-  emit('navigateToProfile', props.owner?.id)
+  if (props.owner?.id) {
+    // Navigate to public user profile page
+    window.location.href = `/user/${props.owner.id}`
+  }
 }
 
 const initMap = () => {

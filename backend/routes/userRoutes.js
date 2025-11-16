@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Location = require('../models/Location');
@@ -349,6 +350,105 @@ router.delete('/account', auth, async (req, res) => {
   } catch (error) {
     console.error('Account deletion error:', error);
     res.status(500).json({ message: 'Server error during account deletion' });
+  }
+});
+
+// Get public user profile by ID or nickname (NO AUTH REQUIRED - PUBLIC ROUTE)
+router.get('/public/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const Listing = require('../models/Listing');
+    const Review = require('../models/Review');
+    const Booking = require('../models/Booking');
+
+    // Try to find user by ID first, then by nickname
+    let user;
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+      user = await User.findById(identifier).populate('location_id');
+    }
+    if (!user) {
+      user = await User.findOne({ nickname: identifier }).populate('location_id');
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get active listings count
+    const activeListings = await Listing.find({
+      owner_id: user._id,
+      available: true
+    }).populate('category_id').populate('location_id');
+
+    // Get reviews where this user is the owner (reviews of their listings)
+    const reviews = await Review.find({
+      owner_id: user._id,
+      review_type: 'renter_to_owner'
+    })
+      .populate('renter_id', 'first_name last_name profile_photo')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // Calculate rental statistics
+    // Rentals FROM others (as renter)
+    const rentalsFromOthers = await Booking.countDocuments({ renter_id: user._id });
+
+    // Rentals TO others (as owner) - count bookings for user's listings
+    const userListings = await Listing.find({ owner_id: user._id });
+    const listingIds = userListings.map(listing => listing._id);
+    const rentalsToOthers = await Booking.countDocuments({
+      listing_id: { $in: listingIds }
+    });
+
+    // Format response
+    res.json({
+      user: {
+        id: user._id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        nickname: user.nickname,
+        profile_photo: user.profile_photo,
+        background_photo: user.background_photo,
+        user_type: user.user_type,
+        id_verified: user.id_verified,
+        rating_avg: user.rating_avg,
+        response_rate: user.reponse_rate,
+        response_time: user.reponse_time,
+        NIP_number: user.user_type === 'company' ? user.NIP_number : null,
+        website_address: user.user_type === 'company' ? user.website_address : null,
+        location: user.location_id || null,
+        createdAt: user.createdAt
+      },
+      statistics: {
+        rentalsFromOthers,
+        rentalsToOthers,
+        activeListingsCount: activeListings.length
+      },
+      reviews: reviews.map(review => ({
+        id: review._id,
+        reviewer: {
+          name: `${review.renter_id.first_name} ${review.renter_id.last_name}`,
+          profile_photo: review.renter_id.profile_photo
+        },
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt
+      })),
+      activeListings: activeListings.map(listing => ({
+        id: listing._id,
+        title: listing.title,
+        photos: listing.photos,
+        daily_rate: listing.daily_rate,
+        category: listing.category_id?.name || 'Unknown',
+        location: listing.location_id ? {
+          city: listing.location_id.city,
+          country: listing.location_id.country
+        } : null
+      }))
+    });
+  } catch (error) {
+    console.error('Public profile fetch error:', error);
+    res.status(500).json({ message: 'Server error fetching public profile' });
   }
 });
 

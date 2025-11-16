@@ -11,6 +11,7 @@ import UpdateListing from './pages/UpdateListing.vue'
 import GoogleAuthCallback from './pages/GoogleAuthCallback.vue'
 import SingleListing from './pages/SingleListing.vue'
 import ProfileSettings from './pages/ProfileSettings.vue'
+import UserProfile from './pages/UserProfile.vue'
 
 // Static pages
 import AboutUs from './pages/static/AboutUs.vue'
@@ -89,6 +90,11 @@ const routes = [
     name: 'ProfileSettings',
     component: ProfileSettings,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/user/:identifier',
+    name: 'UserProfile',
+    component: UserProfile
   },
   // Company
   {
