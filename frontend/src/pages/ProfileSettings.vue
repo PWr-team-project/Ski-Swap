@@ -15,7 +15,7 @@
             @click="activeTab = tab.id"
             :class="['tab-button', { active: activeTab === tab.id }]"
           >
-            <component :is="tab.icon" class="tab-icon" />
+            <span class="tab-icon" :style="{ maskImage: `url(${tab.icon})`, WebkitMaskImage: `url(${tab.icon})` }"></span>
             <span>{{ tab.label }}</span>
           </button>
         </div>
@@ -32,63 +32,23 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref } from 'vue'
 import EditProfile from '../components/settings/EditProfile.vue'
 import ChangePassword from '../components/settings/ChangePassword.vue'
 import DeleteAccount from '../components/settings/DeleteAccount.vue'
 
-// SVG Icons as components
-const UserIcon = () => h('svg', {
-  xmlns: 'http://www.w3.org/2000/svg',
-  width: '20',
-  height: '20',
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  'stroke-width': '2'
-}, [
-  h('path', { d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' }),
-  h('circle', { cx: '12', cy: '7', r: '4' })
-])
-
-const LockIcon = () => h('svg', {
-  xmlns: 'http://www.w3.org/2000/svg',
-  width: '20',
-  height: '20',
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  'stroke-width': '2'
-}, [
-  h('rect', { x: '3', y: '11', width: '18', height: '11', rx: '2', ry: '2' }),
-  h('path', { d: 'M7 11V7a5 5 0 0 1 10 0v4' })
-])
-
-const TrashIcon = () => h('svg', {
-  xmlns: 'http://www.w3.org/2000/svg',
-  width: '20',
-  height: '20',
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  'stroke-width': '2'
-}, [
-  h('polyline', { points: '3 6 5 6 21 6' }),
-  h('path', { d: 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2' })
-])
-
 const activeTab = ref('profile')
 
 const tabs = [
-  { id: 'profile', label: 'Edit Profile', icon: UserIcon },
-  { id: 'password', label: 'Change Password', icon: LockIcon },
-  { id: 'delete', label: 'Delete Account', icon: TrashIcon }
+  { id: 'profile', label: 'Edit Profile', icon: '/assets/icons/user.svg' },
+  { id: 'password', label: 'Change Password', icon: '/assets/icons/lock.svg' },
+  { id: 'delete', label: 'Delete Account', icon: '/assets/icons/trash.svg' }
 ]
 </script>
 
 <style scoped>
 .profile-settings-page {
-  background: #f5f5f5;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
   min-height: calc(100vh - 140px);
   padding: 2rem 0;
 }
@@ -144,7 +104,7 @@ const tabs = [
   font-weight: 600;
   color: #666;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-bottom-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-button:hover {
@@ -159,8 +119,22 @@ const tabs = [
 }
 
 .tab-icon {
+  display: inline-block;
   width: 20px;
   height: 20px;
+  background-color: #666;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-button:hover .tab-icon,
+.tab-button.active .tab-icon {
+  background-color: #00AAFF;
 }
 
 .tab-content {

@@ -5,11 +5,7 @@
 
     <!-- OAuth User Warning -->
     <div v-if="isOAuthUser" class="info-message">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="16" x2="12" y2="12"/>
-        <line x1="12" y1="8" x2="12.01" y2="8"/>
-      </svg>
+      <img src="/assets/icons/info.svg" alt="Info" class="info-icon" />
       <div>
         <strong>Google Account</strong>
         <p>You signed in with Google. You don't need to set a password for your account.</p>
@@ -95,6 +91,7 @@ import { ref, reactive, computed } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import axios from 'axios'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const authStore = useAuthStore()
 const user = authStore.user
 
@@ -157,15 +154,14 @@ const handleSubmit = async () => {
   }
 
   try {
-    const token = authStore.token
     await axios.put(
-      'http://localhost:5000/api/auth/change-password',
+      `${API_URL}/api/users/change-password`,
       {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword
       },
       {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${authStore.token}` }
       }
     )
 
@@ -185,7 +181,9 @@ const handleSubmit = async () => {
 
 <style scoped>
 .change-password {
+  width: 100%;
   max-width: 600px;
+  margin: 0 auto;
 }
 
 h2 {
@@ -211,7 +209,9 @@ h2 {
   margin-bottom: 2rem;
 }
 
-.info-message svg {
+.info-icon {
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   margin-top: 0.15rem;
 }

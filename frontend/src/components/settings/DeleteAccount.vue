@@ -4,12 +4,8 @@
     <p class="section-description">Permanently delete your account and all associated data</p>
 
     <div class="danger-zone">
-      <div class="warning-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
+      <div class="warning-icon-container">
+        <img src="/assets/icons/warning.svg" alt="Warning" class="warning-icon-large" />
       </div>
 
       <div class="warning-content">
@@ -91,6 +87,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const authStore = useAuthStore()
 const router = useRouter()
 const user = authStore.user
@@ -139,15 +136,14 @@ const handleDelete = async () => {
   }
 
   try {
-    const token = authStore.token
     const payload = isOAuthUser.value
       ? {}
       : { password: password.value }
 
     await axios.delete(
-      'http://localhost:5000/api/auth/account',
+      `${API_URL}/api/users/account`,
       {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${authStore.token}` },
         data: payload
       }
     )
@@ -171,7 +167,9 @@ const handleDelete = async () => {
 
 <style scoped>
 .delete-account {
+  width: 100%;
   max-width: 700px;
+  margin: 0 auto;
 }
 
 h2 {
@@ -193,10 +191,14 @@ h2 {
   margin-bottom: 2rem;
 }
 
-.warning-icon {
+.warning-icon-container {
   text-align: center;
-  color: #d32f2f;
   margin-bottom: 1rem;
+}
+
+.warning-icon-large {
+  width: 48px;
+  height: 48px;
 }
 
 .warning-content h3 {
