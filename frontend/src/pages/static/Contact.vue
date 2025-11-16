@@ -34,7 +34,7 @@
     </div>
 
     <p class="closing">
-      Or simply head to our <router-link to="/message">Message Us</router-link> page  
+      Or simply head to our <router-link to="/message-us">Message Us</router-link> page  
       to send us a direct message through the website.
     </p>
   </section>

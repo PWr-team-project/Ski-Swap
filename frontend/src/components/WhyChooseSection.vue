@@ -7,33 +7,33 @@
       <!-- Feature 1 -->
       <div class="feature-card">
         <div class="icon-circle">
-          <img src="/assets/images/shield_icon.png" alt="Trusted & Safe" class="feature-icon" />
+          <img src="/assets/icons/trust_icon.svg" alt="Trusted & Safe" class="feature-icon" />
         </div>
         <h3 class="feature-title">Trusted & Safe</h3>
         <p class="feature-description">
-          All equipment is verified and insured. Rent with confidence from trusted owners.
+          All equipment is verified. Rent with confidence from trusted owners.
         </p>
       </div>
       
       <!-- Feature 2 -->
       <div class="feature-card">
         <div class="icon-circle">
-          <img src="/assets/images/dollar_icon.png" alt="Best Prices" class="feature-icon" />
+          <img src="/assets/icons/euro_icon.svg" alt="Best Prices" class="feature-icon" />
         </div>
         <h3 class="feature-title">Best Prices</h3>
         <p class="feature-description">
-          Save up to 70% compared to traditional rental shops. Direct peer-to-peer pricing.
+          Save up to 50% compared to traditional rental shops. Direct peer-to-peer pricing.
         </p>
       </div>
       
       <!-- Feature 3 -->
       <div class="feature-card">
         <div class="icon-circle">
-          <img src="/assets/images/community_icon.png" alt="Local Community" class="feature-icon" />
+          <img src="/assets/icons/community_icon.svg" alt="Local Community" class="feature-icon" />
         </div>
         <h3 class="feature-title">Local Community</h3>
         <p class="feature-description">
-          Connect with fellow ski enthusiasts and rent from verified local owners.
+          Connect with fellow ski enthusiasts in your local area.
         </p>
       </div>
     </div>

@@ -16,8 +16,18 @@ const messageSchema = new mongoose.Schema({
     ref: 'Booking',
     default: null
   },
+  listing_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Listing',
+    default: null
+  },
+  message_type: {
+    type: String,
+    enum: ['text', 'listing_inquiry'],
+    default: 'text'
+  },
   attachment: {
-    type: String, 
+    type: String,
     default: null
   },
   message_text: {

@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/authStore'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 // Computed property to check if user is logged in
 const isLoggedIn = computed(() => authStore.isLoggedIn)
@@ -88,10 +89,10 @@ function handleMenuClick(action) {
     router.push('/profile')
   } else if (action === 'listings') {
     router.push('/my-listings')
-  } else if (action === 'rentals') {
-    // Navigate to user's rentals page
-    // TODO: Create route for user rentals
-    console.log('Navigate to my rentals')
+  } else if (action === 'bookings') {
+    router.push('/my-bookings')
+  } else if (action === 'settings') {
+    router.push('/profile-settings')
   }
 }
 
@@ -99,6 +100,15 @@ function handleLogout() {
   closeProfileDropdown()
   authStore.logout()
   router.push('/')
+}
+
+// Helper function to get full photo URL
+function getPhotoUrl(photoPath) {
+  if (!photoPath) return null
+  // If it's already a full URL (starts with http), return as is
+  if (photoPath.startsWith('http')) return photoPath
+  // Otherwise, prepend the API URL
+  return `${API_URL}${photoPath}`
 }
 </script>
 
@@ -130,11 +140,11 @@ function handleLogout() {
         <!-- Profile dropdown - only show for profile button -->
         <div v-if="button.action === 'profile' && showProfileDropdown" class="profile-dropdown">
           <!-- Profile Section - Clickable Header -->
-          <button @click="handleMenuClick('profile')" class="dropdown-header">
+          <button @click="handleMenuClick('settings')" class="dropdown-header">
             <div class="profile-avatar">
               <img
                 v-if="currentUser?.profile_photo"
-                :src="currentUser.profile_photo"
+                :src="getPhotoUrl(currentUser.profile_photo)"
                 alt="Profile"
                 class="avatar-img"
               />
@@ -155,9 +165,9 @@ function handleLogout() {
               <span class="menu-text">Listings</span>
             </button>
 
-            <button @click="handleMenuClick('rentals')" class="menu-item">
-              <img src="/assets/images/bookings_icon.png" alt="Rentals" class="menu-icon-img" />
-              <span class="menu-text">Rentals</span>
+            <button @click="handleMenuClick('bookings')" class="menu-item">
+              <img src="/assets/images/bookings_icon.png" alt="Bookings" class="menu-icon-img" />
+              <span class="menu-text">My bookings</span>
             </button>
           </div>
 
@@ -425,6 +435,12 @@ function handleLogout() {
   width: 32px;
   height: 32px;
   object-fit: contain;
+}
+
+.menu-icon-svg {
+  width: 20px;
+  height: 20px;
+  color: #666;
 }
 
 .menu-text {

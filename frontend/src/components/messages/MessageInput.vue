@@ -219,6 +219,7 @@ const sendMessage = () => {
   position: relative;
   border-top: 2px solid #e0e0e0;
   background: white;
+  flex-shrink: 0;
 }
 
 .image-preview-container {

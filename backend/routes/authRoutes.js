@@ -23,7 +23,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, nickname, first_name, last_name, user_type, phone_number } = req.body;
+      const { email, password, nickname, first_name, last_name } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -37,19 +37,30 @@ router.post(
         return res.status(400).json({ message: 'This nickname is already taken' });
       }
 
+      // Helper function to clean and capitalize names
+      const cleanAndCapitalizeName = (name) => {
+        if (!name) return name;
+        // Remove any numbers and special characters, keep only letters, spaces, hyphens, and apostrophes
+        const cleaned = name.replace(/[^a-zA-Z\s\-']/g, '').trim();
+        // Capitalize first letter of each word
+        return cleaned.split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      };
+
       // Hash password
       const salt = await bcrypt.genSalt(10);
       const password_hash = await bcrypt.hash(password, salt);
 
-      // Create new user
+      // Create new user - only basic info during registration
+      // Phone number, location, and company type are set via Edit Profile
       const newUser = new User({
         email: email.toLowerCase(),
         password_hash,
         nickname,
-        first_name,
-        last_name,
-        user_type: user_type || 'individual',
-        phone_number: phone_number || null
+        first_name: cleanAndCapitalizeName(first_name),
+        last_name: cleanAndCapitalizeName(last_name),
+        user_type: 'individual' // Always start as individual, can upgrade later
       });
 
       await newUser.save();

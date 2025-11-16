@@ -6,9 +6,12 @@ import Messages from './pages/Messages.vue'
 import BrowseItems from './pages/BrowseItems.vue'
 import CreateListing from './pages/CreateListing.vue'
 import MyListings from './pages/MyListings.vue'
+import MyBookings from './pages/MyBookings.vue'
 import UpdateListing from './pages/UpdateListing.vue'
 import GoogleAuthCallback from './pages/GoogleAuthCallback.vue'
 import SingleListing from './pages/SingleListing.vue'
+import ProfileSettings from './pages/ProfileSettings.vue'
+import UserProfile from './pages/UserProfile.vue'
 
 // Static pages
 import AboutUs from './pages/static/AboutUs.vue'
@@ -66,6 +69,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/my-bookings',
+    name: 'MyBookings',
+    component: MyBookings,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/update-listing/:id',
     name: 'UpdateListing',
     component: UpdateListing,
@@ -75,6 +84,17 @@ const routes = [
     path: '/listing/:id',
     name: 'SingleListing',
     component: SingleListing
+  },
+  {
+    path: '/profile-settings',
+    name: 'ProfileSettings',
+    component: ProfileSettings,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/user/:identifier',
+    name: 'UserProfile',
+    component: UserProfile
   },
   // Company
   {

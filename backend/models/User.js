@@ -61,6 +61,36 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  NIP_number: {
+    type: String,
+    trim: true,
+    default: null,
+    validate: {
+      validator: function(v) {
+        // Only validate if user_type is 'company' and NIP is provided
+        if (this.user_type === 'company' && v) {
+          return /^\d{10}$/.test(v); 
+        }
+        return true;
+      },
+      message: 'NIP number must be 10 digits'
+    }
+  },
+  website_address: {
+    type: String,
+    trim: true,
+    default: null,
+    validate: {
+      validator: function(v) {
+        // Only validate if value is provided
+        if (v) {
+          return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(v);
+        }
+        return true;
+      },
+      message: 'Please enter a valid website URL'
+    }
+  },
   profile_photo: {
     type: String, // URL or path to the image
     default: null
@@ -82,6 +112,17 @@ const userSchema = new mongoose.Schema({
     min: 0,
     max: 5,
     default: 0
+  },
+  reponse_rate:{
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 100
+  },
+  reponse_time:{
+    enum: ['few hours', 'within a day', 'within a few days'],
+    type: String,
+    default: 'few hours'
   },
   location_id: {
     type: mongoose.Schema.Types.ObjectId,

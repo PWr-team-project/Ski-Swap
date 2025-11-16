@@ -49,15 +49,25 @@
           </div>
 
           <div class="message">
-            <!-- Message Image -->
-            <div v-if="message.image" class="message-image">
-              <img :src="message.image" alt="Message image" @click="openImageModal(message.image)" />
-            </div>
+            <!-- Listing Inquiry Message -->
+            <ListingInquiryMessage
+              v-if="message.messageType === 'listing_inquiry' && message.listing"
+              :message="message"
+              :listing="message.listing"
+            />
 
-            <!-- Message Content -->
-            <div v-if="message.content" class="message-content">
-              {{ message.content }}
-            </div>
+            <!-- Regular Message -->
+            <template v-else>
+              <!-- Message Image -->
+              <div v-if="message.image" class="message-image">
+                <img :src="message.image" alt="Message image" @click="openImageModal(message.image)" />
+              </div>
+
+              <!-- Message Content -->
+              <div v-if="message.content" class="message-content">
+                {{ message.content }}
+              </div>
+            </template>
 
             <!-- Message Timestamp -->
             <div class="message-time">
@@ -100,6 +110,7 @@ import { ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import socketService from '../../services/socketService'
 import MessageInput from './MessageInput.vue'
+import ListingInquiryMessage from './ListingInquiryMessage.vue'
 
 const props = defineProps({
   conversation: {
@@ -263,6 +274,7 @@ const closeImageModal = () => {
   padding: 1.25rem 1.5rem;
   border-bottom: 2px solid #e0e0e0;
   background: white;
+  flex-shrink: 0;
 }
 
 .other-user-info {
@@ -315,6 +327,7 @@ const closeImageModal = () => {
   overflow-y: auto;
   padding: 1.5rem;
   background: #f9f9f9;
+  min-height: 0;
 }
 
 .loading-messages,

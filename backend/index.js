@@ -11,9 +11,12 @@ const app = express();
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const locationRoutes = require('./routes/locationRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const listingRoutes = require('./routes/listingRoutes');
 const googleAuthRoutes = require('./routes/googleAuthRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
 
 app.use(cors({
   origin: process.env.CLIENT_URL,
@@ -43,8 +46,11 @@ app.use('/uploads', express.static('uploads'));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', googleAuthRoutes); // Google OAuth routes
+app.use('/api/users', userRoutes);
+app.use('/api/locations', locationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/listings', listingRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend API is running!' });
