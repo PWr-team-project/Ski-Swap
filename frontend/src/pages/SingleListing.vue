@@ -155,7 +155,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
-import axios from 'axios'
+import { listingService } from '@/services/listingService'
+import { bookingService } from '@/services/bookingService'
+import apiClient from '@/api/interceptors'
+import { getFullImageUrl } from '@/utils/api'
 import DateRangeCalendar from '../components/DateRangeCalendar.vue'
 import ListingCarousel from '../components/ListingCarousel.vue'
 import OwnerCard from '../components/OwnerCard.vue'
@@ -290,15 +293,11 @@ const handleContactSeller = async () => {
   }
 
   try {
-    const token = authStore.token
-    const response = await axios.post(
-      'http://localhost:5000/api/messages/start-listing-conversation',
+    const response = await apiClient.post(
+      '/api/messages/start-listing-conversation',
       {
         listingId: listing.value.id,
         sellerId: listing.value.owner.id
-      },
-      {
-        headers: { 'Authorization': `Bearer ${token}` }
       }
     )
 
@@ -320,8 +319,8 @@ const fetchListing = async () => {
   error.value = ''
 
   try {
-    const response = await axios.get(`http://localhost:5000/api/listings/${route.params.id}`)
-    const data = response.data.listing
+    const response = await listingService.getById(route.params.id)
+    const data = response.listing
 
     // Transform API data to match component expectations
     listing.value = {
@@ -341,9 +340,7 @@ const fetchListing = async () => {
       country: data.location_id?.country || 'Unknown',
       latitude: data.location_id?.latitude || null,
       longitude: data.location_id?.longitude || null,
-      photos: (data.photos || []).map(photo =>
-        photo.startsWith('http') ? photo : `http://localhost:5000${photo}`
-      ),
+      photos: (data.photos || []).map(photo => getFullImageUrl(photo)),
       owner: {
         id: data.owner_id?._id,
         firstName: data.owner_id?.first_name || 'Unknown',
@@ -374,8 +371,8 @@ const fetchOwnerOtherItems = async () => {
   try {
     if (!listing.value?.owner?.id) return
 
-    const response = await axios.get(`http://localhost:5000/api/listings`)
-    const allListings = response.data.listings || []
+    const response = await listingService.getAll()
+    const allListings = response.listings || []
 
     // Filter by owner and exclude current listing
     ownerOtherItems.value = allListings
@@ -385,9 +382,7 @@ const fetchOwnerOtherItems = async () => {
         id: item._id,
         title: item.title,
         dailyRate: item.daily_rate,
-        photos: (item.photos || []).map(photo =>
-          photo.startsWith('http') ? photo : `http://localhost:5000${photo}`
-        )
+        photos: (item.photos || []).map(photo => getFullImageUrl(photo))
       }))
   } catch (err) {
     console.error('Error fetching owner items:', err)
@@ -398,8 +393,8 @@ const fetchCategoryItems = async () => {
   try {
     if (!listing.value?.category) return
 
-    const response = await axios.get(`http://localhost:5000/api/listings`)
-    const allListings = response.data.listings || []
+    const response = await listingService.getAll()
+    const allListings = response.listings || []
 
     // Filter by category and exclude current listing
     categoryItems.value = allListings
@@ -409,9 +404,7 @@ const fetchCategoryItems = async () => {
         id: item._id,
         title: item.title,
         dailyRate: item.daily_rate,
-        photos: (item.photos || []).map(photo =>
-          photo.startsWith('http') ? photo : `http://localhost:5000${photo}`
-        )
+        photos: (item.photos || []).map(photo => getFullImageUrl(photo))
       }))
   } catch (err) {
     console.error('Error fetching category items:', err)

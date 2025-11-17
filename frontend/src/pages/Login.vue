@@ -85,6 +85,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { getGoogleOAuthUrl } from '@/utils/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -126,7 +127,7 @@ const handleLogin = async () => {
 
 const handleGoogleSignIn = () => {
   // Redirect to backend Google OAuth endpoint
-  window.location.href = 'http://localhost:5000/api/auth/google'
+  window.location.href = getGoogleOAuthUrl()
 }
 </script>
 

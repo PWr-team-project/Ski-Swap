@@ -68,7 +68,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
-import axios from 'axios';
+import { bookingService } from '@/services/bookingService';
 import RentingView from '../components/RentingView.vue';
 import LendingView from '../components/LendingView.vue';
 
@@ -139,20 +139,16 @@ const fetchData = async () => {
 };
 
 const fetchRentedData = async (token) => {
-  const response = await axios.get('http://localhost:5000/api/bookings/renting', {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  });
+  const response = await bookingService.getRentingBookings();
 
-  rentedStats.value = response.data.stats || {
+  rentedStats.value = response.stats || {
     completedRentals: 0,
     activeRentals: 0,
     upcomingRentals: 0,
     averageRating: 0
   };
 
-  rentedBookings.value = response.data.bookings || {
+  rentedBookings.value = response.bookings || {
     active: [],
     upcoming: [],
     history: []
@@ -160,20 +156,16 @@ const fetchRentedData = async (token) => {
 };
 
 const fetchLendoutData = async (token) => {
-  const response = await axios.get('http://localhost:5000/api/bookings/lending', {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  });
+  const response = await bookingService.getLendingBookings();
 
-  lendoutStats.value = response.data.stats || {
+  lendoutStats.value = response.stats || {
     totalEarnings: '0.00',
     completedBookings: 0,
     activeBookings: 0,
     upcomingBookings: 0
   };
 
-  lendoutBookings.value = response.data.bookings || {
+  lendoutBookings.value = response.bookings || {
     active: [],
     upcoming: [],
     pending: [],
@@ -197,16 +189,7 @@ const acceptBookingRequest = async (bookingId) => {
   if (!confirm('Accept this booking request?')) return;
 
   try {
-    const token = authStore.token;
-    await axios.put(
-      `http://localhost:5000/api/bookings/${bookingId}/status`,
-      { status: 'confirmed' },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+    await bookingService.updateStatus(bookingId, 'confirmed');
 
     alert('Booking request accepted!');
     fetchData();
@@ -220,16 +203,7 @@ const declineBookingRequest = async (bookingId) => {
   if (!confirm('Decline this booking request?')) return;
 
   try {
-    const token = authStore.token;
-    await axios.put(
-      `http://localhost:5000/api/bookings/${bookingId}/status`,
-      { status: 'cancelled' },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+    await bookingService.updateStatus(bookingId, 'cancelled');
 
     alert('Booking request declined.');
     fetchData();
@@ -250,15 +224,7 @@ const cancelBooking = async (bookingId) => {
   if (!confirm('Cancel this booking? This action cannot be undone.')) return;
 
   try {
-    const token = authStore.token;
-    await axios.delete(
-      `http://localhost:5000/api/bookings/${bookingId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+    await bookingService.cancel(bookingId);
 
     alert('Booking cancelled successfully');
     fetchData();
