@@ -23,7 +23,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, nickname, first_name, last_name } = req.body;
+      const { email, password, nickname, first_name, last_name, user_type } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -53,14 +53,15 @@ router.post(
       const password_hash = await bcrypt.hash(password, salt);
 
       // Create new user - only basic info during registration
-      // Phone number, location, and company type are set via Edit Profile
+      // Phone number, location, and company details are set via Edit Profile
       const newUser = new User({
         email: email.toLowerCase(),
         password_hash,
         nickname,
         first_name: cleanAndCapitalizeName(first_name),
         last_name: cleanAndCapitalizeName(last_name),
-        user_type: 'individual' // Always start as individual, can upgrade later
+        user_type: user_type || 'individual', // Accept user_type from request, default to individual
+        oauth_provider: 'local' // Explicitly set for non-OAuth registrations
       });
 
       await newUser.save();

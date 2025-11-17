@@ -48,6 +48,33 @@ async function fixUserIndexes() {
       }
     }
 
+    // Fix googleId index - drop old non-sparse index and create new sparse one
+    try {
+      await usersCollection.dropIndex('googleId_1');
+      console.log('✓ Dropped old googleId_1 index');
+    } catch (error) {
+      if (error.code === 27) {
+        console.log('✓ googleId_1 index does not exist (already removed)');
+      } else {
+        console.error('Error dropping googleId index:', error.message);
+      }
+    }
+
+    // Create sparse unique index for googleId (allows multiple null values)
+    try {
+      await usersCollection.createIndex(
+        { googleId: 1 },
+        { unique: true, sparse: true }
+      );
+      console.log('✓ Created sparse unique index on googleId');
+    } catch (error) {
+      if (error.code === 85 || error.code === 86) {
+        console.log('✓ Sparse unique index on googleId already exists');
+      } else {
+        console.error('Error creating googleId index:', error.message);
+      }
+    }
+
     // Show final indexes
     const finalIndexes = await usersCollection.indexes();
     console.log('\nFinal indexes:', finalIndexes);
