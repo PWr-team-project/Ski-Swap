@@ -45,7 +45,7 @@
             v-if="shouldShowDateSeparator(index)"
             class="date-separator"
           >
-            {{ formatDate(message.createdAt) }}
+            <span class="date-text">{{ formatDate(message.createdAt) }}</span>
           </div>
 
           <div class="message">
@@ -268,6 +268,7 @@ const closeImageModal = () => {
   flex-direction: column;
   height: 100%;
   background: white;
+  overflow: hidden;
 }
 
 .thread-header {
@@ -323,8 +324,9 @@ const closeImageModal = () => {
 }
 
 .messages-container {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1.5rem;
   background: #f9f9f9;
   min-height: 0;
@@ -367,31 +369,25 @@ const closeImageModal = () => {
   text-align: center;
   margin: 1rem 0;
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.date-separator::before {
+.date-separator::before,
+.date-separator::after {
   content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 100%;
+  flex: 1;
   height: 1px;
   background: #ddd;
-  z-index: 0;
 }
 
-.date-separator {
+.date-text {
   color: #999;
   font-size: 0.875rem;
   font-weight: 500;
-}
-
-.date-separator::after {
-  content: attr(data-date);
-  background: #f9f9f9;
-  padding: 0 1rem;
-  position: relative;
-  z-index: 1;
+  white-space: nowrap;
+  padding: 0 0.5rem;
 }
 
 .message {
