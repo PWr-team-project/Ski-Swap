@@ -182,7 +182,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import axios from 'axios';
+import { listingService } from '@/services/listingService';
+import { getFullImageUrl } from '@/utils/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -212,8 +213,8 @@ const loading = ref(true);
 const fetchListings = async () => {
   loading.value = true;
   try {
-    const response = await axios.get('http://localhost:5000/api/listings');
-    const listings = response.data.listings || [];
+    const data = await listingService.getAll();
+    const listings = data.listings || [];
 
     // Transform API data to match component format
     allItems.value = listings.map(listing => ({
@@ -225,7 +226,7 @@ const fetchListings = async () => {
       location: `${listing.location_id?.city}, ${listing.location_id?.country}`,
       distance: Math.floor(Math.random() * 300 + 50), // Mock distance for now
       image: listing.photos && listing.photos.length > 0
-        ? (listing.photos[0].startsWith('http') ? listing.photos[0] : `http://localhost:5000${listing.photos[0]}`)
+        ? getFullImageUrl(listing.photos[0])
         : 'https://via.placeholder.com/400x300'
     }));
   } catch (error) {

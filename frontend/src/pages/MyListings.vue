@@ -120,7 +120,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
-import axios from 'axios';
+import { listingService } from '@/services/listingService';
+import { getFullImageUrl } from '@/utils/api';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -142,8 +143,7 @@ const inactiveListings = computed(() =>
 // Methods
 const getImageUrl = (photoPath) => {
   if (!photoPath) return '/assets/images/placeholder.jpg';
-  if (photoPath.startsWith('http')) return photoPath;
-  return `http://localhost:5000${photoPath}`;
+  return getFullImageUrl(photoPath) || '/assets/images/placeholder.jpg';
 };
 
 const handleImageError = (e) => {
@@ -162,13 +162,9 @@ const fetchListings = async () => {
       return;
     }
 
-    const response = await axios.get('http://localhost:5000/api/listings/my/listings', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    const response = await listingService.getMyListings();
 
-    listings.value = response.data.listings || [];
+    listings.value = response.listings || [];
   } catch (err) {
     console.error('Error fetching listings:', err);
     error.value = err.response?.data?.message || 'Failed to fetch listings. Please try again.';
@@ -191,16 +187,7 @@ const hideListing = async (listingId) => {
   }
 
   try {
-    const token = authStore.token;
-    await axios.put(
-      `http://localhost:5000/api/listings/${listingId}`,
-      { available: false },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+    await listingService.toggleAvailability(listingId);
 
     // Update local state
     const listing = listings.value.find(l => l._id === listingId);
@@ -215,16 +202,7 @@ const hideListing = async (listingId) => {
 
 const publishListing = async (listingId) => {
   try {
-    const token = authStore.token;
-    await axios.put(
-      `http://localhost:5000/api/listings/${listingId}`,
-      { available: true },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+    await listingService.toggleAvailability(listingId);
 
     // Update local state
     const listing = listings.value.find(l => l._id === listingId);

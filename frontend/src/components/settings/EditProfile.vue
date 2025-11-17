@@ -357,9 +357,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
-import axios from 'axios'
+import { userService } from '@/services/userService'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const authStore = useAuthStore()
 
 const profileFileInput = ref(null)
@@ -401,14 +400,9 @@ onMounted(async () => {
 const loadProfileData = async () => {
   try {
     // Fetch complete profile data including location
-    const response = await axios.get(
-      `${API_URL}/api/users/profile`,
-      {
-        headers: { 'Authorization': `Bearer ${authStore.token}` }
-      }
-    )
+    const response = await userService.getProfile()
 
-    const userData = response.data.user
+    const userData = response.user
 
     // Update form with user data
     formData.firstName = userData.first_name || ''
@@ -494,18 +488,9 @@ const removeProfilePhoto = async () => {
       const formDataToSend = new FormData()
       formDataToSend.append('remove_profile_photo', 'true')
 
-      const response = await axios.put(
-        `${API_URL}/api/users/profile`,
-        formDataToSend,
-        {
-          headers: {
-            'Authorization': `Bearer ${authStore.token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      )
+      const response = await userService.updateProfile(formDataToSend)
 
-      authStore.user = response.data.user
+      authStore.user = response.user
       await loadProfileData()
       successMessage.value = 'Profile photo removed successfully!'
     } catch (error) {
@@ -535,18 +520,9 @@ const removeBackgroundPhoto = async () => {
       const formDataToSend = new FormData()
       formDataToSend.append('remove_background_photo', 'true')
 
-      const response = await axios.put(
-        `${API_URL}/api/users/profile`,
-        formDataToSend,
-        {
-          headers: {
-            'Authorization': `Bearer ${authStore.token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      )
+      const response = await userService.updateProfile(formDataToSend)
 
-      authStore.user = response.data.user
+      authStore.user = response.user
       await loadProfileData()
       successMessage.value = 'Background photo removed successfully!'
     } catch (error) {
@@ -567,18 +543,9 @@ const uploadPhoto = async (fieldName, file) => {
     const formDataToSend = new FormData()
     formDataToSend.append(fieldName, file)
 
-    const response = await axios.put(
-      `${API_URL}/api/users/profile`,
-      formDataToSend,
-      {
-        headers: {
-          'Authorization': `Bearer ${authStore.token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      }
-    )
+    const response = await userService.updateProfile(formDataToSend)
 
-    authStore.user = response.data.user
+    authStore.user = response.user
     await loadProfileData()
 
     // Clear the preview and selection after successful upload
@@ -622,18 +589,9 @@ const savePersonalInfo = async () => {
     formDataToSend.append('last_name', formData.lastName)
     formDataToSend.append('phone_number', formData.phoneNumber || '')
 
-    const response = await axios.put(
-      `${API_URL}/api/users/profile`,
-      formDataToSend,
-      {
-        headers: {
-          'Authorization': `Bearer ${authStore.token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      }
-    )
+    const response = await userService.updateProfile(formDataToSend)
 
-    authStore.user = response.data.user
+    authStore.user = response.user
     await loadProfileData()
 
     successMessage.value = 'Personal information updated successfully!'
@@ -658,18 +616,9 @@ const saveLocation = async () => {
     formDataToSend.append('location_street', formData.location.street || '')
     formDataToSend.append('location_street_number', formData.location.streetNumber || '')
 
-    const response = await axios.put(
-      `${API_URL}/api/users/profile`,
-      formDataToSend,
-      {
-        headers: {
-          'Authorization': `Bearer ${authStore.token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      }
-    )
+    const response = await userService.updateProfile(formDataToSend)
 
-    authStore.user = response.data.user
+    authStore.user = response.user
     await loadProfileData()
 
     successMessage.value = 'Location updated successfully!'
@@ -699,18 +648,9 @@ const upgradeToCompany = async () => {
     formDataToSend.append('NIP_number', formData.company.nipNumber || '')
     formDataToSend.append('website_address', formData.company.websiteAddress || '')
 
-    const response = await axios.put(
-      `${API_URL}/api/users/profile`,
-      formDataToSend,
-      {
-        headers: {
-          'Authorization': `Bearer ${authStore.token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      }
-    )
+    const response = await userService.updateProfile(formDataToSend)
 
-    authStore.user = response.data.user
+    authStore.user = response.user
     await loadProfileData()
 
     showCompanyFields.value = false
@@ -731,6 +671,7 @@ const getPhotoUrl = (photoPath) => {
   // If it's already a full URL (starts with http), return as is
   if (photoPath.startsWith('http')) return photoPath
   // Otherwise, prepend the API URL
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
   return `${API_URL}${photoPath}`
 }
 </script>

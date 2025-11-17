@@ -89,9 +89,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+import { userService } from '@/services/userService'
 const authStore = useAuthStore()
 const user = authStore.user
 
@@ -154,16 +152,10 @@ const handleSubmit = async () => {
   }
 
   try {
-    await axios.put(
-      `${API_URL}/api/users/change-password`,
-      {
-        currentPassword: formData.currentPassword,
-        newPassword: formData.newPassword
-      },
-      {
-        headers: { 'Authorization': `Bearer ${authStore.token}` }
-      }
-    )
+    await userService.changePassword({
+      currentPassword: formData.currentPassword,
+      newPassword: formData.newPassword
+    })
 
     successMessage.value = 'Password updated successfully!'
     resetForm()

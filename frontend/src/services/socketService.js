@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client'
+import { getSocketUrl } from '@/utils/api'
 
 class SocketService {
   constructor() {
@@ -12,7 +13,7 @@ class SocketService {
     }
 
     // Connect to backend Socket.IO server
-    this.socket = io('http://localhost:5000', {
+    this.socket = io(getSocketUrl(), {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,

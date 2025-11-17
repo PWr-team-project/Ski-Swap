@@ -85,9 +85,8 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import { userService } from '@/services/userService'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const authStore = useAuthStore()
 const router = useRouter()
 const user = authStore.user
@@ -140,13 +139,7 @@ const handleDelete = async () => {
       ? {}
       : { password: password.value }
 
-    await axios.delete(
-      `${API_URL}/api/users/account`,
-      {
-        headers: { 'Authorization': `Bearer ${authStore.token}` },
-        data: payload
-      }
-    )
+    await userService.deleteAccount(payload)
 
     successMessage.value = 'Account deleted successfully. Redirecting...'
 

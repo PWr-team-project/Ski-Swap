@@ -167,7 +167,31 @@ router.get('/my/listings', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+// Toggle availability
+router.put('/:id/availability', auth, async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
 
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    if (listing.owner_id.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Not authorized to update this listing' });
+    }
+
+    listing.available = !listing.available;
+    await listing.save();
+
+    res.json({
+      message: 'Listing availability toggled',
+      available: listing.available
+    });
+  } catch (error) {
+    console.error('Error toggling availability:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 // Get all listings
 router.get('/', async (req, res) => {
   try {
