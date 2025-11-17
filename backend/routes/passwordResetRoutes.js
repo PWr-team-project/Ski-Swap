@@ -29,9 +29,8 @@ router.post(
       // Find user
       const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) {
-        // For security, don't reveal if email exists or not
-        return res.status(200).json({
-          message: 'If an account with this email exists, a password reset code has been sent.'
+        return res.status(404).json({
+          message: 'No account found with this email address.'
         });
       }
 
