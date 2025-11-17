@@ -258,9 +258,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+import { userService } from '@/services/userService'
+import { getFullImageUrl } from '@/utils/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -283,8 +282,8 @@ const fetchProfile = async () => {
 
   try {
     const identifier = route.params.identifier
-    const response = await axios.get(`${API_URL}/api/users/public/${identifier}`)
-    profileData.value = response.data
+    const response = await userService.getPublicProfile(identifier)
+    profileData.value = response
   } catch (err) {
     console.error('Error fetching profile:', err)
     error.value = err.response?.data?.message || 'Failed to load user profile'
@@ -294,9 +293,7 @@ const fetchProfile = async () => {
 }
 
 const getPhotoUrl = (photoPath) => {
-  if (!photoPath) return null
-  if (photoPath.startsWith('http')) return photoPath
-  return `${API_URL}${photoPath}`
+  return getFullImageUrl(photoPath)
 }
 
 const formatYear = (dateString) => {

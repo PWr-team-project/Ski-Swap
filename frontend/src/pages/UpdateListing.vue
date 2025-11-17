@@ -277,7 +277,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
-import axios from 'axios';
+import { listingService } from '@/services/listingService';
 
 const router = useRouter();
 const route = useRoute();
@@ -392,13 +392,9 @@ const fetchListing = async () => {
       return;
     }
 
-    const response = await axios.get(`http://localhost:5000/api/listings/${listingId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    const response = await listingService.getById(listingId);
 
-    const listing = response.data.listing;
+    const listing = response.listing;
 
     // Populate form with existing data
     listingData.value.category = listing.category_id?.name || '';
@@ -487,19 +483,10 @@ const updateListing = async () => {
       formData.append('existingPhotos', JSON.stringify(listingData.value.existingPhotos));
     }
 
-    const response = await axios.put(
-      `http://localhost:5000/api/listings/${listingId}`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      }
-    );
+    const response = await listingService.update(listingId, formData);
 
     alert('Listing updated successfully!');
-    console.log('Updated listing:', response.data);
+    console.log('Updated listing:', response);
     router.push('/my-listings');
   } catch (err) {
     console.error('Error updating listing:', err);
@@ -520,11 +507,7 @@ const deleteListing = async () => {
       return;
     }
 
-    await axios.delete(`http://localhost:5000/api/listings/${listingId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    await listingService.delete(listingId);
 
     alert('Listing deleted successfully!');
     router.push('/my-listings');

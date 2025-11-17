@@ -97,7 +97,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import { listingService } from '@/services/listingService';
+import { getFullImageUrl } from '@/utils/api';
 import Carousel from '../components/Carousel.vue';
 import WhyChooseSection from '../components/WhyChooseSection.vue';
 
@@ -116,8 +117,8 @@ const accessoriesItems = ref([]);
 // Fetch listings from API
 const fetchListings = async () => {
   try {
-    const response = await axios.get('http://localhost:5000/api/listings');
-    const listings = response.data.listings || [];
+    const data = await listingService.getAll();
+    const listings = data.listings || [];
 
     // Transform listings to match carousel component format
     const transformListing = (listing) => ({
@@ -127,7 +128,7 @@ const fetchListings = async () => {
       price: listing.daily_rate,
       location: `${listing.location_id?.city}, ${listing.location_id?.country}`,
       image: listing.photos && listing.photos.length > 0
-        ? (listing.photos[0].startsWith('http') ? listing.photos[0] : `http://localhost:5000${listing.photos[0]}`)
+        ? getFullImageUrl(listing.photos[0])
         : 'https://via.placeholder.com/400x300'
     });
 

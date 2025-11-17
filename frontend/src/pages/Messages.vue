@@ -33,10 +33,10 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { messageService } from '@/services/messageService'
 import ConversationList from '../components/messages/ConversationList.vue'
 import MessageThread from '../components/messages/MessageThread.vue'
 import socketService from '../services/socketService'
-import axios from 'axios'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -53,11 +53,8 @@ const selectedConversation = computed(() => {
 // Fetch all conversations
 const fetchConversations = async () => {
   try {
-    const token = authStore.token
-    const response = await axios.get('http://localhost:5000/api/messages/conversations', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    conversations.value = response.data.conversations || []
+    const response = await messageService.getConversations()
+    conversations.value = response.conversations || []
   } catch (error) {
     console.error('Error fetching conversations:', error)
   }
@@ -67,11 +64,8 @@ const fetchConversations = async () => {
 const fetchMessages = async (conversationId) => {
   loadingMessages.value = true
   try {
-    const token = authStore.token
-    const response = await axios.get(`http://localhost:5000/api/messages/conversation/${conversationId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    currentMessages.value = response.data.messages || []
+    const response = await messageService.getConversation(conversationId)
+    currentMessages.value = response.messages || []
   } catch (error) {
     console.error('Error fetching messages:', error)
     currentMessages.value = []
@@ -97,7 +91,6 @@ const handleSelectConversation = async (conversationId) => {
 // Handle sending a message
 const handleSendMessage = async (messageData) => {
   try {
-    const token = authStore.token
     const formData = new FormData()
 
     formData.append('conversationId', selectedConversationId.value)
@@ -107,15 +100,10 @@ const handleSendMessage = async (messageData) => {
       formData.append('image', messageData.image)
     }
 
-    const response = await axios.post('http://localhost:5000/api/messages/send', formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    const response = await messageService.send(formData)
 
     // Add new message to current messages
-    currentMessages.value.push(response.data.message)
+    currentMessages.value.push(response.message)
 
     // Update conversation list
     await fetchConversations()

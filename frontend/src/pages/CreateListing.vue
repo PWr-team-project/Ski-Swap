@@ -262,7 +262,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
-import axios from 'axios';
+import { listingService } from '@/services/listingService';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -410,15 +410,10 @@ const createListing = async () => {
       formData.append('photos', file);
     });
 
-    const response = await axios.post('http://localhost:5000/api/listings/create', formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    const response = await listingService.create(formData);
 
     alert('Listing created successfully!');
-    console.log('Created listing:', response.data);
+    console.log('Created listing:', response);
 
     // Redirect to browse page or listing detail
     router.push('/browse');

@@ -44,8 +44,7 @@ onMounted(async () => {
     }
 
     // Store token in authStore (this will also set it in localStorage)
-    authStore.token = token
-    authStore.setAuthHeader(token)
+    authStore.setAuthToken(token)
 
     // Verify token and get user info using the authStore method
     const verified = await authStore.verifyToken()

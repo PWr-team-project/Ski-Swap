@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { authService } from '@/services/authService';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -21,14 +19,14 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    // Set auth header for axios
-    setAuthHeader(token) {
+    // Set auth token in localStorage
+    setAuthToken(token) {
       if (token) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         localStorage.setItem('token', token);
+        this.token = token;
       } else {
-        delete axios.defaults.headers.common['Authorization'];
         localStorage.removeItem('token');
+        this.token = null;
       }
     },
 
@@ -38,14 +36,14 @@ export const useAuthStore = defineStore('auth', {
       this.error = null;
 
       try {
-        const response = await axios.post(`${API_URL}/api/auth/register`, userData);
+        const data = await authService.register(userData);
 
-        this.token = response.data.token;
-        this.user = response.data.user;
+        this.token = data.token;
+        this.user = data.user;
         this.isAuthenticated = true;
-        this.setAuthHeader(response.data.token);
+        this.setAuthToken(data.token);
 
-        return { success: true, data: response.data };
+        return { success: true, data };
       } catch (error) {
         this.error = error.response?.data?.message || 'Registration failed';
         console.error('Registration error:', error);
@@ -61,14 +59,14 @@ export const useAuthStore = defineStore('auth', {
       this.error = null;
 
       try {
-        const response = await axios.post(`${API_URL}/api/auth/login`, credentials);
+        const data = await authService.login(credentials);
 
-        this.token = response.data.token;
-        this.user = response.data.user;
+        this.token = data.token;
+        this.user = data.user;
         this.isAuthenticated = true;
-        this.setAuthHeader(response.data.token);
+        this.setAuthToken(data.token);
 
-        return { success: true, data: response.data };
+        return { success: true, data };
       } catch (error) {
         this.error = error.response?.data?.message || 'Login failed';
         console.error('Login error:', error);
@@ -88,11 +86,10 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true;
 
       try {
-        this.setAuthHeader(this.token);
-        const response = await axios.get(`${API_URL}/api/auth/verify`);
+        const data = await authService.verifyToken();
 
-        if (response.data.authenticated) {
-          this.user = response.data.user;
+        if (data.authenticated) {
+          this.user = data.user;
           this.isAuthenticated = true;
           return true;
         } else {
@@ -114,7 +111,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = null;
       this.isAuthenticated = false;
       this.error = null;
-      this.setAuthHeader(null);
+      authService.logout();
     },
 
     // Clear error
