@@ -2,6 +2,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from './pages/LandingPage.vue'
 import Login from './pages/Login.vue'
 import Register from './pages/Register.vue'
+import ForgotPassword from './pages/ForgotPassword.vue'
+import VerifyResetCode from './pages/VerifyResetCode.vue'
+import ResetPassword from './pages/ResetPassword.vue'
 import Messages from './pages/Messages.vue'
 import BrowseItems from './pages/BrowseItems.vue'
 import CreateListing from './pages/CreateListing.vue'
@@ -39,6 +42,21 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register
+  },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: ForgotPassword
+  },
+  {
+    path: '/verify-reset-code',
+    name: 'VerifyResetCode',
+    component: VerifyResetCode
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: ResetPassword
   },
   {
     path: '/messages',

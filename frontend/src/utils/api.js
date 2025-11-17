@@ -3,6 +3,8 @@
  * Centralized utilities for API-related operations
  */
 
+import apiClient from '@/api/interceptors';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 /**
@@ -37,3 +39,6 @@ export const getSocketUrl = () => API_URL;
  * @returns {string} Google OAuth redirect URL
  */
 export const getGoogleOAuthUrl = () => `${API_URL}/api/auth/google`;
+
+// Export apiClient as default for convenience
+export default apiClient;
