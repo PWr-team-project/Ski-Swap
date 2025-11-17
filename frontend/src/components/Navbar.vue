@@ -11,6 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 // Computed property to check if user is logged in
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const currentUser = computed(() => authStore.user)
+const isAdmin = computed(() => authStore.isAdmin)
 
 // Profile dropdown state
 const showProfileDropdown = ref(false)
@@ -44,25 +45,31 @@ onUnmounted(() => {
 // Dynamic icon buttons based on auth state
 const iconButtons = computed(() => {
   if (isLoggedIn.value) {
-    // Show message and profile icons when logged in
-    return [
-      {
+    const buttons = []
+
+    // Only show messages for non-admin users
+    if (!isAdmin.value) {
+      buttons.push({
         id: 1,
         color: '#66D1FF',
         hoverColor: '#0088CC',
         imgSrc: '/assets/images/chat_icon.png',
         alt: 'Messages',
         action: 'messages'
-      },
-      {
-        id: 2,
-        color: '#66D1FF',
-        hoverColor: '#0088CC',
-        imgSrc: '/assets/images/profile_icon.png',
-        alt: 'Profile',
-        action: 'profile'
-      }
-    ]
+      })
+    }
+
+    // Always show profile dropdown
+    buttons.push({
+      id: 2,
+      color: '#66D1FF',
+      hoverColor: '#0088CC',
+      imgSrc: '/assets/images/profile_icon.png',
+      alt: 'Profile',
+      action: 'profile'
+    })
+
+    return buttons
   } else {
     // Show only login button when not logged in
     return []
@@ -87,12 +94,17 @@ function handleMenuClick(action) {
   closeProfileDropdown()
   if (action === 'profile') {
     router.push('/profile')
+  } else if (action === 'viewProfile') {
+    // Navigate to public profile view using current user's ID
+    router.push(`/user/${currentUser.value.id}`)
   } else if (action === 'listings') {
     router.push('/my-listings')
   } else if (action === 'bookings') {
     router.push('/my-bookings')
   } else if (action === 'settings') {
     router.push('/profile-settings')
+  } else if (action === 'verificationRequests') {
+    router.push('/admin/verification-requests')
   }
 }
 
@@ -122,8 +134,8 @@ function getPhotoUrl(photoPath) {
 
     <!-- Right side buttons -->
     <div class="nav-actions">
-      <!-- Create Listing button - only show when logged in -->
-      <button v-if="isLoggedIn" class="create-listing" @click="handleCreateListing">
+      <!-- Create Listing button - only show when logged in and not admin -->
+      <button v-if="isLoggedIn && !isAdmin" class="create-listing" @click="handleCreateListing">
         <span class="plus-icon">+</span>
         Create Listing
       </button>
@@ -139,8 +151,12 @@ function getPhotoUrl(photoPath) {
 
         <!-- Profile dropdown - only show for profile button -->
         <div v-if="button.action === 'profile' && showProfileDropdown" class="profile-dropdown">
-          <!-- Profile Section - Clickable Header -->
-          <button @click="handleMenuClick('settings')" class="dropdown-header">
+          <!-- Profile Section - Clickable Header (only for non-admin) -->
+          <button
+            v-if="!isAdmin"
+            @click="handleMenuClick('settings')"
+            class="dropdown-header"
+          >
             <div class="profile-avatar">
               <img
                 v-if="currentUser?.profile_photo"
@@ -158,17 +174,52 @@ function getPhotoUrl(photoPath) {
             </div>
           </button>
 
+          <!-- Admin Profile Section - Non-clickable Header -->
+          <div v-if="isAdmin" class="dropdown-header-static">
+            <div class="profile-avatar">
+              <img
+                v-if="currentUser?.profile_photo"
+                :src="getPhotoUrl(currentUser.profile_photo)"
+                alt="Profile"
+                class="avatar-img"
+              />
+              <div v-else class="avatar-placeholder">
+                {{ (currentUser?.nickname || 'U')[0].toUpperCase() }}
+              </div>
+            </div>
+            <div class="profile-info">
+              <p class="user-name">Admin Panel</p>
+              <p class="user-email">{{ currentUser?.email || '' }}</p>
+            </div>
+          </div>
+
           <!-- Menu Items -->
           <div class="dropdown-menu">
-            <button @click="handleMenuClick('listings')" class="menu-item">
-              <img src="/assets/images/listings_icon.png" alt="Listings" class="menu-icon-img" />
-              <span class="menu-text">Listings</span>
-            </button>
+            <!-- Admin-specific menu items -->
+            <template v-if="isAdmin">
+              <button @click="handleMenuClick('verificationRequests')" class="menu-item admin-item">
+                <img src="/assets/icons/verified_icon.svg" alt="Verification Requests" class="menu-icon-img icon-admin" />
+                <span class="menu-text">Verification Requests</span>
+              </button>
+            </template>
 
-            <button @click="handleMenuClick('bookings')" class="menu-item">
-              <img src="/assets/images/bookings_icon.png" alt="Bookings" class="menu-icon-img" />
-              <span class="menu-text">My bookings</span>
-            </button>
+            <!-- Regular user menu items -->
+            <template v-else>
+              <button @click="handleMenuClick('viewProfile')" class="menu-item">
+                <img src="/assets/images/profile_icon.png" alt="View Profile" class="menu-icon-img icon-black" />
+                <span class="menu-text">See your profile</span>
+              </button>
+
+              <button @click="handleMenuClick('listings')" class="menu-item">
+                <img src="/assets/images/listings_icon.png" alt="Listings" class="menu-icon-img" />
+                <span class="menu-text">Listings</span>
+              </button>
+
+              <button @click="handleMenuClick('bookings')" class="menu-item">
+                <img src="/assets/images/bookings_icon.png" alt="Bookings" class="menu-icon-img" />
+                <span class="menu-text">My bookings</span>
+              </button>
+            </template>
           </div>
 
           <div class="dropdown-divider"></div>
@@ -343,6 +394,16 @@ function getPhotoUrl(photoPath) {
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
 }
 
+.dropdown-header-static {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+
 .profile-avatar {
   flex-shrink: 0;
 }
@@ -435,6 +496,23 @@ function getPhotoUrl(photoPath) {
   width: 32px;
   height: 32px;
   object-fit: contain;
+}
+
+.icon-black {
+  filter: brightness(0);
+}
+
+.icon-admin {
+  filter: invert(40%) sepia(94%) saturate(2397%) hue-rotate(185deg) brightness(99%) contrast(101%);
+}
+
+.admin-item {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
+  border-left: 3px solid #00AAFF;
+}
+
+.admin-item:hover {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
 }
 
 .menu-icon-svg {

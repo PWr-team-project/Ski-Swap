@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from './stores/authStore'
 import LandingPage from './pages/LandingPage.vue'
 import Login from './pages/Login.vue'
 import Register from './pages/Register.vue'
@@ -15,6 +16,10 @@ import GoogleAuthCallback from './pages/GoogleAuthCallback.vue'
 import SingleListing from './pages/SingleListing.vue'
 import ProfileSettings from './pages/ProfileSettings.vue'
 import UserProfile from './pages/UserProfile.vue'
+
+// Admin pages
+import VerificationRequests from './pages/admin/VerificationRequests.vue'
+import VerificationDetail from './pages/admin/VerificationDetail.vue'
 
 // Static pages
 import AboutUs from './pages/static/AboutUs.vue'
@@ -114,6 +119,19 @@ const routes = [
     name: 'UserProfile',
     component: UserProfile
   },
+  // Admin routes
+  {
+    path: '/admin/verification-requests',
+    name: 'VerificationRequests',
+    component: VerificationRequests,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/verification-requests/:id',
+    name: 'VerificationDetail',
+    component: VerificationDetail,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
   // Company
   {
     path: '/about',
@@ -179,6 +197,33 @@ const router = createRouter({
     // Otherwise, scroll to top
     return { top: 0, behavior: 'smooth' }
   }
+})
+
+// Navigation guard to check authentication and admin access
+router.beforeEach((to, _from, next) => {
+  const authStore = useAuthStore()
+
+  // Check if route requires authentication
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!authStore.isLoggedIn) {
+      // Redirect to login if not authenticated
+      next({ name: 'Login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+
+  // Check if route requires admin access
+  if (to.matched.some(record => record.meta.requiresAdmin)) {
+    if (!authStore.isAdmin) {
+      // Redirect to home if not admin
+      alert('Access denied. Admin privileges required.')
+      next({ name: 'Home' })
+      return
+    }
+  }
+
+  // Allow navigation
+  next()
 })
 
 export default router

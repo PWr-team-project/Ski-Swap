@@ -56,4 +56,18 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { auth, isAdmin };
+// Combined middleware: auth + admin check
+const adminAuth = async (req, res, next) => {
+  try {
+    // First run auth middleware
+    await auth(req, res, () => {
+      // Then check if admin
+      isAdmin(req, res, next);
+    });
+  } catch (error) {
+    console.error('Admin auth middleware error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = { auth, isAdmin, adminAuth };

@@ -153,7 +153,8 @@ router.post(
           last_name: user.last_name,
           user_type: user.user_type,
           profile_photo: user.profile_photo,
-          admin_flag: user.admin_flag
+          admin_flag: user.admin_flag,
+          id_verified: user.id_verified
         }
       });
     } catch (error) {
@@ -197,7 +198,8 @@ router.get('/verify', async (req, res) => {
         last_name: user.last_name,
         user_type: user.user_type,
         profile_photo: user.profile_photo,
-        admin_flag: user.admin_flag
+        admin_flag: user.admin_flag,
+        id_verified: user.id_verified
       }
     });
   } catch (error) {
