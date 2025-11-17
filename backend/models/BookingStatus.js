@@ -1,58 +1,25 @@
 const mongoose = require('mongoose');
 
-const bookingStatusSchema = new mongoose.Schema({
+const bookingStatusHistory = new mongoose.Schema({
   booking_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booking',
     required: true,
     unique: true
   },
-  payment_flag: {
-    type: Boolean,
-    default: false
-  },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'ongoing', 'completed', 'dispute', 'cancelled'],
-    default: 'pending',
+    enum: ['PENDING','ACCEPTED','PICKUP','IN_PROGRESS','RETURN','VERIFY','COMPLETED','REVIEWED',
+    'CANCELLED','DECLINED','DISPUTED','DISPUTE_RESOLVED'],
+    default: 'PENDING',
     required: true
   },
-  renter_pickup: {
-    type: Boolean,
-    default: false
-  },
-  renter_pickup_photos: {
-    type: [String], // Array of image URLs
-    default: []
-  },
-  owner_pickup: {
-    type: Boolean,
-    default: false
-  },
-  renter_return: {
-    type: Boolean,
-    default: false
-  },
-  renter_return_photos: {
-    type: [String], // Array of image URLs
-    default: []
-  },
-  owner_return: {
-    type: Boolean,
-    default: false
-  },
-  dispute: {
-    type: Boolean,
-    default: false
-  },
-  dispute_description: {
-    type: String,
-    trim: true
-  },
-  dispute_photos: {
-    type: [String], 
-    default: []
+  changed_by:{
+    typpe: String,
+    enum: ['renter','owner','system'],
+    required: true
   }
+
 }, {
   timestamps: true
 });
