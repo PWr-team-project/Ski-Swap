@@ -20,6 +20,8 @@ import UserProfile from './pages/UserProfile.vue'
 // Admin pages
 import VerificationRequests from './pages/admin/VerificationRequests.vue'
 import VerificationDetail from './pages/admin/VerificationDetail.vue'
+import InspectUsers from './pages/admin/InspectUsers.vue'
+import UserDetail from './pages/admin/UserDetail.vue'
 
 // Static pages
 import AboutUs from './pages/static/AboutUs.vue'
@@ -130,6 +132,18 @@ const routes = [
     path: '/admin/verification-requests/:id',
     name: 'VerificationDetail',
     component: VerificationDetail,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/inspect-users',
+    name: 'InspectUsers',
+    component: InspectUsers,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/users/:id',
+    name: 'UserDetail',
+    component: UserDetail,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   // Company

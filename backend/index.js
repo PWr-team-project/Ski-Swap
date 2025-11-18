@@ -19,6 +19,7 @@ const googleAuthRoutes = require('./routes/googleAuthRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const passwordResetRoutes = require('./routes/passwordResetRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 app.use(cors({
   origin: process.env.CLIENT_URL,
@@ -55,6 +56,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/verification', verificationRoutes);
+app.use('/api/admin', adminRoutes); // Admin routes
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend API is running!' });

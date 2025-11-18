@@ -105,6 +105,8 @@ function handleMenuClick(action) {
     router.push('/profile-settings')
   } else if (action === 'verificationRequests') {
     router.push('/admin/verification-requests')
+  } else if (action === 'inspectUsers') {
+    router.push('/admin/inspect-users')
   }
 }
 
@@ -200,6 +202,10 @@ function getPhotoUrl(photoPath) {
               <button @click="handleMenuClick('verificationRequests')" class="menu-item admin-item">
                 <img src="/assets/icons/verified_icon.svg" alt="Verification Requests" class="menu-icon-img icon-admin" />
                 <span class="menu-text">Verification Requests</span>
+              </button>
+              <button @click="handleMenuClick('inspectUsers')" class="menu-item admin-item">
+                <img src="/assets/images/profile_icon.png" alt="Inspect Users" class="menu-icon-img icon-admin" />
+                <span class="menu-text">Inspect Users</span>
               </button>
             </template>
 
