@@ -60,6 +60,7 @@ router.get('/profile', auth, async (req, res) => {
         first_name: user.first_name,
         last_name: user.last_name,
         phone_number: user.phone_number,
+        profile_description: user.profile_description,
         profile_photo: user.profile_photo,
         background_photo: user.background_photo,
         user_type: user.user_type,
@@ -81,10 +82,14 @@ router.put('/profile', auth, upload.fields([
   { name: 'background_photo', maxCount: 1 }
 ]), async (req, res) => {
   try {
+    console.log('Files received:', req.files);
+    console.log('Body received:', req.body);
+
     const {
       first_name,
       last_name,
       phone_number,
+      profile_description,
       location_country,
       location_state,
       location_city,
@@ -119,6 +124,7 @@ router.put('/profile', auth, upload.fields([
     if (first_name) user.first_name = cleanAndCapitalizeName(first_name);
     if (last_name) user.last_name = cleanAndCapitalizeName(last_name);
     if (phone_number !== undefined) user.phone_number = phone_number || null;
+    if (profile_description !== undefined) user.profile_description = profile_description || null;
 
     // Handle location data
     const hasLocationData = location_country || location_city || location_state || location_street || location_street_number;
@@ -221,6 +227,7 @@ router.put('/profile', auth, upload.fields([
         first_name: updatedUser.first_name,
         last_name: updatedUser.last_name,
         phone_number: updatedUser.phone_number,
+        profile_description: updatedUser.profile_description,
         profile_photo: updatedUser.profile_photo,
         background_photo: updatedUser.background_photo,
         user_type: updatedUser.user_type,
@@ -409,6 +416,7 @@ router.get('/public/:identifier', async (req, res) => {
         nickname: user.nickname,
         profile_photo: user.profile_photo,
         background_photo: user.background_photo,
+        profile_description: user.profile_description,
         user_type: user.user_type,
         id_verified: user.id_verified,
         rating_avg: user.rating_avg,

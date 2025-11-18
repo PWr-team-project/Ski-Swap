@@ -55,6 +55,8 @@
 
 <style scoped>
 .footer {
+  position: relative;
+  z-index: 100;
   background: linear-gradient(135deg, #00AAFF 0%, #0088CC 100%);
   color: white;
   padding: 2.5rem 2rem 1rem;

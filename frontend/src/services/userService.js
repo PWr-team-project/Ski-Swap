@@ -23,7 +23,14 @@ export const userService = {
    * @param {Object} profileData - Profile data to update
    */
   async updateProfile(profileData) {
-    const response = await apiClient.put('/api/users/profile', profileData);
+    const config = {};
+    // If profileData is FormData (for file uploads), set appropriate header
+    if (profileData instanceof FormData) {
+      config.headers = {
+        'Content-Type': 'multipart/form-data'
+      };
+    }
+    const response = await apiClient.put('/api/users/profile', profileData, config);
     return response.data;
   },
 

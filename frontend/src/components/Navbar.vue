@@ -247,6 +247,8 @@ function getPhotoUrl(photoPath) {
 
 <style scoped>
 .navbar {
+  position: relative;
+  z-index: 100;
   display: flex;
   justify-content: space-between;
   align-items: center;
