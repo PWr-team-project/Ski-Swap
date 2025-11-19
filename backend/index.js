@@ -6,6 +6,8 @@ const cors = require('cors');
 const socketIO = require('socket.io');
 const session = require('express-session');
 const passport = require('./config/passport');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 const app = express();
 
@@ -47,6 +49,18 @@ app.use(passport.session());
 
 // Serve static files for uploaded images
 app.use('/uploads', express.static('uploads'));
+
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Ski-Swap API Documentation'
+}));
+
+// Serve OpenAPI spec as JSON
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);
