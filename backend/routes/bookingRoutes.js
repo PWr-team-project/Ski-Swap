@@ -11,6 +11,7 @@ const { auth } = require('../middleware/auth');
 router.get('/renting', auth, async (req, res) => {
   try {
     const now = new Date();
+    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
     // Get all bookings where user is the renter
     const bookings = await Booking.find({ renter_id: req.userId })
@@ -24,12 +25,16 @@ router.get('/renting', auth, async (req, res) => {
       })
       .sort({ start_date: -1 });
 
-    // Get booking statuses
+    // Get booking statuses (get latest status for each booking)
     const bookingIds = bookings.map(b => b._id);
-    const statuses = await BookingStatus.find({ booking_id: { $in: bookingIds } });
+    const statuses = await BookingStatus.aggregate([
+      { $match: { booking_id: { $in: bookingIds } } },
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: '$booking_id', latestStatus: { $first: '$$ROOT' } } }
+    ]);
     const statusMap = {};
     statuses.forEach(s => {
-      statusMap[s.booking_id.toString()] = s;
+      statusMap[s._id.toString()] = s.latestStatus;
     });
 
     // Get reviews
@@ -42,52 +47,61 @@ router.get('/renting', auth, async (req, res) => {
       reviewMap[r.booking_id.toString()] = r;
     });
 
-    // Categorize bookings
+    // Categorize bookings based on status
+    // Active: ACCEPTED (pickup <= 3 days), PICKUP, IN_PROGRESS, RETURN, VERIFY
+    // Upcoming: ACCEPTED (pickup > 3 days)
+    // Pending: PENDING
+    // History: COMPLETED, REVIEWED, CANCELLED, DECLINED, DISPUTED, DISPUTE_RESOLVED
     const categorized = {
+      pending: [],
       active: [],
       upcoming: [],
       history: []
     };
 
-    let completedCount = 0;
-    let totalRatingSum = 0;
-    let ratingCount = 0;
+    const activeStatuses = ['PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY'];
+    const historyStatuses = ['COMPLETED', 'REVIEWED', 'CANCELLED', 'DECLINED', 'DISPUTED', 'DISPUTE_RESOLVED'];
 
     bookings.forEach(booking => {
-      const status = statusMap[booking._id.toString()];
+      const statusEntry = statusMap[booking._id.toString()];
+      const currentStatus = statusEntry?.status || 'PENDING';
       const review = reviewMap[booking._id.toString()];
 
       const bookingData = {
         ...booking.toObject(),
-        status: status?.status || 'pending',
-        bookingStatus: status,
+        status: currentStatus,
+        bookingStatus: statusEntry,
         ownerReview: review
       };
 
       // Calculate days remaining
       const daysRemaining = Math.ceil((new Date(booking.end_date) - now) / (1000 * 60 * 60 * 24));
+      const pickupDate = new Date(booking.start_date);
 
-      if (status?.status === 'ongoing' && new Date(booking.end_date) >= now) {
+      if (currentStatus === 'PENDING') {
+        categorized.pending.push(bookingData);
+      } else if (activeStatuses.includes(currentStatus)) {
         bookingData.daysRemaining = daysRemaining;
         categorized.active.push(bookingData);
-      } else if ((status?.status === 'confirmed' || status?.status === 'pending') && new Date(booking.start_date) > now) {
-        categorized.upcoming.push(bookingData);
-      } else if (status?.status === 'completed' || new Date(booking.end_date) < now) {
-        categorized.history.push(bookingData);
-        completedCount++;
-        if (review?.rating) {
-          totalRatingSum += review.rating;
-          ratingCount++;
+      } else if (currentStatus === 'ACCEPTED') {
+        // ACCEPTED goes to active if pickup is within 3 days (and in the future), otherwise upcoming
+        if (pickupDate > threeDaysFromNow) {
+          categorized.upcoming.push(bookingData);
+        } else {
+          bookingData.daysRemaining = daysRemaining;
+          categorized.active.push(bookingData);
         }
+      } else if (historyStatuses.includes(currentStatus)) {
+        categorized.history.push(bookingData);
       }
     });
 
     // Calculate stats
     const stats = {
-      completedRentals: completedCount,
+      pendingRequests: categorized.pending.length,
       activeRentals: categorized.active.length,
       upcomingRentals: categorized.upcoming.length,
-      averageRating: ratingCount > 0 ? (totalRatingSum / ratingCount).toFixed(1) : 0
+      completedRentals: categorized.history.length
     };
 
     res.json({ stats, bookings: categorized });
@@ -101,6 +115,7 @@ router.get('/renting', auth, async (req, res) => {
 router.get('/lending', auth, async (req, res) => {
   try {
     const now = new Date();
+    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
     // Get all listings owned by user
     const myListings = await Listing.find({ owner_id: req.userId });
@@ -118,12 +133,16 @@ router.get('/lending', auth, async (req, res) => {
       .populate('renter_id', 'nickname first_name last_name profile_photo email')
       .sort({ start_date: -1 });
 
-    // Get booking statuses
+    // Get booking statuses (get latest status for each booking)
     const bookingIds = bookings.map(b => b._id);
-    const statuses = await BookingStatus.find({ booking_id: { $in: bookingIds } });
+    const statuses = await BookingStatus.aggregate([
+      { $match: { booking_id: { $in: bookingIds } } },
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: '$booking_id', latestStatus: { $first: '$$ROOT' } } }
+    ]);
     const statusMap = {};
     statuses.forEach(s => {
-      statusMap[s.booking_id.toString()] = s;
+      statusMap[s._id.toString()] = s.latestStatus;
     });
 
     // Get payments
@@ -143,7 +162,11 @@ router.get('/lending', auth, async (req, res) => {
       reviewMap[r.booking_id.toString()] = r;
     });
 
-    // Categorize bookings
+    // Categorize bookings based on status
+    // Active: ACCEPTED (pickup <= 3 days), PICKUP, IN_PROGRESS, RETURN, VERIFY
+    // Upcoming: ACCEPTED (pickup > 3 days)
+    // Pending: PENDING
+    // History: COMPLETED, REVIEWED, CANCELLED, DECLINED, DISPUTED, DISPUTE_RESOLVED
     const categorized = {
       active: [],
       upcoming: [],
@@ -151,48 +174,68 @@ router.get('/lending', auth, async (req, res) => {
       history: []
     };
 
-    let completedCount = 0;
-    let totalEarnings = 0;
+    const activeStatuses = ['PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY'];
+    const historyStatuses = ['COMPLETED', 'REVIEWED', 'CANCELLED', 'DECLINED', 'DISPUTED', 'DISPUTE_RESOLVED'];
 
     bookings.forEach(booking => {
-      const status = statusMap[booking._id.toString()];
+      const statusEntry = statusMap[booking._id.toString()];
+      const currentStatus = statusEntry?.status || 'PENDING';
       const payment = paymentMap[booking._id.toString()];
       const review = reviewMap[booking._id.toString()];
 
       const bookingData = {
         ...booking.toObject(),
-        status: status?.status || 'pending',
-        bookingStatus: status,
+        status: currentStatus,
+        bookingStatus: statusEntry,
         payment: payment,
         renterReview: review
       };
 
       // Calculate days remaining
       const daysRemaining = Math.ceil((new Date(booking.end_date) - now) / (1000 * 60 * 60 * 24));
+      const pickupDate = new Date(booking.start_date);
 
-      if (status?.status === 'pending') {
+      if (currentStatus === 'PENDING') {
         categorized.pending.push(bookingData);
-      } else if (status?.status === 'ongoing' && new Date(booking.end_date) >= now) {
+      } else if (activeStatuses.includes(currentStatus)) {
         bookingData.daysRemaining = daysRemaining;
         categorized.active.push(bookingData);
-      } else if ((status?.status === 'confirmed') && new Date(booking.start_date) > now) {
-        categorized.upcoming.push(bookingData);
-      } else if (status?.status === 'completed' || new Date(booking.end_date) < now) {
-        categorized.history.push(bookingData);
-        completedCount++;
-        if (payment?.payment_status === 'completed') {
-          totalEarnings += payment.amount;
+      } else if (currentStatus === 'ACCEPTED') {
+        // ACCEPTED goes to active if pickup is within 3 days, otherwise upcoming
+        if (pickupDate > threeDaysFromNow) {
+          categorized.upcoming.push(bookingData);
+        } else {
+          bookingData.daysRemaining = daysRemaining;
+          categorized.active.push(bookingData);
         }
+      } else if (historyStatuses.includes(currentStatus)) {
+        categorized.history.push(bookingData);
       }
     });
 
+    // Calculate total earnings from completed bookings
+    let totalEarnings = 0;
+    categorized.history.forEach(booking => {
+      if (['COMPLETED', 'REVIEWED'].includes(booking.status)) {
+        totalEarnings += booking.total_price || 0;
+      }
+    });
+
+    // Calculate average rating from reviews
+    let averageRating = 0;
+    const reviewRatings = reviews.filter(r => r.rating).map(r => r.rating);
+    if (reviewRatings.length > 0) {
+      averageRating = reviewRatings.reduce((sum, rating) => sum + rating, 0) / reviewRatings.length;
+    }
+
     // Calculate stats
     const stats = {
-      totalEarnings: totalEarnings.toFixed(2),
-      completedBookings: completedCount,
+      pendingRequests: categorized.pending.length,
       activeBookings: categorized.active.length,
       upcomingBookings: categorized.upcoming.length,
-      pendingRequests: categorized.pending.length
+      completedBookings: categorized.history.length,
+      totalEarnings: totalEarnings.toFixed(2),
+      averageRating: averageRating
     };
 
     res.json({ stats, bookings: categorized });
@@ -211,10 +254,10 @@ router.get('/:id', auth, async (req, res) => {
         populate: [
           { path: 'category_id', select: 'name' },
           { path: 'location_id' },
-          { path: 'owner_id', select: 'nickname first_name last_name profile_photo email' }
+          { path: 'owner_id', select: 'nickname first_name last_name profile_photo email rating_avg review_count' }
         ]
       })
-      .populate('renter_id', 'nickname first_name last_name profile_photo email');
+      .populate('renter_id', 'nickname first_name last_name profile_photo email rating_avg review_count');
 
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
@@ -226,7 +269,17 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to view this booking' });
     }
 
-    res.json({ booking });
+    // Get booking status
+    const bookingStatus = await BookingStatus.findOne({ booking_id: req.params.id });
+
+    // Return booking with status included
+    const bookingData = {
+      ...booking.toObject(),
+      status: bookingStatus?.status || 'pending',
+      bookingStatus: bookingStatus
+    };
+
+    res.json(bookingData);
   } catch (error) {
     console.error('Error fetching booking:', error);
     res.status(500).json({ message: 'Server error' });
@@ -263,6 +316,16 @@ router.post('/create', auth, async (req, res) => {
 
     await booking.save();
 
+    // Create initial BookingStatus entry
+    const initialStatus = new BookingStatus({
+      booking_id: booking._id,
+      status: 'PENDING',
+      changed_by: 'renter',
+      changed_by_user_id: req.userId,
+      notes: 'Booking created'
+    });
+    await initialStatus.save();
+
     // Populate the booking before sending response
     await booking.populate({
       path: 'listing_id',
@@ -275,7 +338,8 @@ router.post('/create', auth, async (req, res) => {
 
     res.status(201).json({
       message: 'Booking created successfully',
-      booking
+      booking,
+      status: initialStatus
     });
   } catch (error) {
     console.error('Error creating booking:', error);

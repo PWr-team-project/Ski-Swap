@@ -17,6 +17,11 @@ const messageRoutes = require('./routes/messageRoutes');
 const listingRoutes = require('./routes/listingRoutes');
 const googleAuthRoutes = require('./routes/googleAuthRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const bookingStateRoutes = require('./routes/bookingStateRoutes');
+const bookingPhotoRoutes = require('./routes/bookingPhotoRoutes');
+
+// Import scheduler
+const { startScheduler } = require('./services/bookingScheduler');
 
 app.use(cors({
   origin: process.env.CLIENT_URL,
@@ -51,13 +56,19 @@ app.use('/api/locations', locationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/bookings', bookingStateRoutes); // Booking state management routes
+app.use('/api/bookings', bookingPhotoRoutes); // Booking photo routes
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend API is running!' });
 });
 
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
+  .then(() => {
+    console.log('MongoDB connected');
+    // Start the booking scheduler after DB connection
+    startScheduler();
+  })
   .catch(err => console.error('MongoDB connection error:', err));
 
 const PORT = process.env.PORT || 5000;
