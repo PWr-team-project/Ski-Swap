@@ -1,131 +1,94 @@
 <template>
-  <div :class="['rental-card', getStatusClass]">
-    <!-- Image Section -->
-    <div class="rental-image" @click="navigateToDetails">
-      <img
-        :src="getImageUrl(listing?.photos?.[0])"
-        :alt="listing?.title"
-        @error="handleImageError"
-      />
-      <div class="status-badge" :class="getStatusClass">{{ getStatusLabel }}</div>
-    </div>
+  <div class="rental-card">
+    <!-- Status Badge - Right Top Corner -->
+    <div class="status-badge" :class="getStatusClass">{{ getStatusLabel }}</div>
 
-    <!-- Content Section -->
-    <div class="rental-content">
-      <!-- Title & Category -->
-      <div class="title-section">
-        <h3 class="rental-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
-        <span class="rental-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
+    <!-- Main Card Content -->
+    <div class="card-layout">
+      <!-- Left: Large Thumbnail -->
+      <div class="thumbnail" @click="navigateToDetails">
+        <img
+          :src="getImageUrl(listing?.photos?.[0])"
+          :alt="listing?.title"
+          @error="handleImageError"
+        />
       </div>
 
-      <!-- Status Description -->
-      <p class="status-description">{{ getStatusDescription }}</p>
-
-      <!-- User Info (Owner or Renter) -->
-      <div class="user-section">
-        <div class="user-avatar">
-          <img v-if="userInfo?.profile_photo" :src="getImageUrl(userInfo.profile_photo)" :alt="getUserName" />
-          <span v-else>{{ getUserInitial }}</span>
-        </div>
-        <div class="user-details">
-          <span class="user-name">{{ getUserName }}</span>
-          <span class="user-role">{{ isOwnerView ? 'Renter' : 'Owner' }}</span>
-        </div>
-        <div v-if="userInfo?.rating_avg" class="user-rating">
-          <span class="rating-star">&#9733;</span>
-          <span>{{ userInfo.rating_avg.toFixed(1) }}</span>
-        </div>
-      </div>
-
-      <!-- Info Grid -->
-      <div class="info-grid">
-        <!-- Dates -->
-        <div class="info-item">
-          <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-          <span>{{ formatDateRange }}</span>
+      <!-- Right: Content -->
+      <div class="card-content">
+        <!-- Equipment Name and Category -->
+        <div class="header-section">
+          <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
+          <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
         </div>
 
-        <!-- Price -->
-        <div class="info-item price-item">
-          <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-          <span class="price-value">€{{ totalPrice?.toFixed(2) || '0.00' }}</span>
+        <!-- 3-Column Grid -->
+        <div class="info-grid">
+          <!-- Column 1: Rental Period -->
+          <div class="info-column">
+            <div class="column-label">Rental Period</div>
+            <div class="column-value">{{ formatDateRange }}</div>
+            <div class="column-subtext">{{ getDuration }} days</div>
+          </div>
+
+          <!-- Column 2: Owner/Renter Info -->
+          <div class="info-column">
+            <div class="column-label">{{ isOwnerView ? 'Renter' : 'Owner' }}</div>
+            <div class="user-info">
+              <div class="user-avatar">{{ getUserInitial }}</div>
+              <div class="user-details">
+                <div class="column-value">{{ getUserName }}</div>
+                <div class="column-subtext" v-if="showContactInfo">
+                  <div v-if="showLocation">{{ getShortLocation }}</div>
+                  <div v-if="showPhone && userInfo?.phone">{{ userInfo.phone }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 3: Price and Extras -->
+          <div class="info-column">
+            <div class="column-label">{{ isOwnerView ? 'Earnings' : 'Total' }}</div>
+            <div class="column-value price">€{{ totalPrice?.toFixed(2) || '0.00' }}</div>
+            <div class="column-subtext">
+              <div class="badges">
+                <span v-if="showPaymentBadge" :class="['badge', paymentConfirmed ? 'paid' : 'unpaid']">
+                  {{ paymentConfirmed ? 'Paid' : 'Unpaid' }}
+                </span>
+                <span v-if="insuranceFlag" class="badge insured">Insured</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Duration Badge -->
-        <div v-if="showDuration" class="info-item duration-item">
-          <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          <span>{{ getDuration }} days</span>
+        <!-- Action Buttons - Bottom Right -->
+        <div class="action-buttons">
+          <!-- View Details - Always First and Sky Blue -->
+          <button @click="navigateToDetails" class="btn btn-details">View Details</button>
+
+          <!-- Owner Buttons -->
+          <template v-if="isOwnerView">
+            <button v-if="showAcceptButton" @click="navigateToDetails" class="btn btn-success">Accept</button>
+            <button v-if="showDeclineButton" @click="navigateToDetails" class="btn btn-danger">Decline</button>
+            <button v-if="showOwnerConfirmHandoffButton" @click="navigateToDetails" class="btn btn-success">Confirm</button>
+            <button v-if="showOwnerConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
+            <button v-if="showEverythingOKButton" @click="navigateToDetails" class="btn btn-success">Everything OK</button>
+            <button v-if="showSomethingWrongButton" @click="navigateToDetails" class="btn btn-dispute">Something's Wrong</button>
+            <button v-if="showOwnerContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
+            <button v-if="showOwnerShowReview" @click="navigateToDetails" class="btn btn-review">Show Review</button>
+          </template>
+
+          <!-- Renter Buttons -->
+          <template v-else>
+            <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success">Pay Now</button>
+            <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger">Cancel</button>
+            <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Handoff</button>
+            <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
+            <button v-if="showRenterReview" @click="navigateToDetails" class="btn btn-review">Write Review</button>
+            <button v-if="showRenterRentAgain" @click="navigateToDetails" class="btn btn-success">Rent Again</button>
+            <button v-if="showContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
+          </template>
         </div>
-
-        <!-- Location (when allowed) -->
-        <div v-if="showLocation" class="info-item">
-          <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
-          </svg>
-          <span>{{ getShortLocation }}</span>
-        </div>
-
-        <!-- Phone (when allowed) -->
-        <div v-if="showPhone" class="info-item phone-item">
-          <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-          </svg>
-          <span>{{ userInfo?.phone || 'N/A' }}</span>
-        </div>
-      </div>
-
-      <!-- Payment Badge & Insurance -->
-      <div class="badges-row">
-        <span v-if="showPaymentBadge" :class="['payment-badge', paymentConfirmed ? 'paid' : 'unpaid']">
-          {{ paymentConfirmed ? 'Paid' : 'Unpaid' }}
-        </span>
-        <span v-if="insuranceFlag" class="insurance-badge">
-          Insured
-        </span>
-      </div>
-
-      <!-- Review Received (if applicable) -->
-      <div v-if="hasReview && bookingStatus === 'REVIEWED'" class="review-indicator">
-        <span class="review-star">&#9733;</span>
-        Review received
-      </div>
-
-      <!-- Action Buttons - All redirect to BookingDetails -->
-      <div class="action-buttons">
-        <!-- Renter-side buttons -->
-        <template v-if="!isOwnerView">
-          <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success btn-sm">Pay</button>
-          <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger btn-sm">Cancel</button>
-          <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success btn-sm">Confirm Pickup</button>
-          <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success btn-sm">Confirm Return</button>
-          <button v-if="showContactSupportButton" @click="navigateToDetails" class="btn btn-support btn-sm">Contact Support</button>
-        </template>
-
-        <!-- Owner-side buttons -->
-        <template v-else>
-          <button v-if="showAcceptButton" @click="navigateToDetails" class="btn btn-success btn-sm">Accept</button>
-          <button v-if="showDeclineButton" @click="navigateToDetails" class="btn btn-danger btn-sm">Decline</button>
-          <button v-if="showOwnerConfirmHandoffButton" @click="navigateToDetails" class="btn btn-success btn-sm">Confirm</button>
-          <button v-if="showOwnerConfirmReturnButton" @click="navigateToDetails" class="btn btn-success btn-sm">Confirm Return</button>
-          <button v-if="showEverythingOKButton" @click="navigateToDetails" class="btn btn-success btn-sm">Everything OK</button>
-          <button v-if="showSomethingWrongButton" @click="navigateToDetails" class="btn btn-support btn-sm">Something Wrong</button>
-          <button v-if="showOwnerContactSupportButton" @click="navigateToDetails" class="btn btn-support btn-sm">Contact Support</button>
-        </template>
-
-        <!-- View Details - Always shown -->
-        <button @click="navigateToDetails" class="btn btn-details">View Details</button>
       </div>
     </div>
   </div>
@@ -140,13 +103,13 @@ const router = useRouter();
 const props = defineProps({
   rentalId: String,
   listing: Object,
-  owner: Object, // Owner info (for renter view)
-  renter: Object, // Renter info (for owner view)
+  owner: Object,
+  renter: Object,
   startDate: String,
   endDate: String,
   totalPrice: Number,
-  bookingStatus: String, // The actual booking status (PENDING, ACCEPTED, etc.)
-  status: String, // Card status type (active, upcoming, history, pending)
+  bookingStatus: String,
+  status: String,
   daysRemaining: Number,
   location: Object,
   hasReview: Boolean,
@@ -160,12 +123,10 @@ const props = defineProps({
 
 const emit = defineEmits(['view-details']);
 
-// Determine user info based on view type
 const userInfo = computed(() => {
   return props.isOwnerView ? props.renter : props.owner;
 });
 
-// Status mapping
 const statusLabels = {
   'PENDING': 'Pending',
   'ACCEPTED': 'Accepted',
@@ -184,31 +145,8 @@ const statusLabels = {
   'DISPUTE_RESOLVED': 'Resolved'
 };
 
-const statusDescriptions = {
-  'PENDING': { renter: 'Awaiting owner approval', owner: 'New booking request' },
-  'ACCEPTED': { renter: 'Complete payment to proceed', owner: 'Awaiting payment' },
-  'PICKUP': { renter: 'Time to pick up equipment', owner: 'Equipment ready for pickup' },
-  'PICKUP_OWNER': { renter: 'Confirm you received equipment', owner: 'Waiting for renter confirmation' },
-  'PICKUP_RENTER': { renter: 'Waiting for owner confirmation', owner: 'Confirm handoff' },
-  'IN_PROGRESS': { renter: 'Enjoy your rental!', owner: 'Equipment currently rented' },
-  'RETURN': { renter: 'Time to return equipment', owner: 'Equipment due for return' },
-  'RETURN_RENTER': { renter: 'Waiting for owner to verify', owner: 'Verify equipment condition' },
-  'RETURN_OWNER': { renter: 'Confirm return', owner: 'Verify equipment is OK' },
-  'COMPLETED': { renter: 'Leave a review', owner: 'Rental completed' },
-  'REVIEWED': { renter: 'Thank you!', owner: 'Review received' },
-  'CANCELLED': { renter: 'Booking cancelled', owner: 'Booking cancelled' },
-  'DECLINED': { renter: 'Request declined', owner: 'Request declined' },
-  'DISPUTED': { renter: 'Support will contact you', owner: 'Support will contact you' },
-  'DISPUTE_RESOLVED': { renter: 'Dispute resolved', owner: 'Dispute resolved' }
-};
-
 const getStatusLabel = computed(() => {
   return statusLabels[props.bookingStatus] || props.status || 'Unknown';
-});
-
-const getStatusDescription = computed(() => {
-  const role = props.isOwnerView ? 'owner' : 'renter';
-  return statusDescriptions[props.bookingStatus]?.[role] || '';
 });
 
 const getStatusClass = computed(() => {
@@ -221,21 +159,20 @@ const getStatusClass = computed(() => {
   return 'status-default';
 });
 
-// Determine what to show based on status
 const locationAllowedStates = ['ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
 const showLocation = computed(() => locationAllowedStates.includes(props.bookingStatus));
 const showPhone = computed(() => locationAllowedStates.includes(props.bookingStatus));
-const showDuration = computed(() => true);
+const showContactInfo = computed(() => locationAllowedStates.includes(props.bookingStatus));
 const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
 
-// Renter button visibility
 const showPayButton = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus) && !props.paymentConfirmed);
 const showCancelButton = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
 const showConfirmPickupButton = computed(() => !props.isOwnerView && ['PICKUP', 'PICKUP_OWNER'].includes(props.bookingStatus));
 const showConfirmReturnButton = computed(() => !props.isOwnerView && ['RETURN', 'RETURN_OWNER'].includes(props.bookingStatus));
 const showContactSupportButton = computed(() => !props.isOwnerView && props.bookingStatus === 'DISPUTED');
+const showRenterReview = computed(() => !props.isOwnerView && props.bookingStatus === 'COMPLETED');
+const showRenterRentAgain = computed(() => !props.isOwnerView && ['REVIEWED', 'CANCELLED'].includes(props.bookingStatus));
 
-// Owner button visibility
 const showAcceptButton = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
 const showDeclineButton = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
 const showOwnerConfirmHandoffButton = computed(() => props.isOwnerView && ['PICKUP', 'PICKUP_RENTER'].includes(props.bookingStatus));
@@ -243,8 +180,8 @@ const showOwnerConfirmReturnButton = computed(() => props.isOwnerView && props.b
 const showEverythingOKButton = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
 const showSomethingWrongButton = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
 const showOwnerContactSupportButton = computed(() => props.isOwnerView && props.bookingStatus === 'DISPUTED');
+const showOwnerShowReview = computed(() => props.isOwnerView && props.bookingStatus === 'REVIEWED');
 
-// Helpers
 const getImageUrl = (photoPath) => {
   if (!photoPath) return '/assets/images/placeholder.jpg';
   if (photoPath.startsWith('http')) return photoPath;
@@ -299,101 +236,95 @@ const navigateToDetails = () => {
 .rental-card {
   background: white;
   border-radius: 16px;
-  overflow: hidden;
-  display: flex;
-  box-shadow: 0 4px 20px rgba(0, 170, 255, 0.1);
-  border: 1px solid rgba(0, 170, 255, 0.1);
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
   transition: all 0.3s ease;
 }
 
 .rental-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 170, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
 }
 
-/* Image Section */
-.rental-image {
-  position: relative;
-  width: 180px;
-  min-height: 180px;
-  flex-shrink: 0;
-  cursor: pointer;
-  overflow: hidden;
-  margin: 1rem;
-  border-radius: 12px;
-}
-
-.rental-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.rental-card:hover .rental-image img {
-  transform: scale(1.05);
-}
-
-/* Status Badge */
 .status-badge {
   position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  padding: 0.35rem 0.75rem;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.4rem 0.8rem;
   border-radius: 6px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: white;
+  z-index: 1;
 }
 
 .status-pending {
-  background: #fef3c7;
-  color: #92400e;
+  background: #fbbf24;
 }
 
 .status-upcoming {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #3b82f6;
 }
 
 .status-active {
-  background: #fed7aa;
-  color: #c2410c;
+  background: #f97316;
 }
 
 .status-completed {
-  background: #d1fae5;
-  color: #065f46;
+  background: #10b981;
 }
 
 .status-error {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #ef4444;
 }
 
 .status-default {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: #6b7280;
 }
 
-/* Content Section */
-.rental-content {
+.card-layout {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.thumbnail {
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.thumbnail:hover {
+  transform: scale(1.05);
+}
+
+.thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-content {
   flex: 1;
-  padding: 1.25rem 1.25rem 1.25rem 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
-.title-section {
+.header-section {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 1rem;
+  padding-right: 6rem;
 }
 
-.rental-title {
+.equipment-title {
   font-size: 1.1rem;
   font-weight: 600;
   color: #1a1a1a;
@@ -401,173 +332,140 @@ const navigateToDetails = () => {
   flex: 1;
 }
 
-.rental-category {
+.equipment-category {
   font-size: 0.75rem;
   color: #666;
   background: #f3f4f6;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.6rem;
   border-radius: 4px;
   white-space: nowrap;
 }
 
-.status-description {
-  font-size: 0.85rem;
-  color: #666;
-  margin: 0;
-  line-height: 1.4;
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-/* User Section */
-.user-section {
+.info-column {
   display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.column-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.column-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.column-value.price {
+  font-size: 1.3rem;
+  color: #10b981;
+}
+
+.column-subtext {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.user-info {
+  display: flex;
+  gap: 0.5rem;
   align-items: center;
-  gap: 0.75rem;
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #00AAFF;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   flex-shrink: 0;
-  overflow: hidden;
-}
-
-.user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .user-details {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  gap: 0.2rem;
 }
 
-.user-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #1a1a1a;
-}
-
-.user-role {
-  font-size: 0.7rem;
-  color: #999;
-}
-
-.user-rating {
+.badges {
   display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-  color: #f59e0b;
-  font-weight: 600;
-}
-
-.rating-star {
-  color: #f59e0b;
-}
-
-/* Info Grid */
-.info-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
   gap: 0.4rem;
-  font-size: 0.8rem;
-  color: #666;
-}
-
-.info-icon {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  color: #9ca3af;
-}
-
-.price-value {
-  font-weight: 700;
-  color: #10b981;
-}
-
-/* Badges Row */
-.badges-row {
-  display: flex;
-  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.payment-badge,
-.insurance-badge {
-  font-size: 0.7rem;
+.badge {
+  font-size: 0.65rem;
   font-weight: 600;
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
 }
 
-.payment-badge.paid {
+.badge.paid {
   background: #d1fae5;
   color: #065f46;
 }
 
-.payment-badge.unpaid {
+.badge.unpaid {
   background: #fef3c7;
   color: #92400e;
 }
 
-.insurance-badge {
+.badge.insured {
   background: #dbeafe;
   color: #1e40af;
 }
 
-/* Review Indicator */
-.review-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  color: #8b5cf6;
-  font-weight: 500;
-}
-
-.review-star {
-  color: #8b5cf6;
-}
-
-/* Action Buttons */
 .action-buttons {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
   margin-top: auto;
-  padding-top: 0.5rem;
 }
 
 .btn {
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.2rem;
   border: none;
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.btn-sm {
-  padding: 0.4rem 0.75rem;
-  font-size: 0.75rem;
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-details {
+  background: #00AAFF;
+  color: white;
+  order: -1;
+}
+
+.btn-details:hover {
+  background: #0088cc;
+  box-shadow: 0 4px 12px rgba(0, 170, 255, 0.3);
 }
 
 .btn-success {
@@ -577,6 +475,7 @@ const navigateToDetails = () => {
 
 .btn-success:hover {
   background: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .btn-danger {
@@ -586,6 +485,26 @@ const navigateToDetails = () => {
 
 .btn-danger:hover {
   background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-review {
+  background: #8b5cf6;
+  color: white;
+}
+
+.btn-review:hover {
+  background: #7c3aed;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.btn-dispute {
+  background: #fca5a5;
+  color: #991b1b;
+}
+
+.btn-dispute:hover {
+  background: #f87171;
 }
 
 .btn-support {
@@ -597,37 +516,33 @@ const navigateToDetails = () => {
   background: #f87171;
 }
 
-.btn-details {
-  background: transparent;
-  color: #00AAFF;
-  padding: 0.4rem 0.75rem;
-  margin-left: auto;
-}
-
-.btn-details:hover {
-  text-decoration: underline;
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  .rental-card {
+  .card-layout {
     flex-direction: column;
   }
 
-  .rental-image {
+  .thumbnail {
     width: 100%;
     height: 180px;
-    margin: 0;
-    border-radius: 16px 16px 0 0;
   }
 
-  .rental-content {
-    padding: 1.25rem;
+  .header-section {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-right: 4rem;
   }
 
   .info-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .action-buttons {
     flex-direction: column;
-    gap: 0.5rem;
+  }
+
+  .btn {
+    width: 100%;
   }
 }
 </style>

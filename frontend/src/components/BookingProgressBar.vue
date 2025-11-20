@@ -269,12 +269,12 @@ const ownerStatusInfo = {
     description: 'Renter must complete payment before pickup.',
   },
   'PICKUP': {
-    title: 'Pickup in progress',
+    title: 'Hand-off equipment to renter',
     description: 'Confirm hand-off once equipment is collected.',
   },
   'PICKUP_OWNER': {
-    title: 'Waiting for renter confirmation',
-    description: 'You confirmed handoff. Renter needs to confirm they received the equipment.',
+    title: 'Equipment rented out',
+    description: 'Equipment is in Renter possession.',
   },
   'PICKUP_RENTER': {
     title: 'Renter confirmed pickup',
@@ -282,10 +282,10 @@ const ownerStatusInfo = {
   },
   'IN_PROGRESS': {
     title: 'Equipment rented out',
-    description: 'Waiting for return.',
+    description: 'Equipment is in Renter possession.',
   },
   'RETURN': {
-    title: 'Renter is returning the equipment',
+    title: 'Renter will return the equipment',
     description: 'Confirm return when you get the item back.',
   },
   'RETURN_OWNER': {
@@ -330,10 +330,10 @@ const renterStatusInfo = {
   },
   'ACCEPTED': {
     title: 'Booking accepted!',
-    description: 'Please complete payment to proceed with the rental.',
+    description: 'Complete payment before pickup date.',
   },
   'PICKUP': {
-    title: "It's pickup time",
+    title: "Pick up equipment from owner",
     description: 'Upload photos and confirm pickup when you collect the equipment.',
   },
   'PICKUP_OWNER': {
@@ -341,20 +341,20 @@ const renterStatusInfo = {
     description: 'Please upload photos and confirm you received the equipment.',
   },
   'PICKUP_RENTER': {
-    title: 'Waiting for owner confirmation',
-    description: 'You confirmed pickup. Waiting for owner to confirm handoff.',
+    title: 'Enjoy your rental',
+    description: 'The rental is ongoing.',
   },
   'IN_PROGRESS': {
     title: 'Enjoy your rental',
-    description: 'The rental is ongoing. Return on time to avoid extra charges.',
+    description: 'The rental is ongoing.',
   },
   'RETURN': {
-    title: 'Time to return the equipment',
+    title: 'Return the equipment to owner.',
     description: 'Upload photos and confirm return to finish your rental.',
   },
   'RETURN_OWNER': {
     title: 'Owner confirmed return',
-    description: 'Please confirm you returned the equipment.',
+    description: 'Please upload photos and confirm you returned the equipment',
   },
   'RETURN_RENTER': {
     title: 'Waiting for owner to verify',

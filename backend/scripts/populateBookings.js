@@ -11,10 +11,9 @@ const Listing = require('../models/Listing');
 const STATUS_SCENARIOS = [
   'PENDING', 'PENDING',
   'ACCEPTED', 'ACCEPTED',
-  'PICKUP', 'PICKUP',
+  'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER',
   'IN_PROGRESS', 'IN_PROGRESS', 'IN_PROGRESS',
-  'RETURN', 'RETURN',
-  'VERIFY', 'VERIFY',
+  'RETURN', 'RETURN_OWNER', 'RETURN_RENTER',
   'COMPLETED', 'COMPLETED', 'COMPLETED',
   'REVIEWED', 'REVIEWED',
   'CANCELLED',
@@ -59,8 +58,17 @@ function generateDateRange(status) {
       end_date = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
       break;
 
-    case 'VERIFY':
-      // Ended yesterday
+    case 'PICKUP_OWNER':
+    case 'PICKUP_RENTER':
+      // Today is pickup day, partial handoff confirmation
+      start_date = new Date(now);
+      start_date.setHours(0, 0, 0, 0);
+      end_date = new Date(start_date.getTime() + 7 * 24 * 60 * 60 * 1000);
+      break;
+
+    case 'RETURN_OWNER':
+    case 'RETURN_RENTER':
+      // Ended yesterday, partial return confirmation
       start_date = new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000);
       end_date = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
       break;
@@ -92,15 +100,18 @@ async function createStatusHistory(bookingId, targetStatus, renterId, ownerId) {
     'PENDING': ['PENDING'],
     'ACCEPTED': ['PENDING', 'ACCEPTED'],
     'PICKUP': ['PENDING', 'ACCEPTED', 'PICKUP'],
-    'IN_PROGRESS': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS'],
+    'PICKUP_OWNER': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER'],
+    'PICKUP_RENTER': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_RENTER'],
+    'IN_PROGRESS': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_RENTER', 'PICKUP_OWNER', 'IN_PROGRESS'],
     'RETURN': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN'],
-    'VERIFY': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY'],
-    'COMPLETED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY', 'COMPLETED'],
-    'REVIEWED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY', 'COMPLETED', 'REVIEWED'],
+    'RETURN_OWNER': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER'],
+    'RETURN_RENTER': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_RENTER'],
+    'COMPLETED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'COMPLETED'],
+    'REVIEWED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'COMPLETED', 'REVIEWED'],
     'DECLINED': ['PENDING', 'DECLINED'],
-    'CANCELLED': ['PENDING', 'CANCELLED'], // Can also be from ACCEPTED
-    'DISPUTED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY', 'DISPUTED'],
-    'DISPUTE_RESOLVED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY', 'DISPUTED', 'DISPUTE_RESOLVED']
+    'CANCELLED': ['PENDING', 'CANCELLED'],
+    'DISPUTED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'DISPUTED'],
+    'DISPUTE_RESOLVED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'DISPUTED', 'DISPUTE_RESOLVED']
   };
 
   const statuses = statusProgression[targetStatus] || ['PENDING'];
@@ -136,10 +147,22 @@ async function createStatusHistory(bookingId, targetStatus, renterId, ownerId) {
       changed_by = 'renter';
       changed_by_user_id = renterId;
       notes = 'Renter confirmed pickup';
+    } else if (status === 'PICKUP_OWNER') {
+      changed_by = 'owner';
+      changed_by_user_id = ownerId;
+      notes = 'Owner confirmed handoff';
+    } else if (status === 'PICKUP_RENTER') {
+      changed_by = 'renter';
+      changed_by_user_id = renterId;
+      notes = 'Renter confirmed pickup';
     } else if (status === 'RETURN') {
       changed_by = 'system';
-      notes = 'Automatic transition to RETURN (2 days before end date)';
-    } else if (status === 'VERIFY') {
+      notes = 'Automatic transition to RETURN (1 day before end date)';
+    } else if (status === 'RETURN_OWNER') {
+      changed_by = 'owner';
+      changed_by_user_id = ownerId;
+      notes = 'Owner confirmed equipment returned';
+    } else if (status === 'RETURN_RENTER') {
       changed_by = 'renter';
       changed_by_user_id = renterId;
       notes = 'Renter confirmed return';
@@ -175,12 +198,10 @@ async function createStatusHistory(bookingId, targetStatus, renterId, ownerId) {
 
 // Helper: Create payment for booking
 async function createPayment(bookingId, renterId, amount, targetStatus) {
-  // Only create payment if booking reached ACCEPTED or beyond
-  const paymentRequired = [
-    'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY', 'COMPLETED', 'REVIEWED'
-  ].includes(targetStatus);
+  // Only create payment if booking reached beyond ACCEPTED (payment required for all statuses except PENDING, ACCEPTED, DECLINED, CANCELLED)
+  const paymentNotRequired = ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED'].includes(targetStatus);
 
-  if (!paymentRequired) {
+  if (paymentNotRequired) {
     return null;
   }
 
