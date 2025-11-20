@@ -18,7 +18,7 @@ const bookingSchema = new mongoose.Schema({
   },
   current_status:{
     type: String,
-    enum: ['PENDING','ACCEPTED','PICKUP','IN_PROGRESS','RETURN','VERIFY','COMPLETED','REVIEWED',
+    enum: ['PENDING','ACCEPTED','PICKUP','PICKUP_OWNER','PICKUP_RENTER','IN_PROGRESS','RETURN','RETURN_OWNER','RETURN_RENTER','COMPLETED','REVIEWED',
     'CANCELLED','DECLINED','DISPUTED','DISPUTE_RESOLVED'],
     default: 'PENDING',
     required: true

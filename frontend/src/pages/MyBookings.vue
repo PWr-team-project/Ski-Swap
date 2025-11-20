@@ -195,7 +195,8 @@ const acceptBookingRequest = async (bookingId) => {
   if (!confirm('Accept this booking request?')) return;
 
   try {
-    await bookingService.updateStatus(bookingId, 'confirmed');
+    // Use the action endpoint which performs PENDING -> ACCEPTED transition
+    await bookingService.acceptBooking(bookingId);
 
     alert('Booking request accepted!');
     fetchData();
@@ -209,7 +210,8 @@ const declineBookingRequest = async (bookingId) => {
   if (!confirm('Decline this booking request?')) return;
 
   try {
-    await bookingService.updateStatus(bookingId, 'cancelled');
+    // Use the action endpoint which performs PENDING -> DECLINED transition
+    await bookingService.declineBooking(bookingId);
 
     alert('Booking request declined.');
     fetchData();

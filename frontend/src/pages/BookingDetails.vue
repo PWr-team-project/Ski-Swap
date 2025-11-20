@@ -32,14 +32,6 @@
               />
             </div>
 
-            <!-- Current Status Message -->
-            <div class="card status-message-card">
-              <h3 class="status-message-title">{{ statusRequirements.message }}</h3>
-              <p class="status-message-text" v-if="statusRequirements.nextAction">
-                {{ statusRequirements.nextAction }}
-              </p>
-            </div>
-
             <!-- Equipment Rented Card -->
             <div class="card equipment-card" @click="navigateToListing">
               <div class="equipment-content">
@@ -102,246 +94,248 @@
 
               <!-- Total Price -->
               <div class="info-block">
-                <div class="block-label">Total Price</div>
+                <div class="block-label">{{ isRenter ? 'Total Price' : 'Total Earnings' }}</div>
                 <div class="block-value price">€{{ booking.total_price?.toFixed(2) || '0.00' }}</div>
                 <div class="block-subtext">incl. booking fee</div>
               </div>
             </div>
 
+            <!-- Insurance Info (if applicable) -->
+            <div v-if="booking.insurance_flag" class="card insurance-card">
+              <div class="insurance-content">
+                <div class="insurance-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="insurance-label">Insurance Purchased</div>
+                  <div class="insurance-value">Coverage included</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Location Panel (when visible) -->
+            <div v-if="showLocationPanel" class="card location-card">
+              <h4 class="card-title">Location</h4>
+              <div class="location-info">
+                <div class="location-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                </div>
+                <div class="location-text">{{ fullAddress }}</div>
+              </div>
+              <div v-if="showContactInfo" class="phone-info">
+                <div class="phone-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
+                </div>
+                <div class="phone-text">{{ otherUserPhone }}</div>
+              </div>
+            </div>
+
             <!-- Action Buttons (Dynamic based on state) -->
             <div class="action-buttons">
-              <!-- Payment Button -->
-              <button
-                v-if="showPaymentButton"
-                @click="handlePayment"
-                class="btn btn-payment"
-              >
-                Pay Now
-              </button>
+              <!-- RENTER BUTTONS -->
+              <template v-if="isRenter">
+                <!-- Pay Button - PENDING, ACCEPTED (green) -->
+                <button
+                  v-if="showPayButton"
+                  @click="handlePayment"
+                  class="btn btn-success"
+                >
+                  Pay Now
+                </button>
 
-              <!-- Accept Button (Owner) -->
-              <button
-                v-if="showAcceptButton"
-                @click="handleAccept"
-                class="btn btn-accept"
-              >
-                Accept
-              </button>
+                <!-- Cancel Button - PENDING, ACCEPTED (red) -->
+                <button
+                  v-if="showCancelButton"
+                  @click="handleCancel"
+                  class="btn btn-danger"
+                >
+                  Cancel
+                </button>
 
-              <!-- Decline Button (Owner) -->
-              <button
-                v-if="showDeclineButton"
-                @click="handleDecline"
-                class="btn btn-decline"
-              >
-                Decline
-              </button>
+                <!-- Upload Photos - PICKUP, PICKUP_OWNER, RETURN, RETURN_OWNER (grey) -->
+                <button
+                  v-if="showRenterUploadPhotos"
+                  @click="openPhotoModal(photoUploadTypeForRenter)"
+                  class="btn btn-secondary"
+                >
+                  Upload Photos
+                </button>
 
-              <!-- Cancel Button -->
-              <button
-                v-if="showCancelButton"
-                @click="handleCancel"
-                class="btn btn-cancel"
-              >
-                Cancel
-              </button>
+                <!-- Confirm Handoff - PICKUP, PICKUP_OWNER (green) -->
+                <button
+                  v-if="showRenterConfirmHandoff"
+                  @click="handleRenterConfirmHandoff"
+                  class="btn btn-success"
+                >
+                  Confirm Handoff
+                </button>
 
-              <!-- Upload & Confirm Pickup (Renter) -->
-              <button
-                v-if="showPickupUpload"
-                @click="openPhotoModal('pickup')"
-                class="btn btn-primary"
-              >
-                Upload Pickup Photos & Confirm
-              </button>
+                <!-- Confirm Return - RETURN, RETURN_OWNER (green) -->
+                <button
+                  v-if="showRenterConfirmReturn"
+                  @click="handleRenterConfirmReturn"
+                  class="btn btn-success"
+                >
+                  Confirm Return
+                </button>
 
-              <!-- Upload & Confirm Return (Renter) -->
-              <button
-                v-if="showReturnUpload"
-                @click="openPhotoModal('return')"
-                class="btn btn-primary"
-              >
-                Upload Return Photos & Confirm
-              </button>
+                <!-- Review - COMPLETED (purple) -->
+                <button
+                  v-if="showRenterReview"
+                  @click="handleReview"
+                  class="btn btn-review"
+                >
+                  Write Review
+                </button>
 
-              <!-- Confirm Return (Owner) -->
-              <button
-                v-if="showOwnerConfirmReturn"
-                @click="handleOwnerConfirmReturn"
-                class="btn btn-primary"
-              >
-                Confirm Return
-              </button>
+                <!-- Rent Again - REVIEWED, CANCELLED (green) -->
+                <button
+                  v-if="showRenterRentAgain"
+                  @click="navigateToListing"
+                  class="btn btn-success"
+                >
+                  Rent Again
+                </button>
 
-              <!-- Everything's Alright (Owner) -->
-              <button
-                v-if="showVerifyComplete"
-                @click="handleVerifyComplete"
-                class="btn btn-success"
-              >
-                Everything's Alright
-              </button>
+                <!-- Contact Support - DISPUTED (light red) -->
+                <button
+                  v-if="showRenterContactSupport"
+                  @click="handleContactSupport"
+                  class="btn btn-support"
+                >
+                  Contact Support
+                </button>
 
-              <!-- Something's Wrong / Dispute (Owner) -->
-              <button
-                v-if="showDisputeButton"
-                @click="handleDispute"
-                class="btn btn-dispute"
-              >
-                Something's Wrong
-              </button>
+                <!-- Need Help - Most states (light red) -->
+                <button
+                  v-if="showNeedHelp"
+                  @click="handleNeedHelp"
+                  class="btn btn-help"
+                >
+                  Need Help
+                </button>
+              </template>
 
-              <!-- Review Button -->
-              <button
-                v-if="showReviewButton"
-                @click="handleReview"
-                class="btn btn-review"
-              >
-                Write Review
-              </button>
+              <!-- OWNER BUTTONS -->
+              <template v-else>
+                <!-- Accept - PENDING (green) -->
+                <button
+                  v-if="showOwnerAccept"
+                  @click="handleAccept"
+                  class="btn btn-success"
+                >
+                  Accept
+                </button>
 
-              <!-- Rent Again (Renter) -->
-              <button
-                v-if="showRentAgainButton"
-                @click="navigateToListing"
-                class="btn btn-primary"
-              >
-                Rent Again
-              </button>
+                <!-- Decline - PENDING (red) -->
+                <button
+                  v-if="showOwnerDecline"
+                  @click="handleDecline"
+                  class="btn btn-danger"
+                >
+                  Decline
+                </button>
 
-              <!-- Contact Support (Disputed) -->
-              <button
-                v-if="showSupportButton"
-                @click="handleContactSupport"
-                class="btn btn-support"
-              >
-                Contact Support
-              </button>
+                <!-- Cancel - ACCEPTED (red) -->
+                <button
+                  v-if="showOwnerCancel"
+                  @click="handleCancel"
+                  class="btn btn-danger"
+                >
+                  Cancel
+                </button>
+
+                <!-- Confirm (Handoff) - PICKUP, PICKUP_RENTER (green) -->
+                <button
+                  v-if="showOwnerConfirmHandoff"
+                  @click="handleOwnerConfirmHandoff"
+                  class="btn btn-success"
+                >
+                  Confirm Hand-off
+                </button>
+
+                <!-- Confirm Return - RETURN (green) -->
+                <button
+                  v-if="showOwnerConfirmReturn"
+                  @click="handleOwnerConfirmReturn"
+                  class="btn btn-success"
+                >
+                  Confirm Return
+                </button>
+
+                <!-- Everything OK - RETURN_RENTER, RETURN_OWNER (green) -->
+                <button
+                  v-if="showOwnerEverythingOK"
+                  @click="handleEverythingOK"
+                  class="btn btn-success"
+                >
+                  Everything OK
+                </button>
+
+                <!-- Upload Photos - RETURN_RENTER, RETURN_OWNER (grey) -->
+                <button
+                  v-if="showOwnerUploadPhotos"
+                  @click="openPhotoModal('return')"
+                  class="btn btn-secondary"
+                >
+                  Upload Photos
+                </button>
+
+                <!-- Something Wrong - RETURN_RENTER, RETURN_OWNER (light red) -->
+                <button
+                  v-if="showOwnerSomethingWrong"
+                  @click="handleDispute"
+                  class="btn btn-dispute"
+                >
+                  Something's Wrong
+                </button>
+
+                <!-- Contact Support - DISPUTED (light red) -->
+                <button
+                  v-if="showOwnerContactSupport"
+                  @click="handleContactSupport"
+                  class="btn btn-support"
+                >
+                  Contact Support
+                </button>
+
+                <!-- Need Help - Most states (light red) -->
+                <button
+                  v-if="showNeedHelp"
+                  @click="handleNeedHelp"
+                  class="btn btn-help"
+                >
+                  Need Help
+                </button>
+
+                <!-- Show Review - REVIEWED (violet) -->
+                <button
+                  v-if="showOwnerShowReview"
+                  @click="handleShowReview"
+                  class="btn btn-review"
+                >
+                  Show Review
+                </button>
+              </template>
             </div>
           </div>
 
-          <!-- RIGHT COLUMN -->
+          <!-- RIGHT COLUMN - Placeholder for future implementation -->
           <div class="right-column">
-            <!-- Tabs -->
-            <div class="tabs-container">
-              <div class="tabs-header">
-                <button
-                  :class="['tab-btn', { active: activeTab === 'chat' }]"
-                  @click="activeTab = 'chat'"
-                >
-                  Chat & Activity
-                </button>
-                <button
-                  v-if="showLocationTab"
-                  :class="['tab-btn', { active: activeTab === 'location' }]"
-                  @click="activeTab = 'location'"
-                >
-                  Location & Contact
-                </button>
-              </div>
-
-              <div class="tabs-content">
-                <!-- Chat Tab -->
-                <div v-if="activeTab === 'chat'" class="tab-panel chat-panel">
-                  <div class="activity-feed">
-                    <!-- Status Change Messages -->
-                    <div
-                      v-for="(historyItem, index) in statusHistory"
-                      :key="`history-${index}`"
-                      class="activity-item status-change"
-                    >
-                      <div class="activity-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                      </div>
-                      <div class="activity-content">
-                        <p class="activity-text">
-                          <strong>Status changed to {{ formatStatusLabel(historyItem.status) }}</strong>
-                        </p>
-                        <p class="activity-meta">
-                          {{ formatActivityMeta(historyItem) }} • {{ formatTime(historyItem.createdAt) }}
-                        </p>
-                        <p v-if="historyItem.notes" class="activity-notes">{{ historyItem.notes }}</p>
-                      </div>
-                    </div>
-
-                    <!-- Messages -->
-                    <div
-                      v-for="message in messages"
-                      :key="message._id"
-                      :class="['activity-item message', { 'my-message': isMyMessage(message) }]"
-                    >
-                      <div class="message-avatar" v-if="!isMyMessage(message)">
-                        <img
-                          v-if="otherUser.profile_photo"
-                          :src="getImageUrl(otherUser.profile_photo)"
-                          :alt="otherUserName"
-                        />
-                        <div v-else class="avatar-placeholder-small">{{ otherUserInitial }}</div>
-                      </div>
-                      <div class="message-content">
-                        <p class="message-text">{{ message.content }}</p>
-                        <img v-if="message.image" :src="getImageUrl(message.image)" class="message-image" />
-                        <p class="message-time">{{ formatTime(message.createdAt) }}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Message Input -->
-                  <div class="message-input-container">
-                    <textarea
-                      v-model="newMessage"
-                      @keydown.enter.prevent="sendMessage"
-                      placeholder="Type a message..."
-                      class="message-input"
-                      rows="2"
-                    ></textarea>
-                    <button @click="sendMessage" class="send-btn" :disabled="!newMessage.trim()">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Location Tab -->
-                <div v-if="activeTab === 'location' && showLocationTab" class="tab-panel location-panel">
-                  <!-- Map -->
-                  <div class="map-container" id="map-container">
-                    <div ref="mapElement" class="map"></div>
-                  </div>
-
-                  <!-- Address & Phone -->
-                  <div class="location-details">
-                    <div class="location-detail-item">
-                      <div class="detail-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                          <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                      </div>
-                      <div class="detail-content">
-                        <div class="detail-label">{{ isPickupPhase ? 'Pickup Location' : 'Return Location' }}</div>
-                        <div class="detail-value">{{ fullAddress }}</div>
-                      </div>
-                    </div>
-
-                    <div class="location-detail-item">
-                      <div class="detail-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                        </svg>
-                      </div>
-                      <div class="detail-content">
-                        <div class="detail-label">{{ isRenter ? "Owner's Phone" : "Renter's Phone" }}</div>
-                        <div class="detail-value phone">{{ otherUserPhone }}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <div class="placeholder-card">
+              <div class="placeholder-content">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <h3>Chat & Activity</h3>
+                <p>Coming soon...</p>
               </div>
             </div>
           </div>
@@ -403,11 +397,11 @@
         <div class="modal-footer">
           <button @click="closePhotoModal" class="btn btn-secondary">Cancel</button>
           <button
-            @click="uploadPhotosAndConfirm"
+            @click="uploadPhotos"
             :disabled="selectedPhotos.length === 0 || uploadingPhotos"
             class="btn btn-primary"
           >
-            {{ uploadingPhotos ? 'Uploading...' : `Upload & Confirm ${photoUploadType === 'pickup' ? 'Pickup' : 'Return'}` }}
+            {{ uploadingPhotos ? 'Uploading...' : 'Upload Photos' }}
           </button>
         </div>
       </div>
@@ -416,14 +410,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { bookingService } from '@/services/bookingService';
-import { messageService } from '@/services/messageService';
 import BookingProgressBar from '../components/BookingProgressBar.vue';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 
 const route = useRoute();
 const router = useRouter();
@@ -436,23 +427,13 @@ const booking = ref({});
 const currentStatus = ref('PENDING');
 const statusHistory = ref([]);
 const statusRequirements = ref({});
-const conversation = ref(null);
-const messages = ref([]);
-const newMessage = ref('');
-
-// Tabs
-const activeTab = ref('chat');
 
 // Photo Modal
 const showPhotoModal = ref(false);
-const photoUploadType = ref('pickup'); // 'pickup' or 'return'
+const photoUploadType = ref('pickup');
 const selectedPhotos = ref([]);
 const uploadingPhotos = ref(false);
 const fileInput = ref(null);
-
-// Map
-const mapElement = ref(null);
-let mapInstance = null;
 
 // Computed
 const isRenter = computed(() => {
@@ -492,18 +473,12 @@ const locationInfo = computed(() => {
 const fullAddress = computed(() => {
   const loc = locationInfo.value;
   if (!loc || !loc.city) return 'Address not available';
-
   const parts = [];
   if (loc.street) parts.push(loc.street);
   if (loc.postal_code) parts.push(loc.postal_code);
   if (loc.city) parts.push(loc.city);
   if (loc.country) parts.push(loc.country);
-
   return parts.join(', ');
-});
-
-const isPickupPhase = computed(() => {
-  return ['PENDING', 'ACCEPTED', 'PICKUP'].includes(currentStatus.value);
 });
 
 // Payment Status
@@ -523,58 +498,128 @@ const paymentSubtext = computed(() => {
   return 'Awaiting payment';
 });
 
-// Button Visibility (based on state and role)
-const showPaymentButton = computed(() => {
-  return isRenter.value && ['PENDING', 'ACCEPTED'].includes(currentStatus.value) && !booking.value.payment_confirmed;
+// Show contact info
+const showContactInfo = computed(() => {
+  return statusRequirements.value.showContactInfo;
 });
 
-const showAcceptButton = computed(() => {
-  return !isRenter.value && currentStatus.value === 'PENDING' && statusRequirements.value.canAccept;
+// Location panel visibility based on state requirements
+const showLocationPanel = computed(() => {
+  return statusRequirements.value.showLocation;
 });
 
-const showDeclineButton = computed(() => {
-  return !isRenter.value && currentStatus.value === 'PENDING' && statusRequirements.value.canAccept;
+// Photo upload type for renter
+const photoUploadTypeForRenter = computed(() => {
+  if (['PICKUP', 'PICKUP_OWNER'].includes(currentStatus.value)) {
+    return 'pickup';
+  }
+  return 'return';
 });
 
+// ===============================
+// RENTER BUTTON VISIBILITY
+// ===============================
+
+// Pay - PENDING, ACCEPTED (green)
+const showPayButton = computed(() => {
+  return isRenter.value &&
+         ['PENDING', 'ACCEPTED'].includes(currentStatus.value) &&
+         !booking.value.payment_confirmed;
+});
+
+// Cancel - PENDING, ACCEPTED (red)
 const showCancelButton = computed(() => {
-  return ['PENDING', 'ACCEPTED'].includes(currentStatus.value) && statusRequirements.value.canCancel;
+  return isRenter.value && ['PENDING', 'ACCEPTED'].includes(currentStatus.value);
 });
 
-const showPickupUpload = computed(() => {
-  return isRenter.value && currentStatus.value === 'PICKUP' && statusRequirements.value.canUploadPhotos;
+// Upload Photos - PICKUP, PICKUP_OWNER, RETURN, RETURN_OWNER (grey)
+const showRenterUploadPhotos = computed(() => {
+  return isRenter.value && ['PICKUP', 'PICKUP_OWNER', 'RETURN', 'RETURN_OWNER'].includes(currentStatus.value);
 });
 
-const showReturnUpload = computed(() => {
-  return isRenter.value && currentStatus.value === 'RETURN' && statusRequirements.value.canUploadPhotos;
+// Confirm Handoff - PICKUP, PICKUP_OWNER (green) -> goes to PICKUP_RENTER or IN_PROGRESS
+const showRenterConfirmHandoff = computed(() => {
+  return isRenter.value && ['PICKUP', 'PICKUP_OWNER'].includes(currentStatus.value);
 });
 
+// Confirm Return - RETURN, RETURN_OWNER (green) -> goes to RETURN_RENTER or COMPLETED
+const showRenterConfirmReturn = computed(() => {
+  return isRenter.value && ['RETURN', 'RETURN_OWNER'].includes(currentStatus.value);
+});
+
+// Review - COMPLETED (purple)
+const showRenterReview = computed(() => {
+  return isRenter.value && currentStatus.value === 'COMPLETED';
+});
+
+// Rent Again - REVIEWED, CANCELLED (green)
+const showRenterRentAgain = computed(() => {
+  return isRenter.value && ['REVIEWED', 'CANCELLED'].includes(currentStatus.value);
+});
+
+// Contact Support - DISPUTED (light red)
+const showRenterContactSupport = computed(() => {
+  return isRenter.value && currentStatus.value === 'DISPUTED';
+});
+
+// ===============================
+// OWNER BUTTON VISIBILITY
+// ===============================
+
+// Accept - PENDING (green)
+const showOwnerAccept = computed(() => {
+  return !isRenter.value && currentStatus.value === 'PENDING';
+});
+
+// Decline - PENDING (red)
+const showOwnerDecline = computed(() => {
+  return !isRenter.value && currentStatus.value === 'PENDING';
+});
+
+// Cancel - ACCEPTED (red)
+const showOwnerCancel = computed(() => {
+  return !isRenter.value && currentStatus.value === 'ACCEPTED';
+});
+
+// Confirm Hand-off - PICKUP, PICKUP_RENTER (green) -> goes to PICKUP_OWNER or IN_PROGRESS
+const showOwnerConfirmHandoff = computed(() => {
+  return !isRenter.value && ['PICKUP', 'PICKUP_RENTER'].includes(currentStatus.value);
+});
+
+// Confirm Return - RETURN (green) -> goes to RETURN_OWNER
 const showOwnerConfirmReturn = computed(() => {
-  return !isRenter.value && currentStatus.value === 'RETURN' && statusRequirements.value.canConfirmReturn;
+  return !isRenter.value && currentStatus.value === 'RETURN';
 });
 
-const showVerifyComplete = computed(() => {
-  return !isRenter.value && currentStatus.value === 'VERIFY' && statusRequirements.value.canConfirmComplete;
+// Everything OK - RETURN_RENTER, RETURN_OWNER (green) -> goes to COMPLETED
+const showOwnerEverythingOK = computed(() => {
+  return !isRenter.value && ['RETURN_RENTER', 'RETURN_OWNER'].includes(currentStatus.value);
 });
 
-const showDisputeButton = computed(() => {
-  return !isRenter.value && currentStatus.value === 'VERIFY' && statusRequirements.value.canDispute;
+// Upload Photos - RETURN_RENTER, RETURN_OWNER (grey)
+const showOwnerUploadPhotos = computed(() => {
+  return !isRenter.value && ['RETURN_RENTER', 'RETURN_OWNER'].includes(currentStatus.value);
 });
 
-const showReviewButton = computed(() => {
-  return currentStatus.value === 'COMPLETED' && statusRequirements.value.canReview;
+// Something Wrong - RETURN_RENTER, RETURN_OWNER (light red) -> goes to DISPUTED
+const showOwnerSomethingWrong = computed(() => {
+  return !isRenter.value && ['RETURN_RENTER', 'RETURN_OWNER'].includes(currentStatus.value);
 });
 
-const showRentAgainButton = computed(() => {
-  return isRenter.value && currentStatus.value === 'REVIEWED' && statusRequirements.value.canRentAgain;
+// Contact Support - DISPUTED (light red)
+const showOwnerContactSupport = computed(() => {
+  return !isRenter.value && currentStatus.value === 'DISPUTED';
 });
 
-const showSupportButton = computed(() => {
-  return currentStatus.value === 'DISPUTED' && statusRequirements.value.canContactSupport;
+// Show Review - REVIEWED (violet)
+const showOwnerShowReview = computed(() => {
+  return !isRenter.value && currentStatus.value === 'REVIEWED';
 });
 
-// Location tab visibility
-const showLocationTab = computed(() => {
-  return ['ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN'].includes(currentStatus.value) && statusRequirements.value.showContactInfo;
+// Need Help - Most states except DISPUTED, DISPUTE_RESOLVED
+const showNeedHelp = computed(() => {
+  const hiddenStates = ['DISPUTED', 'DISPUTE_RESOLVED'];
+  return !hiddenStates.includes(currentStatus.value);
 });
 
 // Photo Modal
@@ -603,9 +648,6 @@ const fetchBookingDetails = async () => {
 
     // Fetch status history
     await fetchStatusHistory();
-
-    // Fetch conversation
-    await fetchConversation();
   } catch (err) {
     console.error('Error fetching booking details:', err);
     error.value = err.response?.data?.message || 'Failed to load booking details';
@@ -633,55 +675,9 @@ const fetchStatusHistory = async () => {
   }
 };
 
-const fetchConversation = async () => {
-  try {
-    const otherUserId = otherUser.value._id;
-    if (!otherUserId) return;
-
-    const conversations = await messageService.getConversations();
-    const existingConv = conversations.find(c =>
-      c.participants.some(p => p._id === otherUserId)
-    );
-
-    if (existingConv) {
-      conversation.value = existingConv;
-      const messagesData = await messageService.getMessages(existingConv._id);
-      messages.value = messagesData;
-    } else {
-      conversation.value = { _id: null, otherUser: otherUser.value };
-      messages.value = [];
-    }
-  } catch (err) {
-    console.error('Error fetching conversation:', err);
-  }
-};
-
-const sendMessage = async () => {
-  if (!newMessage.value.trim()) return;
-
-  try {
-    if (!conversation.value._id) {
-      const newConv = await messageService.createConversation(otherUser.value._id);
-      conversation.value = newConv;
-    }
-
-    const sentMessage = await messageService.sendMessage(conversation.value._id, newMessage.value.trim());
-    messages.value.push(sentMessage);
-    newMessage.value = '';
-  } catch (err) {
-    console.error('Error sending message:', err);
-    alert('Failed to send message.');
-  }
-};
-
-const isMyMessage = (message) => {
-  return message.sender_id === authStore.user?.id || message.sender_id._id === authStore.user?.id;
-};
-
 // Action Handlers
 const handlePayment = () => {
   alert('Payment functionality - To be implemented');
-  // TODO: Redirect to payment page
 };
 
 const handleAccept = async () => {
@@ -725,13 +721,44 @@ const handleCancel = async () => {
   }
 };
 
-const handleOwnerConfirmReturn = async () => {
-  if (!confirm('Confirm equipment has been returned?')) return;
+// Renter confirms handoff -> PICKUP_RENTER or IN_PROGRESS
+const handleRenterConfirmHandoff = async () => {
+  if (!confirm('Confirm you have received the equipment?')) return;
 
   try {
-    // Owner marking return moves to VERIFY state
-    await bookingService.transitionStatus(booking.value._id, 'VERIFY', 'Owner confirmed equipment returned');
-    alert('Return confirmed. Please verify equipment condition.');
+    const newStatus = currentStatus.value === 'PICKUP_OWNER' ? 'IN_PROGRESS' : 'PICKUP_RENTER';
+    await bookingService.transitionStatus(booking.value._id, newStatus, 'Renter confirmed handoff');
+    alert('Handoff confirmed!');
+    await fetchBookingDetails();
+  } catch (err) {
+    console.error('Error confirming handoff:', err);
+    alert(err.response?.data?.message || 'Failed to confirm handoff.');
+  }
+};
+
+// Owner confirms handoff -> PICKUP_OWNER or IN_PROGRESS
+const handleOwnerConfirmHandoff = async () => {
+  if (!confirm('Confirm you have handed off the equipment?')) return;
+
+  try {
+    const newStatus = currentStatus.value === 'PICKUP_RENTER' ? 'IN_PROGRESS' : 'PICKUP_OWNER';
+    await bookingService.transitionStatus(booking.value._id, newStatus, 'Owner confirmed handoff');
+    alert('Handoff confirmed!');
+    await fetchBookingDetails();
+  } catch (err) {
+    console.error('Error confirming handoff:', err);
+    alert(err.response?.data?.message || 'Failed to confirm handoff.');
+  }
+};
+
+// Renter confirms return -> RETURN_RENTER or COMPLETED
+const handleRenterConfirmReturn = async () => {
+  if (!confirm('Confirm you have returned the equipment?')) return;
+
+  try {
+    const newStatus = currentStatus.value === 'RETURN_OWNER' ? 'COMPLETED' : 'RETURN_RENTER';
+    await bookingService.transitionStatus(booking.value._id, newStatus, 'Renter confirmed return');
+    alert('Return confirmed!');
     await fetchBookingDetails();
   } catch (err) {
     console.error('Error confirming return:', err);
@@ -739,15 +766,30 @@ const handleOwnerConfirmReturn = async () => {
   }
 };
 
-const handleVerifyComplete = async () => {
+// Owner confirms return -> RETURN_OWNER
+const handleOwnerConfirmReturn = async () => {
+  if (!confirm('Confirm equipment has been returned?')) return;
+
+  try {
+    await bookingService.transitionStatus(booking.value._id, 'RETURN_OWNER', 'Owner confirmed return');
+    alert('Return confirmed!');
+    await fetchBookingDetails();
+  } catch (err) {
+    console.error('Error confirming return:', err);
+    alert(err.response?.data?.message || 'Failed to confirm return.');
+  }
+};
+
+// Owner confirms everything is OK -> COMPLETED
+const handleEverythingOK = async () => {
   if (!confirm("Confirm equipment is in good condition?")) return;
 
   try {
-    await bookingService.verifyComplete(booking.value._id);
+    await bookingService.transitionStatus(booking.value._id, 'COMPLETED', 'Owner verified equipment is OK');
     alert('Booking completed!');
     await fetchBookingDetails();
   } catch (err) {
-    console.error('Error verifying completion:', err);
+    console.error('Error completing booking:', err);
     alert(err.response?.data?.message || 'Failed to complete booking.');
   }
 };
@@ -757,7 +799,7 @@ const handleDispute = async () => {
   if (!reason) return;
 
   try {
-    await bookingService.openDispute(booking.value._id, reason);
+    await bookingService.transitionStatus(booking.value._id, 'DISPUTED', reason);
     alert('Dispute opened. Our support team will contact you.');
     await fetchBookingDetails();
   } catch (err) {
@@ -768,12 +810,18 @@ const handleDispute = async () => {
 
 const handleReview = () => {
   alert('Review functionality - To be implemented');
-  // TODO: Redirect to review page
+};
+
+const handleShowReview = () => {
+  alert('Show review functionality - To be implemented');
 };
 
 const handleContactSupport = () => {
   alert('Contact support functionality - To be implemented');
-  // TODO: Open support panel
+};
+
+const handleNeedHelp = () => {
+  alert('Need help functionality - To be implemented');
 };
 
 // Photo Upload Modal
@@ -810,7 +858,6 @@ const handleFileSelect = (event) => {
     reader.readAsDataURL(file);
   });
 
-  // Reset input
   event.target.value = '';
 };
 
@@ -818,25 +865,15 @@ const removePhoto = (index) => {
   selectedPhotos.value.splice(index, 1);
 };
 
-const uploadPhotosAndConfirm = async () => {
+const uploadPhotos = async () => {
   if (selectedPhotos.value.length === 0) return;
 
   uploadingPhotos.value = true;
 
   try {
-    // Upload photos
     const files = selectedPhotos.value.map(p => p.file);
     await bookingService.uploadPhotos(booking.value._id, photoUploadType.value, files);
-
-    // Confirm pickup/return
-    if (photoUploadType.value === 'pickup') {
-      await bookingService.confirmPickup(booking.value._id);
-      alert('Pickup confirmed!');
-    } else {
-      await bookingService.confirmReturn(booking.value._id);
-      alert('Return confirmed! Waiting for owner verification.');
-    }
-
+    alert('Photos uploaded successfully!');
     closePhotoModal();
     await fetchBookingDetails();
   } catch (err) {
@@ -845,30 +882,6 @@ const uploadPhotosAndConfirm = async () => {
   } finally {
     uploadingPhotos.value = false;
   }
-};
-
-// Map Initialization
-const initializeMap = async () => {
-  if (!showLocationTab.value || !locationInfo.value.lat || !locationInfo.value.lng) return;
-
-  await nextTick();
-
-  if (mapInstance) {
-    mapInstance.remove();
-  }
-
-  const container = mapElement.value;
-  if (!container) return;
-
-  mapInstance = L.map(container).setView([locationInfo.value.lat, locationInfo.value.lng], 15);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(mapInstance);
-
-  L.marker([locationInfo.value.lat, locationInfo.value.lng]).addTo(mapInstance)
-    .bindPopup(fullAddress.value)
-    .openPopup();
 };
 
 // Helpers
@@ -904,47 +917,6 @@ const getDuration = (start, end) => {
   return Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
 };
 
-const formatStatusLabel = (status) => {
-  const labels = {
-    'PENDING': 'Pending',
-    'ACCEPTED': 'Accepted',
-    'PICKUP': 'Pickup',
-    'IN_PROGRESS': 'In Progress',
-    'RETURN': 'Return',
-    'VERIFY': 'Verification',
-    'COMPLETED': 'Completed',
-    'REVIEWED': 'Reviewed',
-    'CANCELLED': 'Cancelled',
-    'DECLINED': 'Declined',
-    'DISPUTED': 'Disputed'
-  };
-  return labels[status] || status;
-};
-
-const formatActivityMeta = (historyItem) => {
-  const actor = historyItem.changed_by;
-  if (actor === 'system') return 'Automatic';
-  if (actor === 'renter') return isRenter.value ? 'You' : 'Renter';
-  if (actor === 'owner') return isRenter.value ? 'Owner' : 'You';
-  return actor;
-};
-
-const formatTime = (timestamp) => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
-};
-
 const navigateToListing = () => {
   if (booking.value.listing_id?._id) {
     router.push(`/listing/${booking.value.listing_id._id}`);
@@ -953,18 +925,9 @@ const navigateToListing = () => {
 
 const navigateToProfile = () => {
   if (otherUser.value._id) {
-    router.push(`/profile/${otherUser.value._id}`);
+    router.push(`/user/${otherUser.value._id}`);
   }
 };
-
-// Watchers
-watch(activeTab, (newTab) => {
-  if (newTab === 'location' && showLocationTab.value) {
-    setTimeout(() => {
-      initializeMap();
-    }, 100);
-  }
-});
 
 // Lifecycle
 onMounted(() => {
@@ -1077,23 +1040,11 @@ onMounted(() => {
   border: 1px solid rgba(0, 170, 255, 0.1);
 }
 
-/* Status Message Card */
-.status-message-card {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  border-left: 4px solid #10b981;
-}
-
-.status-message-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #065f46;
-  margin-bottom: 0.5rem;
-}
-
-.status-message-text {
-  font-size: 0.9rem;
-  color: #047857;
-  line-height: 1.5;
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
 }
 
 /* Equipment Card */
@@ -1268,6 +1219,87 @@ onMounted(() => {
   color: #999;
 }
 
+/* Insurance Card */
+.insurance-card {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.insurance-content {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.insurance-icon {
+  width: 40px;
+  height: 40px;
+  background: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.insurance-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #065f46;
+}
+
+.insurance-value {
+  font-size: 0.75rem;
+  color: #047857;
+}
+
+/* Location Card */
+.location-card {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.location-info,
+.phone-info {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.phone-info {
+  margin-bottom: 0;
+}
+
+.location-icon,
+.phone-icon {
+  width: 36px;
+  height: 36px;
+  background: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.location-icon svg,
+.phone-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.location-text,
+.phone-text {
+  font-size: 0.9rem;
+  color: #1e40af;
+}
+
+.phone-text {
+  font-weight: 600;
+}
+
 /* Action Buttons */
 .action-buttons {
   display: flex;
@@ -1302,54 +1334,36 @@ onMounted(() => {
   box-shadow: 0 6px 20px rgba(0, 170, 255, 0.4);
 }
 
-.btn-payment {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  color: white;
-}
-
-.btn-payment:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
-}
-
-.btn-accept,
 .btn-success {
   background: #10b981;
   color: white;
 }
 
-.btn-accept:hover,
 .btn-success:hover {
   background: #059669;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.btn-decline,
-.btn-cancel,
-.btn-secondary {
-  background: white;
-  color: #6b7280;
-  border: 2px solid #d1d5db;
-}
-
-.btn-decline:hover,
-.btn-cancel:hover,
-.btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-  transform: translateY(-2px);
-}
-
-.btn-dispute {
+.btn-danger {
   background: #ef4444;
   color: white;
 }
 
-.btn-dispute:hover {
+.btn-danger:hover {
   background: #dc2626;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+  transform: translateY(-2px);
 }
 
 .btn-review {
@@ -1363,324 +1377,71 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
+.btn-dispute {
+  background: #fca5a5;
+  color: #991b1b;
+}
+
+.btn-dispute:hover {
+  background: #f87171;
+  transform: translateY(-2px);
+}
+
 .btn-support {
-  background: #f59e0b;
-  color: white;
+  background: #fca5a5;
+  color: #991b1b;
 }
 
 .btn-support:hover {
-  background: #d97706;
+  background: #f87171;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
-/* RIGHT COLUMN */
+.btn-help {
+  background: #fca5a5;
+  color: #991b1b;
+}
+
+.btn-help:hover {
+  background: #f87171;
+  transform: translateY(-2px);
+}
+
+/* RIGHT COLUMN - Placeholder */
 .right-column {
   position: sticky;
   top: 2rem;
   height: calc(100vh - 4rem);
-  display: flex;
-  flex-direction: column;
 }
 
-/* Tabs */
-.tabs-container {
+.placeholder-card {
   background: white;
   border-radius: 15px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 170, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  border: 2px dashed #d1d5db;
 }
 
-.tabs-header {
-  display: flex;
-  border-bottom: 2px solid #e5e7eb;
-  background: #f9fafb;
+.placeholder-content {
+  text-align: center;
+  color: #9ca3af;
 }
 
-.tab-btn {
-  flex: 1;
-  padding: 1rem;
-  background: transparent;
-  border: none;
-  font-size: 0.95rem;
+.placeholder-content svg {
+  margin-bottom: 1rem;
+}
+
+.placeholder-content h3 {
+  font-size: 1.25rem;
   font-weight: 600;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-bottom: 3px solid transparent;
-}
-
-.tab-btn:hover {
-  background: #f3f4f6;
-  color: #00AAFF;
-}
-
-.tab-btn.active {
-  color: #00AAFF;
-  background: white;
-  border-bottom-color: #00AAFF;
-}
-
-.tabs-content {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.tab-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Chat Panel */
-.chat-panel {
-  padding: 0;
-}
-
-.activity-feed {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.activity-item {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-}
-
-.activity-item.status-change {
-  padding: 0.75rem;
-  background: #f0fdf4;
-  border-radius: 8px;
-  border-left: 3px solid #10b981;
-}
-
-.activity-icon {
-  width: 32px;
-  height: 32px;
-  background: #dcfce7;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.activity-icon svg {
-  color: #10b981;
-}
-
-.activity-content {
-  flex: 1;
-}
-
-.activity-text {
-  font-size: 0.9rem;
-  color: #065f46;
-  margin-bottom: 0.25rem;
-}
-
-.activity-meta {
-  font-size: 0.75rem;
-  color: #059669;
-}
-
-.activity-notes {
-  font-size: 0.85rem;
-  color: #047857;
-  font-style: italic;
-  margin-top: 0.25rem;
-}
-
-.activity-item.message {
-  padding: 0.75rem;
-  background: #f3f4f6;
-  border-radius: 12px;
-  max-width: 75%;
-}
-
-.activity-item.message.my-message {
-  margin-left: auto;
-  background: linear-gradient(135deg, #00AAFF 0%, #0088cc 100%);
-  color: white;
-}
-
-.message-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.message-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder-small {
-  width: 32px;
-  height: 32px;
-  background: #00AAFF;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.message-content {
-  flex: 1;
-}
-
-.message-text {
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin-bottom: 0.25rem;
-}
-
-.activity-item.message.my-message .message-text {
-  color: white;
-}
-
-.message-image {
-  max-width: 200px;
-  border-radius: 8px;
-  margin-top: 0.5rem;
-}
-
-.message-time {
-  font-size: 0.7rem;
-  opacity: 0.7;
-}
-
-/* Message Input */
-.message-input-container {
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-end;
-}
-
-.message-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-family: inherit;
-  resize: none;
-}
-
-.message-input:focus {
-  outline: none;
-  border-color: #00AAFF;
-}
-
-.send-btn {
-  width: 40px;
-  height: 40px;
-  background: #00AAFF;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.send-btn:hover:not(:disabled) {
-  background: #0088cc;
-}
-
-.send-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Location Panel */
-.location-panel {
-  padding: 0;
-}
-
-.map-container {
-  height: 400px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.map {
-  width: 100%;
-  height: 100%;
-}
-
-.location-details {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.location-detail-item {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-}
-
-.detail-icon {
-  width: 40px;
-  height: 40px;
-  background: #eff6ff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.detail-icon svg {
-  color: #00AAFF;
-}
-
-.detail-content {
-  flex: 1;
-}
-
-.detail-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   margin-bottom: 0.5rem;
 }
 
-.detail-value {
-  font-size: 0.95rem;
-  color: #1a1a1a;
-  line-height: 1.5;
-}
-
-.detail-value.phone {
-  font-weight: 600;
-  color: #00AAFF;
-  font-size: 1.1rem;
+.placeholder-content p {
+  font-size: 0.9rem;
 }
 
 /* Photo Modal */
@@ -1841,7 +1602,7 @@ onMounted(() => {
   .right-column {
     position: relative;
     top: 0;
-    height: 600px;
+    height: 300px;
   }
 }
 
@@ -1865,10 +1626,6 @@ onMounted(() => {
   .btn {
     width: 100%;
     min-width: unset;
-  }
-
-  .tabs-header {
-    flex-direction: column;
   }
 
   .modal-overlay {

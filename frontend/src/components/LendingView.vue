@@ -73,21 +73,21 @@
       </button>
       <div v-show="expandedSections.attention" class="section-content">
         <div v-if="attentionBookings.length > 0" class="booking-list">
-          <BookingCard
+          <RentalCard
             v-for="booking in attentionBookings"
             :key="booking._id"
-            :booking-id="booking._id"
+            :rental-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
             :end-date="booking.end_date"
             :total-price="booking.total_price"
             :location="booking.listing_id?.location_id"
-            :status="booking.status"
-            @view-listing="viewListing"
-            @view-details="viewDetails"
-            @accept="acceptRequest"
-            @decline="declineRequest"
+            :booking-status="booking.current_status || booking.status"
+            :payment-confirmed="booking.payment_confirmed"
+            :insurance-flag="booking.insurance_flag"
+            :is-owner-view="true"
+            status="pending"
           />
         </div>
         <div v-else class="empty-section">
@@ -111,10 +111,10 @@
       </button>
       <div v-show="expandedSections.activeUpcoming" class="section-content">
         <div v-if="activeUpcomingBookings.length > 0" class="booking-list">
-          <BookingCard
+          <RentalCard
             v-for="booking in activeUpcomingBookings"
             :key="booking._id"
-            :booking-id="booking._id"
+            :rental-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
@@ -122,10 +122,11 @@
             :total-price="booking.total_price"
             :days-remaining="booking.daysRemaining"
             :location="booking.listing_id?.location_id"
-            :status="booking.status"
-            @view-listing="viewListing"
-            @view-details="viewDetails"
-            @contact="contactRenter"
+            :booking-status="booking.current_status || booking.status"
+            :payment-confirmed="booking.payment_confirmed"
+            :insurance-flag="booking.insurance_flag"
+            :is-owner-view="true"
+            status="active"
           />
         </div>
         <div v-else class="empty-section">
@@ -149,19 +150,22 @@
       </button>
       <div v-show="expandedSections.history" class="section-content">
         <div v-if="historyBookings.length > 0" class="booking-list">
-          <BookingCard
+          <RentalCard
             v-for="booking in historyBookings"
             :key="booking._id"
-            :booking-id="booking._id"
+            :rental-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
             :end-date="booking.end_date"
             :total-price="booking.total_price"
             :location="booking.listing_id?.location_id"
-            :status="booking.status"
-            @view-listing="viewListing"
-            @view-details="viewDetails"
+            :has-review="booking.current_status === 'REVIEWED'"
+            :booking-status="booking.current_status || booking.status"
+            :payment-confirmed="booking.payment_confirmed"
+            :insurance-flag="booking.insurance_flag"
+            :is-owner-view="true"
+            status="history"
           />
         </div>
         <div v-else class="empty-section">
@@ -187,7 +191,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import BookingCard from './BookingCard.vue';
+import RentalCard from './RentalCard.vue';
 
 const router = useRouter();
 
@@ -226,9 +230,9 @@ const expandedSections = ref({
 });
 
 // Compute bookings for "Requires Attention" section
-// States: PENDING, PICKUP, RETURN, VERIFY
+// States: PENDING, PICKUP, PICKUP_OWNER, PICKUP_RENTER, RETURN, RETURN_OWNER, RETURN_RENTER
 const attentionBookings = computed(() => {
-  const attentionStatuses = ['PENDING', 'PICKUP', 'RETURN', 'VERIFY'];
+  const attentionStatuses = ['PENDING', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
   const allBookings = [
     ...props.bookings.pending,
     ...props.bookings.active,
@@ -236,7 +240,7 @@ const attentionBookings = computed(() => {
   ];
 
   return allBookings.filter(booking =>
-    attentionStatuses.includes(booking.status)
+    attentionStatuses.includes(booking.current_status || booking.status)
   ).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 });
 

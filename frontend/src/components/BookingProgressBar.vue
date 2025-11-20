@@ -39,7 +39,7 @@ const props = defineProps({
 });
 
 // Define the 5 visual steps with their associated states
-const stepDefinitions = [
+const stepDefinitionsOwner = [
   {
     key: 'request',
     states: ['PENDING', 'ACCEPTED'],
@@ -47,22 +47,49 @@ const stepDefinitions = [
   },
   {
     key: 'pickup',
-    states: ['PICKUP'],
+    states: ['PICKUP', 'PICKUP_RENTER'],
     position: 1
   },
   {
     key: 'in-progress',
-    states: ['IN_PROGRESS'],
+    states: ['PICKUP_OWNER','IN_PROGRESS'],
     position: 2
   },
   {
     key: 'return',
-    states: ['RETURN', 'VERIFY'],
+    states: ['RETURN', 'RETURN_RENTER'],
     position: 3
   },
   {
     key: 'complete',
-    states: ['COMPLETED', 'REVIEWED'],
+    states: ['RETURN_OWNER','COMPLETED', 'REVIEWED'],
+    position: 4
+  }
+];
+const stepDefinitionsRenter = [
+  {
+    key: 'request',
+    states: ['PENDING', 'ACCEPTED'],
+    position: 0
+  },
+  {
+    key: 'pickup',
+    states: ['PICKUP', 'PICKUP_OWNER'],
+    position: 1
+  },
+  {
+    key: 'in-progress',
+    states: ['IN_PROGRESS','PICKUP_RENTER'],
+    position: 2
+  },
+  {
+    key: 'return',
+    states: ['RETURN', 'RETURN_OWNER'],
+    position: 3
+  },
+  {
+    key: 'complete',
+    states: ['RETURN_RENTER','COMPLETED', 'REVIEWED'],
     position: 4
   }
 ];
@@ -73,22 +100,27 @@ const terminalStates = ['CANCELLED', 'DECLINED', 'DISPUTED', 'DISPUTE_RESOLVED']
 // Check if current status is terminal
 const isTerminal = computed(() => terminalStates.includes(props.status));
 
+// Select the appropriate step definitions based on user role
+const stepDefinitions = computed(() => {
+  return props.isOwner ? stepDefinitionsOwner : stepDefinitionsRenter;
+});
+
 // Get the current step index based on status
 const currentStepPosition = computed(() => {
   if (isTerminal.value) {
     // Find the last completed step before terminal state
     // For now, we'll determine based on status logic
-    if (props.status === 'DECLINED') return -1; // Before first step
+    if (props.status === 'DECLINED') return 0; // After request
     if (props.status === 'CANCELLED') {
       // Need to check when it was cancelled - for now assume after PENDING/ACCEPTED
       return 0;
     }
-    if (props.status === 'DISPUTED') return 2; // After RETURN
+    if (props.status === 'DISPUTED') return 3; // After RETURN
     return 0;
   }
 
   // Find which step contains the current status
-  for (const step of stepDefinitions) {
+  for (const step of stepDefinitions.value) {
     if (step.states.includes(props.status)) {
       return step.position;
     }
@@ -115,15 +147,18 @@ const getStepLabel = (step) => {
   return formatStatusLabel(statesInStep[0]);
 };
 
-// Format status label for display
-const formatStatusLabel = (status) => {
+// Format status label for Owner
+const formatStatusLabelOwner = (status) => {
   const labels = {
-    'PENDING': 'Pending',
+    'PENDING': 'Requested',
     'ACCEPTED': 'Accepted',
-    'PICKUP': 'Pickup',
+    'PICKUP': 'Handoff',
+    'PICKUP_OWNER': 'In progress',
+    'PICKUP_RENTER': 'Confirm Handoff',
     'IN_PROGRESS': 'In Progress',
     'RETURN': 'Return',
-    'VERIFY': 'Verify',
+    'RETURN_OWNER': 'Veification',
+    'RETURN_RENTER': 'Confirm Return',
     'COMPLETED': 'Completed',
     'REVIEWED': 'Reviewed',
     'CANCELLED': 'Cancelled',
@@ -134,9 +169,36 @@ const formatStatusLabel = (status) => {
   return labels[status] || status;
 };
 
+// Format status label for Renter
+const formatStatusLabelRenter = (status) => {
+  const labels = {
+    'PENDING': 'Pending',
+    'ACCEPTED': 'Accepted',
+    'PICKUP': 'Pickup',
+    'PICKUP_OWNER': 'Confirm Pickup',
+    'PICKUP_RENTER': 'In Progress',
+    'IN_PROGRESS': 'In Progress',
+    'RETURN': 'Return',
+    'RETURN_OWNER': 'Confirm Return',
+    'RETURN_RENTER': 'Completed',
+    'COMPLETED': 'Completed',
+    'REVIEWED': 'Reviewed',
+    'CANCELLED': 'Cancelled',
+    'DECLINED': 'Declined',
+    'DISPUTED': 'Disputed',
+    'DISPUTE_RESOLVED': 'Resolved'
+  };
+  return labels[status] || status;
+};
+
+// Select the appropriate format function based on user role
+const formatStatusLabel = (status) => {
+  return props.isOwner ? formatStatusLabelOwner(status) : formatStatusLabelRenter(status);
+};
+
 // Build visible steps with their display labels
 const visibleSteps = computed(() => {
-  const steps = stepDefinitions.map(step => ({
+  const steps = stepDefinitions.value.map(step => ({
     ...step,
     displayLabel: getStepLabel(step)
   }));
@@ -203,12 +265,20 @@ const ownerStatusInfo = {
     description: 'Review booking details. When accepted renter will see your location and phone number.',
   },
   'ACCEPTED': {
-    title: 'Awaiting pickup',
+    title: 'Booking accepted',
     description: 'Renter must complete payment before pickup.',
   },
   'PICKUP': {
     title: 'Pickup in progress',
     description: 'Confirm hand-off once equipment is collected.',
+  },
+  'PICKUP_OWNER': {
+    title: 'Waiting for renter confirmation',
+    description: 'You confirmed handoff. Renter needs to confirm they received the equipment.',
+  },
+  'PICKUP_RENTER': {
+    title: 'Renter confirmed pickup',
+    description: 'Please confirm handing off the equipment.',
   },
   'IN_PROGRESS': {
     title: 'Equipment rented out',
@@ -218,9 +288,13 @@ const ownerStatusInfo = {
     title: 'Renter is returning the equipment',
     description: 'Confirm return when you get the item back.',
   },
-  'VERIFY': {
-    title: 'Check returned equipment',
-    description: 'Confirm everything is fine or report a problem.',
+  'RETURN_OWNER': {
+    title: 'Verify equipment condition',
+    description: 'You confirmed receiving equipment. Check condition of the equipment',
+  },
+  'RETURN_RENTER': {
+    title: 'Verify equipment condition',
+    description: 'Check the equipment and confirm everything is OK or report an issue.',
   },
   'COMPLETED': {
     title: 'Rental completed',
@@ -228,7 +302,7 @@ const ownerStatusInfo = {
   },
   'REVIEWED': {
     title: 'Rental completed',
-    description: 'Thanks for renting out your equipment!',
+    description: 'Renter has left a review. Thanks for renting out your equipment!',
   },
   'CANCELLED': {
     title: 'Booking cancelled',
@@ -262,6 +336,14 @@ const renterStatusInfo = {
     title: "It's pickup time",
     description: 'Upload photos and confirm pickup when you collect the equipment.',
   },
+  'PICKUP_OWNER': {
+    title: 'Owner confirmed handoff',
+    description: 'Please upload photos and confirm you received the equipment.',
+  },
+  'PICKUP_RENTER': {
+    title: 'Waiting for owner confirmation',
+    description: 'You confirmed pickup. Waiting for owner to confirm handoff.',
+  },
   'IN_PROGRESS': {
     title: 'Enjoy your rental',
     description: 'The rental is ongoing. Return on time to avoid extra charges.',
@@ -270,9 +352,13 @@ const renterStatusInfo = {
     title: 'Time to return the equipment',
     description: 'Upload photos and confirm return to finish your rental.',
   },
-  'VERIFY': {
-    title: 'Waiting for owner to verify return',
-    description: 'We will notify you once the owner confirms everything is alright.',
+  'RETURN_OWNER': {
+    title: 'Owner confirmed return',
+    description: 'Please confirm you returned the equipment.',
+  },
+  'RETURN_RENTER': {
+    title: 'Waiting for owner to verify',
+    description: 'You confirmed return. Waiting for owner to verify equipment condition.',
   },
   'COMPLETED': {
     title: 'Rental completed!',

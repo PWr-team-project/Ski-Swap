@@ -15,28 +15,43 @@ const STATE_TRANSITIONS = {
     system: ['PICKUP', 'CANCELLED'] // Auto to PICKUP on start_date, CANCEL if no payment
   },
   PICKUP: {
+    renter: ['PICKUP_RENTER'], // After uploading photos and confirming
+    owner: ['PICKUP_OWNER'], // After handing off equipment
+    system: ['IN_PROGRESS'] // Auto if start_date passed without photos
+  },
+  PICKUP_OWNER: {
     renter: ['IN_PROGRESS'], // After uploading photos and confirming
     owner: [],
-    system: ['IN_PROGRESS'] // Auto if 1 day passed without photos
+    system: ['IN_PROGRESS'] // Auto if start_date passed without photos
+  },
+  PICKUP_RENTER: {
+    renter: ['IN_PROGRESS'], // After uploading photos and confirming
+    owner: [],
+    system: ['IN_PROGRESS'] // Auto if start_date passed without photos
   },
   IN_PROGRESS: {
     renter: [],
     owner: [],
-    system: ['RETURN'] // Auto 2 days before end_date
+    system: ['RETURN'] // Auto 1 day before end_date
   },
   RETURN: {
-    renter: ['VERIFY'], // After uploading photos and confirming return
-    owner: [],
-    system: ['VERIFY'] // Auto if 1 day passed after end_date without photos
+    renter: ['RETURN_RENTER'], // After uploading photos and confirming return
+    owner: ['RETURN_OWNER'],
+    system: ['RETURN_OWNER'] // Auto if end_date passed without photos
   },
-  VERIFY: {
+  RETURN_OWNER: {
     renter: [],
     owner: ['COMPLETED', 'DISPUTED'], // Owner confirms or disputes
-    system: ['COMPLETED'] // Auto if owner doesn't respond within 3 days
+    system: ['COMPLETED'] // Auto if owner doesn't respond within 2 days from return date
+  },
+  RETURN_RENTER: {
+    renter: ['RETURN_OWNER'],
+    owner: ['COMPLETED', 'DISPUTED'], // Owner confirms or disputes
+    system: ['COMPLETED'] // Auto if owner doesn't respond within 2 days from return date
   },
   COMPLETED: {
     renter: ['REVIEWED'], // After submitting review
-    owner: ['REVIEWED'], // After submitting review
+    owner: [],
     system: []
   },
   REVIEWED: {
@@ -154,16 +169,23 @@ async function changeBookingStatus(bookingId, newStatus, actor, userId = null, n
       }
     }
 
-    // Special validation: Renter can't move to IN_PROGRESS from PICKUP without photos
-    if (currentStatus === 'PICKUP' && newStatus === 'IN_PROGRESS' && actor === 'renter') {
+    // Special validation: Renter can't move to PICKUP_RENTER from PICKUP without photos
+    if (currentStatus === 'PICKUP' && newStatus === 'PICKUP_RENTER' && actor === 'renter') {
+      const hasPickupPhotos = await hasPhotosUploaded(bookingId, 'pickup');
+      if (!hasPickupPhotos) {
+        throw new Error('Pickup photos must be uploaded before confirming pickup');
+      }
+    }
+    // Special validation: Renter can't move to IN_PROGRESS from PICKUP_OWNER without photos
+    if (currentStatus === 'PICKUP_OWNER' && newStatus === 'IN_PROGRESS' && actor === 'renter') {
       const hasPickupPhotos = await hasPhotosUploaded(bookingId, 'pickup');
       if (!hasPickupPhotos) {
         throw new Error('Pickup photos must be uploaded before confirming pickup');
       }
     }
 
-    // Special validation: Renter can't move to VERIFY from RETURN without photos
-    if (currentStatus === 'RETURN' && newStatus === 'VERIFY' && actor === 'renter') {
+    // Special validation: Renter can't move to RETURN_RENTER from RETURN without photos
+    if (currentStatus === 'RETURN' && newStatus === 'RETURN_RENTER' && actor === 'renter') {
       const hasReturnPhotos = await hasPhotosUploaded(bookingId, 'return');
       if (!hasReturnPhotos) {
         throw new Error('Return photos must be uploaded before confirming return');
@@ -205,6 +227,7 @@ function getStateRequirements(status, userType) {
         canCancel: true,
         canPay: true,
         showContactInfo: false,
+        showLocation: false,
         message: 'Waiting for owner approval',
         nextAction: 'Wait for owner to accept your request'
       },
@@ -212,6 +235,7 @@ function getStateRequirements(status, userType) {
         canAccept: true,
         canDecline: true,
         showContactInfo: false,
+        showLocation: false,
         showPaymentInfo: true,
         message: 'New booking request',
         nextAction: 'Review and accept or decline the request'
@@ -222,12 +246,14 @@ function getStateRequirements(status, userType) {
         canCancel: true,
         canPay: true,
         showContactInfo: true,
+        showLocation: true,
         message: 'Booking accepted by owner',
         nextAction: 'Complete payment to proceed'
       },
       owner: {
         canCancel: true,
         showContactInfo: true,
+        showLocation: true,
         showPaymentInfo: true,
         message: 'Booking accepted. Waiting for payment',
         nextAction: 'Wait for renter payment. Equipment will be handed off on pickup date.'
@@ -236,27 +262,63 @@ function getStateRequirements(status, userType) {
     PICKUP: {
       renter: {
         canUploadPhotos: true,
-        canConfirmPickup: true,
+        canConfirmHandoff: true,
         showContactInfo: true,
+        showLocation: true,
         photoType: 'pickup',
         message: 'Pickup day!',
-        nextAction: 'Upload photos of equipment condition and confirm pickup'
+        nextAction: 'Upload photos of equipment condition and confirm handoff'
+      },
+      owner: {
+        canConfirmHandoff: true,
+        showContactInfo: true,
+        showLocation: true,
+        message: 'Equipment pickup day',
+        nextAction: 'Hand off equipment to renter and confirm'
+      }
+    },
+    PICKUP_OWNER: {
+      renter: {
+        canUploadPhotos: true,
+        canConfirmHandoff: true,
+        showContactInfo: true,
+        showLocation: true,
+        photoType: 'pickup',
+        message: 'Owner confirmed handoff',
+        nextAction: 'Upload photos and confirm you received the equipment'
       },
       owner: {
         showContactInfo: true,
-        message: 'Equipment pickup day',
-        nextAction: 'Hand off equipment to renter'
+        showLocation: true,
+        message: 'Waiting for renter confirmation',
+        nextAction: 'Renter needs to confirm they received the equipment'
+      }
+    },
+    PICKUP_RENTER: {
+      renter: {
+        showContactInfo: true,
+        showLocation: true,
+        message: 'You confirmed pickup',
+        nextAction: 'Waiting for owner to confirm handoff'
+      },
+      owner: {
+        canConfirmHandoff: true,
+        showContactInfo: true,
+        showLocation: true,
+        message: 'Renter confirmed pickup',
+        nextAction: 'Confirm you handed off the equipment'
       }
     },
     IN_PROGRESS: {
       renter: {
         showContactInfo: true,
-        showReturnLocation: true,
+        showLocation: true,
         message: 'Rental in progress',
         nextAction: 'Enjoy your rental! Return by the end date.'
       },
       owner: {
         showContactInfo: true,
+        showLocation: true,
         message: 'Equipment currently rented',
         nextAction: 'Equipment will be returned on the scheduled date'
       }
@@ -266,7 +328,7 @@ function getStateRequirements(status, userType) {
         canUploadPhotos: true,
         canConfirmReturn: true,
         showContactInfo: true,
-        showReturnLocation: true,
+        showLocation: true,
         photoType: 'return',
         message: 'Return day!',
         nextAction: 'Return equipment, upload photos and confirm return'
@@ -274,61 +336,106 @@ function getStateRequirements(status, userType) {
       owner: {
         canConfirmReturn: true,
         showContactInfo: true,
+        showLocation: true,
         message: 'Equipment return day',
-        nextAction: 'Receive equipment from renter'
+        nextAction: 'Receive equipment from renter and confirm'
       }
     },
-    VERIFY: {
+    RETURN_RENTER: {
       renter: {
-        message: 'Equipment returned',
-        nextAction: 'Waiting for owner to verify equipment condition'
+        showContactInfo: true,
+        showLocation: false,
+        message: 'You confirmed return',
+        nextAction: 'Waiting for owner to verify equipment'
       },
       owner: {
+        canUploadPhotos: true,
         canConfirmComplete: true,
         canDispute: true,
-        message: 'Verify equipment condition',
-        nextAction: 'Check the equipment and confirm everything is alright'
+        showContactInfo: true,
+        showLocation: true,
+        photoType: 'return',
+        message: 'Renter confirmed return',
+        nextAction: 'Check equipment and confirm everything is OK or report issue'
+      }
+    },
+    RETURN_OWNER: {
+      renter: {
+        canUploadPhotos: true,
+        canConfirmReturn: true,
+        showContactInfo: true,
+        showLocation: true,
+        photoType: 'return',
+        message: 'Owner confirmed return',
+        nextAction: 'Confirm you returned the equipment'
+      },
+      owner: {
+        canUploadPhotos: true,
+        canConfirmComplete: true,
+        canDispute: true,
+        showContactInfo: true,
+        showLocation: true,
+        photoType: 'return',
+        message: 'You confirmed receiving equipment',
+        nextAction: 'Verify equipment condition - Everything OK or Something Wrong?'
       }
     },
     COMPLETED: {
       renter: {
         canReview: true,
+        showContactInfo: true,
+        showLocation: false,
         message: 'Rental completed!',
         nextAction: 'Share your experience with a review'
       },
       owner: {
-        canReview: true,
+        showContactInfo: true,
+        showLocation: false,
         message: 'Rental completed!',
-        nextAction: 'Rate your renter'
+        nextAction: null
       }
     },
     REVIEWED: {
       renter: {
         canRentAgain: true,
+        showContactInfo: true,
+        showLocation: false,
         message: 'Thanks for your review!',
         nextAction: 'Looking for another rental?'
       },
       owner: {
+        canShowReview: true,
+        showContactInfo: true,
+        showLocation: false,
         message: 'Rental complete',
         nextAction: null
       }
     },
     CANCELLED: {
       renter: {
+        canRentAgain: true,
+        showContactInfo: true,
+        showLocation: false,
         message: 'Booking cancelled',
         nextAction: null
       },
       owner: {
+        showContactInfo: true,
+        showLocation: false,
         message: 'Booking cancelled',
         nextAction: null
       }
     },
     DECLINED: {
       renter: {
+        showContactInfo: true,
+        showLocation: false,
         message: 'Booking request declined',
         nextAction: 'Browse other listings'
       },
       owner: {
+        showContactInfo: true,
+        showLocation: false,
         message: 'Booking request declined',
         nextAction: null
       }
@@ -336,21 +443,29 @@ function getStateRequirements(status, userType) {
     DISPUTED: {
       renter: {
         canContactSupport: true,
+        showContactInfo: false,
+        showLocation: false,
         message: 'Dispute opened',
         nextAction: 'Our support team will review this case'
       },
       owner: {
         canContactSupport: true,
+        showContactInfo: false,
+        showLocation: false,
         message: 'Dispute opened',
         nextAction: 'Our support team will review this case'
       }
     },
     DISPUTE_RESOLVED: {
       renter: {
+        showContactInfo: false,
+        showLocation: false,
         message: 'Dispute resolved',
         nextAction: null
       },
       owner: {
+        showContactInfo: false,
+        showLocation: false,
         message: 'Dispute resolved',
         nextAction: null
       }

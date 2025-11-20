@@ -135,7 +135,7 @@ async function checkAndTransitionBookings() {
         }
       }
 
-      // Rule 4: RETURN -> VERIFY if photos not uploaded 1 day after end_date
+      // Rule 4: RETURN -> RETURN_OWNER if return not confirmed 1 day after end_date
       if (currentStatus === 'RETURN') {
         const oneDayAfterEnd = new Date(booking.end_date);
         oneDayAfterEnd.setDate(oneDayAfterEnd.getDate() + 1);
@@ -143,42 +143,63 @@ async function checkAndTransitionBookings() {
         if (now >= oneDayAfterEnd) {
           const result = await changeBookingStatus(
             booking._id,
-            'VERIFY',
+            'RETURN_OWNER',
             'system',
             null,
-            'Automatic transition to VERIFY - return photos not uploaded within 24 hours of return date'
+            'Automatic transition to RETURN_OWNER - return not confirmed within 24 hours of return date'
           );
 
           if (result.success) {
-            console.log(`[BookingScheduler] Booking ${booking._id}: RETURN -> VERIFY (auto)`);
+            console.log(`[BookingScheduler] Booking ${booking._id}: RETURN -> RETURN_OWNER (auto)`);
             transitionCount++;
           }
         }
       }
 
-      // Rule 5: VERIFY -> COMPLETED if owner doesn't respond within 3 days
-      if (currentStatus === 'VERIFY') {
-        // Find when VERIFY status was set
-        const verifyStatus = await BookingStatus.findOne({
+      // Rule 5: PICKUP_OWNER/PICKUP_RENTER -> IN_PROGRESS if not confirmed 1 day after start_date
+      if (currentStatus === 'PICKUP_OWNER' || currentStatus === 'PICKUP_RENTER') {
+        const oneDayAfterStart = new Date(booking.start_date);
+        oneDayAfterStart.setDate(oneDayAfterStart.getDate() + 1);
+
+        if (now >= oneDayAfterStart) {
+          const result = await changeBookingStatus(
+            booking._id,
+            'IN_PROGRESS',
+            'system',
+            null,
+            'Automatic transition to IN_PROGRESS - pickup not fully confirmed within 24 hours'
+          );
+
+          if (result.success) {
+            console.log(`[BookingScheduler] Booking ${booking._id}: ${currentStatus} -> IN_PROGRESS (auto)`);
+            transitionCount++;
+          }
+        }
+      }
+
+      // Rule 6: RETURN_OWNER/RETURN_RENTER -> COMPLETED if owner doesn't respond within 3 days
+      if (currentStatus === 'RETURN_OWNER' || currentStatus === 'RETURN_RENTER') {
+        // Find when this return status was set
+        const returnStatus = await BookingStatus.findOne({
           booking_id: booking._id,
-          status: 'VERIFY'
+          status: currentStatus
         }).sort({ createdAt: -1 });
 
-        if (verifyStatus) {
-          const threeDaysAfterVerify = new Date(verifyStatus.createdAt);
-          threeDaysAfterVerify.setDate(threeDaysAfterVerify.getDate() + 3);
+        if (returnStatus) {
+          const threeDaysAfterReturn = new Date(returnStatus.createdAt);
+          threeDaysAfterReturn.setDate(threeDaysAfterReturn.getDate() + 3);
 
-          if (now >= threeDaysAfterVerify) {
+          if (now >= threeDaysAfterReturn) {
             const result = await changeBookingStatus(
               booking._id,
               'COMPLETED',
               'system',
               null,
-              'Automatic completion - owner did not respond within 3 days'
+              'Automatic completion - owner did not verify equipment within 3 days'
             );
 
             if (result.success) {
-              console.log(`[BookingScheduler] Booking ${booking._id}: VERIFY -> COMPLETED (auto)`);
+              console.log(`[BookingScheduler] Booking ${booking._id}: ${currentStatus} -> COMPLETED (auto)`);
               transitionCount++;
             }
           }

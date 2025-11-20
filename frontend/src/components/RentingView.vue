@@ -25,9 +25,11 @@
             :end-date="rental.end_date"
             :total-price="rental.total_price"
             :location="rental.listing_id?.location_id"
+            :booking-status="rental.current_status || rental.status"
+            :payment-confirmed="rental.payment_confirmed"
+            :insurance-flag="rental.insurance_flag"
+            :is-owner-view="false"
             status="pending"
-            @view-listing="viewListing"
-            @view-details="viewDetails"
           />
         </div>
         <div v-else class="empty-section">
@@ -62,9 +64,11 @@
             :total-price="rental.total_price"
             :days-remaining="rental.daysRemaining"
             :location="rental.listing_id?.location_id"
+            :booking-status="rental.current_status || rental.status"
+            :payment-confirmed="rental.payment_confirmed"
+            :insurance-flag="rental.insurance_flag"
+            :is-owner-view="false"
             status="active"
-            @view-listing="viewListing"
-            @view-details="viewDetails"
           />
         </div>
         <div v-else class="empty-section">
@@ -98,9 +102,11 @@
             :end-date="rental.end_date"
             :total-price="rental.total_price"
             :location="rental.listing_id?.location_id"
+            :booking-status="rental.current_status || rental.status"
+            :payment-confirmed="rental.payment_confirmed"
+            :insurance-flag="rental.insurance_flag"
+            :is-owner-view="false"
             status="upcoming"
-            @view-listing="viewListing"
-            @view-details="viewDetails"
           />
         </div>
         <div v-else class="empty-section">
@@ -135,10 +141,11 @@
             :total-price="rental.total_price"
             :location="rental.listing_id?.location_id"
             :has-review="hasReview(rental)"
+            :booking-status="rental.current_status || rental.status"
+            :payment-confirmed="rental.payment_confirmed"
+            :insurance-flag="rental.insurance_flag"
+            :is-owner-view="false"
             status="history"
-            @view-listing="viewListing"
-            @view-details="viewDetails"
-            @review="reviewEquipment"
           />
         </div>
         <div v-else class="empty-section">
