@@ -148,25 +148,39 @@
           </div>
         </div>
 
-        <div class="form-group-with-buttons">
-          <div class="form-group">
-            <label for="phone">Phone Number</label>
-            <input
-              id="phone"
-              v-model="formData.phoneNumber"
-              type="tel"
-              class="form-input form-input-short"
-              placeholder="+48 123 456 789"
-            />
-          </div>
-          <div class="inline-buttons">
-            <button type="button" @click="resetPersonalInfo" class="cancel-btn-small" :disabled="loading">
-              Cancel
-            </button>
-            <button type="button" @click="savePersonalInfo" class="save-btn-small" :disabled="loading">
-              {{ loading ? 'Saving...' : 'Save Changes' }}
-            </button>
-          </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input
+            id="phone"
+            v-model="formData.phoneNumber"
+            type="tel"
+            class="form-input"
+            placeholder="+48 123 456 789"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="profileDescription">Profile Description</label>
+          <textarea
+            id="profileDescription"
+            v-model="formData.profileDescription"
+            class="form-textarea"
+            rows="5"
+            maxlength="1000"
+            placeholder="Tell others about yourself, your interests, or your business..."
+          ></textarea>
+          <small class="input-hint char-count">
+            {{ formData.profileDescription?.length || 0 }}/1000 characters
+          </small>
+        </div>
+
+        <div class="section-buttons">
+          <button type="button" @click="resetPersonalInfo" class="cancel-btn" :disabled="loading">
+            Cancel
+          </button>
+          <button type="button" @click="savePersonalInfo" class="save-btn" :disabled="loading">
+            {{ loading ? 'Saving...' : 'Save Changes' }}
+          </button>
         </div>
       </div>
 
@@ -378,6 +392,7 @@ const formData = reactive({
   email: '',
   nickname: '',
   phoneNumber: '',
+  profileDescription: '',
   location: {
     country: '',
     state: '',
@@ -410,6 +425,7 @@ const loadProfileData = async () => {
     formData.email = userData.email || ''
     formData.nickname = userData.nickname || ''
     formData.phoneNumber = userData.phone_number || ''
+    formData.profileDescription = userData.profile_description || ''
     formData.company.nipNumber = userData.NIP_number || ''
     formData.company.websiteAddress = userData.website_address || ''
 
@@ -540,10 +556,12 @@ const uploadPhoto = async (fieldName, file) => {
   errorMessage.value = ''
 
   try {
+    console.log('Uploading photo:', fieldName, file.name)
     const formDataToSend = new FormData()
     formDataToSend.append(fieldName, file)
 
     const response = await userService.updateProfile(formDataToSend)
+    console.log('Upload response:', response)
 
     authStore.user = response.user
     await loadProfileData()
@@ -560,6 +578,7 @@ const uploadPhoto = async (fieldName, file) => {
     successMessage.value = fieldName === 'profile_photo' ? 'Profile photo uploaded successfully!' : 'Background photo uploaded successfully!'
   } catch (error) {
     console.error('Error uploading photo:', error)
+    console.error('Error details:', error.response?.data)
     errorMessage.value = error.response?.data?.message || 'Failed to upload photo'
   } finally {
     loading.value = false
@@ -588,6 +607,7 @@ const savePersonalInfo = async () => {
     formDataToSend.append('first_name', formData.firstName)
     formDataToSend.append('last_name', formData.lastName)
     formDataToSend.append('phone_number', formData.phoneNumber || '')
+    formDataToSend.append('profile_description', formData.profileDescription || '')
 
     const response = await userService.updateProfile(formDataToSend)
 
@@ -898,6 +918,39 @@ const getPhotoUrl = (photoPath) => {
   font-style: italic;
 }
 
+.form-textarea {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: 2px solid #e3f2fd;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: #f8fbff;
+  transition: all 0.3s ease;
+  outline: none;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.form-textarea:hover {
+  border-color: #b3d9ff;
+  background: white;
+}
+
+.form-textarea:focus {
+  border-color: #00AAFF;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(0, 170, 255, 0.1);
+}
+
+.char-count {
+  display: block;
+  text-align: right;
+  margin-top: 0.5rem;
+  font-style: normal;
+  color: #666;
+}
+
 /* Company Section */
 .company-section {
   border: 2px solid #e3f2fd;
@@ -1069,6 +1122,50 @@ const getPhotoUrl = (photoPath) => {
 }
 
 .cancel-btn-small:disabled, .save-btn-small:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Section Buttons (for form sections) */
+.section-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.cancel-btn, .save-btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  white-space: nowrap;
+}
+
+.cancel-btn {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.save-btn {
+  background: #00AAFF;
+  color: white;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #0088CC;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 170, 255, 0.3);
+}
+
+.cancel-btn:disabled, .save-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

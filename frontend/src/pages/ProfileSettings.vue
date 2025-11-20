@@ -23,6 +23,7 @@
         <!-- Tab Content -->
         <div class="tab-content">
           <EditProfile v-if="activeTab === 'profile'" />
+          <AccountVerification v-if="activeTab === 'verification'" />
           <ChangePassword v-if="activeTab === 'password'" />
           <DeleteAccount v-if="activeTab === 'delete'" />
         </div>
@@ -34,6 +35,7 @@
 <script setup>
 import { ref } from 'vue'
 import EditProfile from '../components/settings/EditProfile.vue'
+import AccountVerification from '../components/settings/AccountVerification.vue'
 import ChangePassword from '../components/settings/ChangePassword.vue'
 import DeleteAccount from '../components/settings/DeleteAccount.vue'
 
@@ -41,6 +43,7 @@ const activeTab = ref('profile')
 
 const tabs = [
   { id: 'profile', label: 'Edit Profile', icon: '/assets/icons/user.svg' },
+  { id: 'verification', label: 'Account Verification', icon: '/assets/icons/verified_icon.svg' },
   { id: 'password', label: 'Change Password', icon: '/assets/icons/lock.svg' },
   { id: 'delete', label: 'Delete Account', icon: '/assets/icons/trash.svg' }
 ]

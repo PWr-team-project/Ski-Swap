@@ -15,7 +15,9 @@ export const useAuthStore = defineStore('auth', {
     isLoggedIn: (state) => state.isAuthenticated,
     getToken: (state) => state.token,
     isLoading: (state) => state.loading,
-    getError: (state) => state.error
+    getError: (state) => state.error,
+    isAdmin: (state) => state.user?.admin_flag || false,
+    isVerified: (state) => state.user?.id_verified || false
   },
 
   actions: {

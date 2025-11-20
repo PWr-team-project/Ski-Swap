@@ -1,5 +1,11 @@
 <template>
   <div class="user-profile-page">
+    <!-- Page Background Photo -->
+    <div v-if="profileData?.user.background_photo" class="page-background">
+      <img :src="getPhotoUrl(profileData.user.background_photo)" alt="Background" />
+      <div class="background-overlay"></div>
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading" class="loading-container">
       <div class="spinner"></div>
@@ -162,6 +168,12 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Profile Description Section -->
+      <div class="profile-description-section" v-if="profileData.user.profile_description">
+        <h3 class="description-title">User description</h3>
+        <p class="description-text">{{ profileData.user.profile_description }}</p>
       </div>
 
       <!-- Reviews Section -->
@@ -346,11 +358,46 @@ onMounted(() => {
   min-height: 100vh;
   background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
   padding-bottom: 2rem;
+  position: relative;
+}
+
+/* Page Background Photo */
+.page-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.page-background img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.background-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
 }
 
 /* Loading & Error States */
 .loading-container,
 .error-container {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -395,6 +442,8 @@ onMounted(() => {
 
 /* Profile Content */
 .profile-content {
+  position: relative;
+  z-index: 1;
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
@@ -669,6 +718,33 @@ onMounted(() => {
   color: #999;
   font-size: 1.2rem;
   font-weight: 500;
+}
+
+/* Profile Description Section */
+.profile-description-section {
+  max-width: 1400px;
+  margin: 2rem auto;
+  background: white;
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 170, 255, 0.15);
+  border: 1px solid rgba(0, 170, 255, 0.1);
+}
+
+.description-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1.5rem 0;
+}
+
+.description-text {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #4a4a4a;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
 }
 
 /* Reviews Section */

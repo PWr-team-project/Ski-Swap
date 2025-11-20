@@ -24,6 +24,9 @@ const bookingPhotoRoutes = require('./routes/bookingPhotoRoutes');
 
 // Import scheduler
 const { startScheduler } = require('./services/bookingScheduler');
+const passwordResetRoutes = require('./routes/passwordResetRoutes');
+const verificationRoutes = require('./routes/verificationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 app.use(cors({
   origin: process.env.CLIENT_URL,
@@ -65,6 +68,7 @@ app.get('/api-docs.json', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', googleAuthRoutes); // Google OAuth routes
+app.use('/api/auth', passwordResetRoutes); // Password reset routes
 app.use('/api/users', userRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/messages', messageRoutes);
@@ -72,6 +76,8 @@ app.use('/api/listings', listingRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/bookings', bookingStateRoutes); // Booking state management routes
 app.use('/api/bookings', bookingPhotoRoutes); // Booking photo routes
+app.use('/api/verification', verificationRoutes);
+app.use('/api/admin', adminRoutes); // Admin routes
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend API is running!' });

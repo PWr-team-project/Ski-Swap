@@ -14,6 +14,11 @@
           Registration successful! Please log in to continue.
         </p>
 
+        <!-- Success message when password reset -->
+        <p v-if="$route.query.passwordReset === 'true'" class="success-message">
+          Password reset successful! Please log in with your new password.
+        </p>
+
         <!-- Login Form -->
         <form @submit.prevent="handleLogin" class="login-form" autocomplete="off">
           <div class="form-group">
@@ -40,6 +45,9 @@
               required
               class="form-input"
             />
+            <router-link to="/forgot-password" class="forgot-password-link">
+              Forgot password?
+            </router-link>
           </div>
 
           <button type="submit" class="login-button" :disabled="loading">
@@ -241,6 +249,20 @@ const handleGoogleSignIn = () => {
 
 .form-input::placeholder {
   color: #999;
+}
+
+.forgot-password-link {
+  align-self: flex-end;
+  font-size: 0.875rem;
+  color: #00AAFF;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  margin-top: 0.25rem;
+}
+
+.forgot-password-link:hover {
+  color: #0088CC;
+  text-decoration: underline;
 }
 
 .login-button {
