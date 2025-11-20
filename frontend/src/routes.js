@@ -12,6 +12,7 @@ import GoogleAuthCallback from './pages/GoogleAuthCallback.vue'
 import SingleListing from './pages/SingleListing.vue'
 import ProfileSettings from './pages/ProfileSettings.vue'
 import UserProfile from './pages/UserProfile.vue'
+import BookingDetails from './pages/BookingDetails.vue'
 
 // Static pages
 import AboutUs from './pages/static/AboutUs.vue'
@@ -72,6 +73,12 @@ const routes = [
     path: '/my-bookings',
     name: 'MyBookings',
     component: MyBookings,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/booking/:id',
+    name: 'BookingDetails',
+    component: BookingDetails,
     meta: { requiresAuth: true }
   },
   {

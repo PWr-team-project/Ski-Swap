@@ -6,6 +6,8 @@ const cors = require('cors');
 const socketIO = require('socket.io');
 const session = require('express-session');
 const passport = require('./config/passport');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 const app = express();
 
@@ -17,6 +19,11 @@ const messageRoutes = require('./routes/messageRoutes');
 const listingRoutes = require('./routes/listingRoutes');
 const googleAuthRoutes = require('./routes/googleAuthRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const bookingStateRoutes = require('./routes/bookingStateRoutes');
+const bookingPhotoRoutes = require('./routes/bookingPhotoRoutes');
+
+// Import scheduler
+const { startScheduler } = require('./services/bookingScheduler');
 
 app.use(cors({
   origin: process.env.CLIENT_URL,
@@ -43,6 +50,18 @@ app.use(passport.session());
 // Serve static files for uploaded images
 app.use('/uploads', express.static('uploads'));
 
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Ski-Swap API Documentation'
+}));
+
+// Serve OpenAPI spec as JSON
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', googleAuthRoutes); // Google OAuth routes
@@ -51,13 +70,19 @@ app.use('/api/locations', locationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/bookings', bookingStateRoutes); // Booking state management routes
+app.use('/api/bookings', bookingPhotoRoutes); // Booking photo routes
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend API is running!' });
 });
 
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
+  .then(() => {
+    console.log('MongoDB connected');
+    // Start the booking scheduler after DB connection
+    startScheduler();
+  })
   .catch(err => console.error('MongoDB connection error:', err));
 
 const PORT = process.env.PORT || 5000;

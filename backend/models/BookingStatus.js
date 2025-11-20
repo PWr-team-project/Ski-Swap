@@ -1,63 +1,42 @@
 const mongoose = require('mongoose');
 
-const bookingStatusSchema = new mongoose.Schema({
+const bookingStatus = new mongoose.Schema({
   booking_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booking',
     required: true,
-    unique: true
-  },
-  payment_flag: {
-    type: Boolean,
-    default: false
+    index: true // Changed from unique to index for history tracking
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'ongoing', 'completed', 'dispute', 'cancelled'],
-    default: 'pending',
+    enum: ['PENDING','ACCEPTED','PICKUP','PICKUP_OWNER','PICKUP_RENTER','IN_PROGRESS','RETURN','RETURN_OWNER','RETURN_RENTER','COMPLETED','REVIEWED',
+    'CANCELLED','DECLINED','DISPUTED','DISPUTE_RESOLVED'],
+    default: 'PENDING',
     required: true
   },
-  renter_pickup: {
-    type: Boolean,
-    default: false
+  changed_by:{
+    type: String,
+    enum: ['renter','owner','system'],
+    required: true
   },
-  renter_pickup_photos: {
-    type: [String], // Array of image URLs
-    default: []
+  changed_by_user_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false // null for system changes
   },
-  owner_pickup: {
-    type: Boolean,
-    default: false
-  },
-  renter_return: {
-    type: Boolean,
-    default: false
-  },
-  renter_return_photos: {
-    type: [String], // Array of image URLs
-    default: []
-  },
-  owner_return: {
-    type: Boolean,
-    default: false
-  },
-  dispute: {
-    type: Boolean,
-    default: false
-  },
-  dispute_description: {
+  notes: {
     type: String,
     trim: true
-  },
-  dispute_photos: {
-    type: [String], 
-    default: []
   }
+
 }, {
   timestamps: true
 });
 
+// Index for efficient queries - get latest status per booking
+bookingStatus.index({ booking_id: 1, createdAt: -1 });
 
-const BookingStatus = mongoose.model('BookingStatus', bookingStatusSchema);
+
+const BookingStatus = mongoose.model('BookingStatus', bookingStatus);
 
 module.exports = BookingStatus;

@@ -20,11 +20,7 @@ const reviewSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
-    max: 5,
-    validate: {
-      validator: Number.isInteger,
-      message: 'Rating must be an integer between 1 and 5'
-    }
+    max: 5
   },
   comment: {
     type: String,
@@ -40,19 +36,6 @@ const reviewSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Listing',
     default: null
-  },
-  helpful_count: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  response: {
-    type: String,
-    trim: true,
-    maxlength: 500
-  },
-  response_date: {
-    type: Date
   }
 }, {
   timestamps: true

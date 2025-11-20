@@ -299,9 +299,49 @@ const populateDatabase = async () => {
       console.log(`✓ Created: ${accData.title} (Owner: ${owner.nickname})`);
     }
 
+    // Ensure skiswap@gmail.com has exactly 20 listings
+    const mainUserListings = await Listing.countDocuments({ owner_id: mainUser._id });
+    if (mainUserListings < 20) {
+      console.log(`\n⚠️  skiswap@gmail.com only has ${mainUserListings} listings. Creating ${20 - mainUserListings} more...`);
+
+      const remainingCount = 20 - mainUserListings;
+      for (let i = 0; i < remainingCount; i++) {
+        const owner = mainUser;
+        const location = getRandom(locationDocs);
+
+        // Create additional ski listings
+        const skiData = skiListings[i % skiListings.length];
+        const baseRate = categoryDocs['Skis'].suggested_price_daily;
+        const priceVariation = Math.floor(Math.random() * 20) - 10;
+        const dailyRate = Math.max(10, baseRate + priceVariation);
+
+        const listing = new Listing({
+          owner_id: owner._id,
+          title: `${skiData.title} #${i + 1}`,
+          description: skiData.description,
+          photos: getRandomImages('skis', Math.floor(Math.random() * 3 + 2)),
+          category_id: categoryDocs['Skis']._id,
+          brand: skiData.brand,
+          model: skiData.model,
+          size: skiData.size,
+          daily_rate: dailyRate,
+          weekly_rate: dailyRate * 6,
+          monthly_rate: dailyRate * 22,
+          estimated_value: Math.floor(Math.random() * 400 + 400),
+          condition: getRandom(conditions),
+          location_id: location._id,
+          available: true
+        });
+        await listing.save();
+        listingsCreated++;
+        console.log(`✓ Created additional: ${listing.title} (Owner: ${owner.nickname})`);
+      }
+    }
+
+    const finalMainUserListings = await Listing.countDocuments({ owner_id: mainUser._id });
     console.log(`\n✅ Database population completed!`);
     console.log(`Total listings created: ${listingsCreated}`);
-    console.log(`Listings owned by skiswap@gmail.com: 10`);
+    console.log(`Listings owned by skiswap@gmail.com: ${finalMainUserListings}`);
 
   } catch (error) {
     console.error('Error populating database:', error);

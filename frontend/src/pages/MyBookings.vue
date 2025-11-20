@@ -1,29 +1,36 @@
 <template>
   <div class="my-bookings-page">
     <div class="main-content">
-      <!-- Page Header -->
+      <!-- Page Header with Tabs -->
       <div class="page-header">
-        <h1 class="page-title">My Bookings</h1>
-        <p class="page-subtitle">Manage your rental activities</p>
-      </div>
-
-      <!-- View Slider -->
-      <div class="view-slider-container">
-        <div class="view-slider">
-          <div :class="['slider-track', activeView]"></div>
+        <div class="header-left">
+          <h1 class="page-title">My Bookings</h1>
+          <p class="page-subtitle">Manage your rental activities</p>
+        </div>
+        <div class="header-tabs">
           <button
-            :class="['slider-option', { active: activeView === 'rented' }]"
+            :class="['header-tab', 'renter-tab', { active: activeView === 'rented' }]"
             @click="switchView('rented')"
           >
-            <span class="slider-main-text">Rented</span>
-            <span class="slider-sub-text">Equipment I'm renting from others</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 7H2V12H22V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 7H16.5C17.163 7 17.7989 6.73661 18.2678 6.26777C18.7366 5.79893 19 5.16304 19 4.5C19 3.83696 18.7366 3.20107 18.2678 2.73223C17.7989 2.26339 17.163 2 16.5 2C13 2 12 7 12 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 7H7.5C6.83696 7 6.20107 6.73661 5.73223 6.26777C5.26339 5.79893 5 5.16304 5 4.5C5 3.83696 5.26339 3.20107 5.73223 2.73223C6.20107 2.26339 6.83696 2 7.5 2C11 2 12 7 12 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>As Renter</span>
           </button>
           <button
-            :class="['slider-option', { active: activeView === 'lendout' }]"
+            :class="['header-tab', 'owner-tab', { active: activeView === 'lendout' }]"
             @click="switchView('lendout')"
           >
-            <span class="slider-main-text">Lend Out</span>
-            <span class="slider-sub-text">Equipment Others Rent from Me</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>As Owner</span>
           </button>
         </div>
       </div>
@@ -44,7 +51,6 @@
       <div v-else>
         <RentingView
           v-if="activeView === 'rented'"
-          :stats="rentedStats"
           :bookings="rentedBookings"
           @view-details="viewBookingDetails"
           @review-equipment="reviewEquipment"
@@ -189,7 +195,8 @@ const acceptBookingRequest = async (bookingId) => {
   if (!confirm('Accept this booking request?')) return;
 
   try {
-    await bookingService.updateStatus(bookingId, 'confirmed');
+    // Use the action endpoint which performs PENDING -> ACCEPTED transition
+    await bookingService.acceptBooking(bookingId);
 
     alert('Booking request accepted!');
     fetchData();
@@ -203,7 +210,8 @@ const declineBookingRequest = async (bookingId) => {
   if (!confirm('Decline this booking request?')) return;
 
   try {
-    await bookingService.updateStatus(bookingId, 'cancelled');
+    // Use the action endpoint which performs PENDING -> DECLINED transition
+    await bookingService.declineBooking(bookingId);
 
     alert('Booking request declined.');
     fetchData();
@@ -263,109 +271,90 @@ onMounted(() => {
 
 /* Page Header */
 .page-header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.header-left {
+  text-align: left;
 }
 
 .page-title {
   font-size: 2.5rem;
   font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .page-subtitle {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #666;
   font-weight: 400;
 }
 
-/* View Slider */
-.view-slider-container {
+/* Header Tabs */
+.header-tabs {
   display: flex;
-  justify-content: center;
-  margin-bottom: 3rem;
+  gap: 0.5rem;
 }
 
-.view-slider {
-  position: relative;
-  display: inline-flex;
+.header-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
   background: white;
-  border-radius: 50px;
-  padding: 4px;
-  box-shadow: 0 4px 20px rgba(0, 170, 255, 0.15);
   border: 2px solid #e3f2fd;
-}
-
-.slider-track {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  width: calc(50% - 4px);
-  background: linear-gradient(135deg, #00AAFF 0%, #0088cc 100%);
-  border-radius: 50px;
-  transition: transform 0.3s ease;
-  z-index: 0;
-}
-
-.slider-track.rented {
-  transform: translateX(0);
-}
-
-.slider-track.lendout {
-  transform: translateX(calc(100% + 8px));
-}
-
-.slider-option {
-  position: relative;
-  z-index: 1;
-  padding: 0.625rem 2.5rem;
-  background: transparent;
-  border: none;
-  border-radius: 50px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.15rem;
-  min-width: 240px;
-}
-
-.slider-main-text {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 600;
   color: #666;
-  transition: color 0.3s ease;
-  white-space: nowrap;
-  line-height: 1.3;
 }
 
-.slider-sub-text {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: #999;
-  transition: color 0.3s ease;
-  text-align: center;
-  line-height: 1.1;
-  max-width: 200px;
+.header-tab:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.slider-option.active .slider-main-text {
+.header-tab svg {
+  flex-shrink: 0;
+}
+
+/* Renter Tab Styles */
+.renter-tab {
+  color: #666;
+}
+
+.renter-tab:hover {
+  border-color: #00AAFF;
+  color: #00AAFF;
+}
+
+.renter-tab.active {
+  background: #00AAFF;
+  border-color: #00AAFF;
   color: white;
 }
 
-.slider-option.active .slider-sub-text {
-  color: rgba(255, 255, 255, 0.85);
+/* Owner Tab Styles */
+.owner-tab {
+  color: #666;
 }
 
-.slider-option:hover:not(.active) .slider-main-text {
-  color: #00AAFF;
+.owner-tab:hover {
+  border-color: #F5A623;
+  color: #F5A623;
 }
 
-.slider-option:hover:not(.active) .slider-sub-text {
-  color: #00AAFF;
+.owner-tab.active {
+  background: #F5A623;
+  border-color: #F5A623;
+  color: white;
 }
 
 /* Loading & Error States */
@@ -423,42 +412,23 @@ onMounted(() => {
     padding: 1.5rem 1rem;
   }
 
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-left {
+    text-align: center;
+    width: 100%;
+  }
+
+  .header-tabs {
+    width: 100%;
+    justify-content: center;
+  }
+
   .page-title {
     font-size: 2rem;
-  }
-
-  .view-slider {
-    flex-direction: column;
-    width: 100%;
-    max-width: 400px;
-  }
-
-  .slider-track {
-    width: calc(100% - 12px);
-    height: calc(50% - 6px);
-  }
-
-  .slider-track.rented {
-    transform: translateY(0);
-  }
-
-  .slider-track.lendout {
-    transform: translateY(calc(100% + 12px));
-  }
-
-  .slider-option {
-    padding: 0.875rem 1.5rem;
-    min-width: unset;
-    width: 100%;
-  }
-
-  .slider-main-text {
-    font-size: 1rem;
-  }
-
-  .slider-sub-text {
-    font-size: 0.7rem;
-    max-width: 200px;
   }
 }
 
@@ -467,16 +437,14 @@ onMounted(() => {
     font-size: 1.75rem;
   }
 
-  .slider-option {
-    padding: 0.75rem 1rem;
+  .header-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
   }
 
-  .slider-main-text {
-    font-size: 0.95rem;
-  }
-
-  .slider-sub-text {
-    font-size: 0.65rem;
+  .header-tab svg {
+    width: 16px;
+    height: 16px;
   }
 }
 </style>

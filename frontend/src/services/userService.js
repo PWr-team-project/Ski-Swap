@@ -59,15 +59,6 @@ export const userService = {
   },
 
   /**
-   * Update user languages
-   * @param {Object} languageData - Language data
-   */
-  async updateLanguages(languageData) {
-    const response = await apiClient.put('/api/users/profile/languages', languageData);
-    return response.data;
-  },
-
-  /**
    * Change password
    * @param {Object} passwordData - Object containing currentPassword and newPassword
    */

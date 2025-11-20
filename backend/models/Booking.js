@@ -6,9 +6,21 @@ const bookingSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  owner_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   listing_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Listing',
+    required: true
+  },
+  current_status:{
+    type: String,
+    enum: ['PENDING','ACCEPTED','PICKUP','PICKUP_OWNER','PICKUP_RENTER','IN_PROGRESS','RETURN','RETURN_OWNER','RETURN_RENTER','COMPLETED','REVIEWED',
+    'CANCELLED','DECLINED','DISPUTED','DISPUTE_RESOLVED'],
+    default: 'PENDING',
     required: true
   },
   start_date: {
@@ -30,13 +42,24 @@ const bookingSchema = new mongoose.Schema({
     default: false
   },
   total_price: {
+    // Without insurance
     type: Number,
     required: true,
     min: 0
+  },
+  payment_confirmed:{
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
 });
+
+// Indexes for better query performance
+bookingSchema.index({ renter_id: 1 });
+bookingSchema.index({ owner_id: 1 });
+bookingSchema.index({ listing_id: 1 });
+bookingSchema.index({ current_status: 1 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
 
