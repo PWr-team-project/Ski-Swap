@@ -51,8 +51,8 @@ const bookingSchema = new mongoose.Schema({
     default: 0,
     min: 0,
     validate: {
-      validator: (v) => {
-        return v <= this.amount
+      validator: (discount) => {
+        return discount <= this.amount
       },
       message: 'Discount amount cannot be greater than the payment amount.',
     },
@@ -72,7 +72,7 @@ const bookingSchema = new mongoose.Schema({
     // Without insurance
     type: Number,
     virtual: true,
-    get: function() {
+    get: () => {
       return (this.base_price - this.discount) * (1 + this.tax_rate / 100) + this.skiswap_fee;
     }
   },
@@ -90,6 +90,7 @@ bookingSchema.index({ renter_id: 1 });
 bookingSchema.index({ owner_id: 1 });
 bookingSchema.index({ listing_id: 1 });
 bookingSchema.index({ current_status: 1 });
+bookingSchema.index({ payment_id: 1 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
 

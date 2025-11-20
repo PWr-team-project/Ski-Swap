@@ -21,6 +21,7 @@ const googleAuthRoutes = require('./routes/googleAuthRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const bookingStateRoutes = require('./routes/bookingStateRoutes');
 const bookingPhotoRoutes = require('./routes/bookingPhotoRoutes');
+const emailRoutes = require('./routes/emailRoutes');
 
 // Import scheduler
 const { startScheduler } = require('./services/bookingScheduler');
@@ -78,6 +79,7 @@ app.use('/api/bookings', bookingStateRoutes); // Booking state management routes
 app.use('/api/bookings', bookingPhotoRoutes); // Booking photo routes
 app.use('/api/verification', verificationRoutes);
 app.use('/api/admin', adminRoutes); // Admin routes
+app.use('/api/email', emailRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend API is running!' });
