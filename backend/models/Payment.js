@@ -1,47 +1,43 @@
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
-    payment_id: {
-    type: String,
-    unique: true,
-    trim: true
+  payment_id: {
+  type: String,
+  unique: true,
+  trim: true,
   },
   booking_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booking',
-    required: true
+    required: true,
   },
   payer_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   amount: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
   },
   insurance_amount: {
     type: Number,
     default: 0,
   },
-  skiswap_fee: {
-    type: Number,
-    required: true,
-  },
   currency:{
     type: String,
     enum: ['USD', 'EUR', 'PLN'],
-    default: 'EUR'
+    default: 'EUR',
   },
   payment_status: {
     type: String,
-    enum: ['completed', 'failed', 'refunded', 'pending'],
-    required: true
+    enum: ['pending', 'completed', 'failed', 'refunded'],
+    required: true,
   },
   refund_reason: {
     type: String,
-    trim: true
+    trim: true,
   },
 
 }, {
