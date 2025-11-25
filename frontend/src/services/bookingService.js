@@ -31,7 +31,7 @@ export const bookingService = {
    * @param {Object} bookingData - Booking details (listing_id, start_date, end_date, etc.)
    */
   async create(bookingData) {
-    const response = await apiClient.post('/api/bookings', bookingData);
+    const response = await apiClient.post('/api/bookings/create', bookingData);
     return response.data;
   },
 

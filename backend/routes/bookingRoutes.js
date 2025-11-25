@@ -304,9 +304,21 @@ router.post('/create', auth, async (req, res) => {
       });
     }
 
+    // Fetch the listing to get the owner_id
+    const listing = await Listing.findById(listing_id);
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    // Prevent users from booking their own listings
+    if (listing.owner_id.toString() === req.userId) {
+      return res.status(400).json({ message: 'You cannot book your own listing' });
+    }
+
     // Create booking
     const booking = new Booking({
       renter_id: req.userId,
+      owner_id: listing.owner_id,
       listing_id,
       start_date: new Date(start_date),
       end_date: new Date(end_date),

@@ -327,17 +327,14 @@
             </div>
           </div>
 
-          <!-- RIGHT COLUMN - Placeholder for future implementation -->
+          <!-- RIGHT COLUMN - Booking Chat -->
           <div class="right-column">
-            <div class="placeholder-card">
-              <div class="placeholder-content">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <h3>Chat & Activity</h3>
-                <p>Coming soon...</p>
-              </div>
-            </div>
+            <BookingChat
+              v-if="booking._id"
+              :bookingId="booking._id"
+              :currentStatus="currentStatus"
+              :otherUserName="otherUserName"
+            />
           </div>
         </div>
       </div>
@@ -415,6 +412,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { bookingService } from '@/services/bookingService';
 import BookingProgressBar from '../components/BookingProgressBar.vue';
+import BookingChat from '../components/BookingChat.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -1412,36 +1410,6 @@ onMounted(() => {
   position: sticky;
   top: 2rem;
   height: calc(100vh - 4rem);
-}
-
-.placeholder-card {
-  background: white;
-  border-radius: 15px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 2px dashed #d1d5db;
-}
-
-.placeholder-content {
-  text-align: center;
-  color: #9ca3af;
-}
-
-.placeholder-content svg {
-  margin-bottom: 1rem;
-}
-
-.placeholder-content h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.placeholder-content p {
-  font-size: 0.9rem;
 }
 
 /* Photo Modal */

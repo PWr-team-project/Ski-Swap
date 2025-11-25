@@ -62,11 +62,33 @@ class SocketService {
     }
   }
 
+  // Join a booking chat room
+  joinBookingChat(bookingId) {
+    if (this.socket) {
+      this.socket.emit('booking:join', bookingId)
+    }
+  }
+
+  // Leave a booking chat room
+  leaveBookingChat(bookingId) {
+    if (this.socket) {
+      this.socket.emit('booking:leave', bookingId)
+    }
+  }
+
   // Listen for new messages
   onMessageReceived(callback) {
     if (this.socket) {
       this.socket.on('message:received', callback)
       this.listeners.set('message:received', callback)
+    }
+  }
+
+  // Listen for booking messages
+  onBookingMessage(callback) {
+    if (this.socket) {
+      this.socket.on('booking-message', callback)
+      this.listeners.set('booking-message', callback)
     }
   }
 

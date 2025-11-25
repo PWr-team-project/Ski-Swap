@@ -88,7 +88,7 @@
             </div>
 
             <!-- Action Button -->
-            <button class="request-button" :disabled="!canBook">
+            <button class="request-button" :disabled="!canBook" @click="handleSendRequest">
               Send Request
             </button>
 
@@ -413,6 +413,43 @@ const fetchCategoryItems = async () => {
 
 const goToListing = (id) => {
   router.push(`/listing/${id}`)
+}
+
+const handleSendRequest = async () => {
+  if (!authStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+
+  if (isOwner.value) {
+    alert('You cannot book your own listing')
+    return
+  }
+
+  if (!canBook.value) {
+    alert('Please select valid rental dates')
+    return
+  }
+
+  try {
+    const bookingData = {
+      listing_id: listing.value.id,
+      start_date: selectedDates.value.pickupDate.toISOString(),
+      end_date: selectedDates.value.dropoffDate.toISOString(),
+      insurance_flag: false,
+      total_price: totalPrice.value + bookingFee.value
+    }
+
+    const response = await bookingService.create(bookingData)
+
+    // Redirect to booking details page
+    if (response.booking && response.booking._id) {
+      router.push(`/booking/${response.booking._id}`)
+    }
+  } catch (error) {
+    console.error('Error creating booking:', error)
+    alert(error.response?.data?.message || 'Failed to create booking request')
+  }
 }
 
 // Lifecycle

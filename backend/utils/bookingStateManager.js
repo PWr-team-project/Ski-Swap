@@ -1,6 +1,7 @@
 const BookingStatus = require('../models/BookingStatus');
 const BookingPhoto = require('../models/BookingPhoto');
 const Payment = require('../models/Payment');
+const BookingMessage = require('../models/BookingMessage');
 
 // Define valid state transitions based on user requirements
 const STATE_TRANSITIONS = {
@@ -80,6 +81,46 @@ const STATE_TRANSITIONS = {
     system: []
   }
 };
+
+/**
+ * Create a system message for status changes
+ */
+async function createSystemMessage(bookingId, newStatus, notes = null) {
+  const statusMessages = {
+    ACCEPTED: 'Booking has been accepted by the owner.',
+    PICKUP: 'Equipment pickup day has arrived. Please coordinate the handoff.',
+    PICKUP_OWNER: 'Owner has confirmed the equipment handoff.',
+    PICKUP_RENTER: 'Renter has confirmed receiving the equipment.',
+    IN_PROGRESS: 'Equipment handoff completed. Rental period is now active.',
+    RETURN: 'Equipment return day has arrived. Please coordinate the return.',
+    RETURN_OWNER: 'Owner has confirmed receiving the equipment back.',
+    RETURN_RENTER: 'Renter has confirmed returning the equipment.',
+    COMPLETED: 'Booking has been completed successfully.',
+    REVIEWED: 'Renter has submitted a review for this booking.',
+    CANCELLED: 'Booking has been cancelled.',
+    DECLINED: 'Booking request has been declined by the owner.',
+    DISPUTED: 'A dispute has been opened for this booking. Support team will review.',
+    DISPUTE_RESOLVED: 'Dispute has been resolved by the support team.'
+  };
+
+  let content = statusMessages[newStatus] || `Booking status changed to ${newStatus}`;
+
+  if (notes) {
+    content += ` Note: ${notes}`;
+  }
+
+  const systemMessage = new BookingMessage({
+    booking_id: bookingId,
+    sender_id: null, // null for system messages
+    message_type: 'system_status',
+    content: content,
+    status_reference: newStatus,
+    is_read: false
+  });
+
+  await systemMessage.save();
+  return systemMessage;
+}
 
 /**
  * Get the current (latest) status of a booking
@@ -202,6 +243,15 @@ async function changeBookingStatus(bookingId, newStatus, actor, userId = null, n
     });
 
     await newStatusEntry.save();
+
+    // Create system message for chat (only for states where chat should be visible)
+    const chatVisibleStates = ['ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS',
+                                'RETURN', 'RETURN_OWNER', 'RETURN_RENTER', 'COMPLETED', 'REVIEWED',
+                                'DISPUTED', 'DISPUTE_RESOLVED'];
+
+    if (chatVisibleStates.includes(newStatus)) {
+      await createSystemMessage(bookingId, newStatus, notes);
+    }
 
     return {
       success: true,
@@ -483,5 +533,6 @@ module.exports = {
   isPaymentCompleted,
   hasPhotosUploaded,
   getStateRequirements,
+  createSystemMessage,
   STATE_TRANSITIONS
 };

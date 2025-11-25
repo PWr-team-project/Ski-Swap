@@ -11,8 +11,8 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-// Verify token on app start
+// Verify token on app start and wait for it to complete before mounting
 const authStore = useAuthStore()
-authStore.verifyToken()
-
-app.mount('#app')
+authStore.verifyToken().then(() => {
+  app.mount('#app')
+})
