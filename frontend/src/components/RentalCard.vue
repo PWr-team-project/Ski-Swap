@@ -31,24 +31,24 @@
             <div class="column-subtext">{{ getDuration }} days</div>
           </div>
 
-          <!-- Column 2: Owner/Renter Info -->
+          <!-- Column 2: Owner Info (Renter View) -->
           <div class="info-column">
-            <div class="column-label">{{ isOwnerView ? 'Renter' : 'Owner' }}</div>
+            <div class="column-label">Owner</div>
             <div class="user-info">
               <div class="user-avatar">{{ getUserInitial }}</div>
               <div class="user-details">
                 <div class="column-value">{{ getUserName }}</div>
                 <div class="column-subtext" v-if="showContactInfo">
                   <div v-if="showLocation">{{ getShortLocation }}</div>
-                  <div v-if="showPhone && userInfo?.phone">{{ userInfo.phone }}</div>
+                  <div v-if="showPhone && owner?.phone">{{ owner.phone }}</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Column 3: Price and Extras -->
+          <!-- Column 3: Total Price -->
           <div class="info-column">
-            <div class="column-label">{{ isOwnerView ? 'Earnings' : 'Total' }}</div>
+            <div class="column-label">Total</div>
             <div class="column-value price">€{{ totalPrice?.toFixed(2) || '0.00' }}</div>
             <div class="column-subtext">
               <div class="badges">
@@ -66,28 +66,14 @@
           <!-- View Details - Always First and Sky Blue -->
           <button @click="navigateToDetails" class="btn btn-details">View Details</button>
 
-          <!-- Owner Buttons -->
-          <template v-if="isOwnerView">
-            <button v-if="showAcceptButton" @click="navigateToDetails" class="btn btn-success">Accept</button>
-            <button v-if="showDeclineButton" @click="navigateToDetails" class="btn btn-danger">Decline</button>
-            <button v-if="showOwnerConfirmHandoffButton" @click="navigateToDetails" class="btn btn-success">Confirm</button>
-            <button v-if="showOwnerConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
-            <button v-if="showEverythingOKButton" @click="navigateToDetails" class="btn btn-success">Everything OK</button>
-            <button v-if="showSomethingWrongButton" @click="navigateToDetails" class="btn btn-dispute">Something's Wrong</button>
-            <button v-if="showOwnerContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
-            <button v-if="showOwnerShowReview" @click="navigateToDetails" class="btn btn-review">Show Review</button>
-          </template>
-
           <!-- Renter Buttons -->
-          <template v-else>
-            <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success">Pay Now</button>
-            <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger">Cancel</button>
-            <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Handoff</button>
-            <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
-            <button v-if="showRenterReview" @click="navigateToDetails" class="btn btn-review">Write Review</button>
-            <button v-if="showRenterRentAgain" @click="navigateToDetails" class="btn btn-success">Rent Again</button>
-            <button v-if="showContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
-          </template>
+          <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success">Pay Now</button>
+          <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger">Cancel</button>
+          <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Handoff</button>
+          <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
+          <button v-if="showRenterReview" @click="navigateToDetails" class="btn btn-review">Write Review</button>
+          <button v-if="showRenterRentAgain" @click="navigateToDetails" class="btn btn-success">Rent Again</button>
+          <button v-if="showContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
         </div>
       </div>
     </div>
@@ -103,8 +89,7 @@ const router = useRouter();
 const props = defineProps({
   rentalId: String,
   listing: Object,
-  owner: Object,
-  renter: Object,
+  owner: Object, // Renter views the Owner
   startDate: String,
   endDate: String,
   totalPrice: Number,
@@ -114,18 +99,10 @@ const props = defineProps({
   location: Object,
   hasReview: Boolean,
   paymentConfirmed: Boolean,
-  insuranceFlag: Boolean,
-  isOwnerView: {
-    type: Boolean,
-    default: false
-  }
+  insuranceFlag: Boolean
 });
 
 const emit = defineEmits(['view-details']);
-
-const userInfo = computed(() => {
-  return props.isOwnerView ? props.renter : props.owner;
-});
 
 const statusLabels = {
   'PENDING': 'Pending',
@@ -165,22 +142,13 @@ const showPhone = computed(() => locationAllowedStates.includes(props.bookingSta
 const showContactInfo = computed(() => locationAllowedStates.includes(props.bookingStatus));
 const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
 
-const showPayButton = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus) && !props.paymentConfirmed);
-const showCancelButton = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
-const showConfirmPickupButton = computed(() => !props.isOwnerView && ['PICKUP', 'PICKUP_OWNER'].includes(props.bookingStatus));
-const showConfirmReturnButton = computed(() => !props.isOwnerView && ['RETURN', 'RETURN_OWNER'].includes(props.bookingStatus));
-const showContactSupportButton = computed(() => !props.isOwnerView && props.bookingStatus === 'DISPUTED');
-const showRenterReview = computed(() => !props.isOwnerView && props.bookingStatus === 'COMPLETED');
-const showRenterRentAgain = computed(() => !props.isOwnerView && ['REVIEWED', 'CANCELLED'].includes(props.bookingStatus));
-
-const showAcceptButton = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
-const showDeclineButton = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
-const showOwnerConfirmHandoffButton = computed(() => props.isOwnerView && ['PICKUP', 'PICKUP_RENTER'].includes(props.bookingStatus));
-const showOwnerConfirmReturnButton = computed(() => props.isOwnerView && props.bookingStatus === 'RETURN');
-const showEverythingOKButton = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
-const showSomethingWrongButton = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
-const showOwnerContactSupportButton = computed(() => props.isOwnerView && props.bookingStatus === 'DISPUTED');
-const showOwnerShowReview = computed(() => props.isOwnerView && props.bookingStatus === 'REVIEWED');
+const showPayButton = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus) && !props.paymentConfirmed);
+const showCancelButton = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
+const showConfirmPickupButton = computed(() => ['PICKUP', 'PICKUP_OWNER'].includes(props.bookingStatus));
+const showConfirmReturnButton = computed(() => ['RETURN', 'RETURN_OWNER'].includes(props.bookingStatus));
+const showContactSupportButton = computed(() => props.bookingStatus === 'DISPUTED');
+const showRenterReview = computed(() => props.bookingStatus === 'COMPLETED');
+const showRenterRentAgain = computed(() => ['REVIEWED', 'CANCELLED'].includes(props.bookingStatus));
 
 const getImageUrl = (photoPath) => {
   if (!photoPath) return '/assets/images/placeholder.jpg';
@@ -193,14 +161,14 @@ const handleImageError = (e) => {
 };
 
 const getUserName = computed(() => {
-  if (!userInfo.value) return 'Unknown';
-  const fullName = `${userInfo.value.first_name || ''} ${userInfo.value.last_name || ''}`.trim();
-  return fullName || userInfo.value.nickname || userInfo.value.email || 'Unknown';
+  if (!props.owner) return 'Unknown';
+  const fullName = `${props.owner.first_name || ''} ${props.owner.last_name || ''}`.trim();
+  return fullName || props.owner.nickname || props.owner.email || 'Unknown';
 });
 
 const getUserInitial = computed(() => {
-  if (!userInfo.value) return '?';
-  const name = userInfo.value.nickname || userInfo.value.first_name || userInfo.value.email || 'U';
+  if (!props.owner) return '?';
+  const name = props.owner.nickname || props.owner.first_name || props.owner.email || 'U';
   return name.charAt(0).toUpperCase();
 });
 

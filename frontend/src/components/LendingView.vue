@@ -73,10 +73,10 @@
       </button>
       <div v-show="expandedSections.attention" class="section-content">
         <div v-if="attentionBookings.length > 0" class="booking-list">
-          <RentalCard
+          <BookingCard
             v-for="booking in attentionBookings"
             :key="booking._id"
-            :rental-id="booking._id"
+            :booking-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
@@ -86,8 +86,8 @@
             :booking-status="booking.current_status || booking.status"
             :payment-confirmed="booking.payment_confirmed"
             :insurance-flag="booking.insurance_flag"
-            :is-owner-view="true"
-            status="pending"
+            @view-details="viewDetails"
+            @action="handleBookingAction"
           />
         </div>
         <div v-else class="empty-section">
@@ -111,10 +111,10 @@
       </button>
       <div v-show="expandedSections.activeUpcoming" class="section-content">
         <div v-if="activeUpcomingBookings.length > 0" class="booking-list">
-          <RentalCard
+          <BookingCard
             v-for="booking in activeUpcomingBookings"
             :key="booking._id"
-            :rental-id="booking._id"
+            :booking-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
@@ -125,8 +125,8 @@
             :booking-status="booking.current_status || booking.status"
             :payment-confirmed="booking.payment_confirmed"
             :insurance-flag="booking.insurance_flag"
-            :is-owner-view="true"
-            status="active"
+            @view-details="viewDetails"
+            @action="handleBookingAction"
           />
         </div>
         <div v-else class="empty-section">
@@ -150,10 +150,10 @@
       </button>
       <div v-show="expandedSections.history" class="section-content">
         <div v-if="historyBookings.length > 0" class="booking-list">
-          <RentalCard
+          <BookingCard
             v-for="booking in historyBookings"
             :key="booking._id"
-            :rental-id="booking._id"
+            :booking-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
@@ -165,7 +165,8 @@
             :payment-confirmed="booking.payment_confirmed"
             :insurance-flag="booking.insurance_flag"
             :is-owner-view="true"
-            status="history"
+            @view-details="viewDetails"
+            @action="handleBookingAction"
           />
         </div>
         <div v-else class="empty-section">
@@ -191,7 +192,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import RentalCard from './RentalCard.vue';
+import BookingCard from './BookingCard.vue';
 
 const router = useRouter();
 
@@ -220,7 +221,19 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['view-details', 'accept-request', 'decline-request', 'contact-renter']);
+const emit = defineEmits([
+  'view-details', 
+  'accept-request', 
+  'decline-request', 
+  'contact-renter',
+  'cancel-booking',
+  'confirm-handoff',
+  'confirm-return',
+  'verify-complete',
+  'open-dispute',
+  'contact-support',
+  'view-review'
+]);
 
 // Track which sections are expanded
 const expandedSections = ref({
@@ -341,6 +354,40 @@ const declineRequest = (bookingId) => {
 
 const contactRenter = (renterId) => {
   emit('contact-renter', renterId);
+};
+
+const handleBookingAction = ({ action, bookingId }) => {
+  switch (action) {
+    case 'accept':
+      emit('accept-request', bookingId);
+      break;
+    case 'decline':
+      emit('decline-request', bookingId);
+      break;
+    case 'cancel':
+      emit('cancel-booking', bookingId);
+      break;
+    case 'confirm-handoff':
+      emit('confirm-handoff', bookingId);
+      break;
+    case 'confirm-return':
+      emit('confirm-return', bookingId);
+      break;
+    case 'everything-ok':
+      emit('verify-complete', bookingId);
+      break;
+    case 'something-wrong':
+      emit('open-dispute', bookingId);
+      break;
+    case 'contact-support':
+      emit('contact-support', bookingId);
+      break;
+    case 'show-review':
+      emit('view-review', bookingId);
+      break;
+    default:
+      console.warn('Unknown action:', action);
+  }
 };
 
 const viewMyListings = () => {

@@ -28,7 +28,6 @@
             :booking-status="rental.current_status || rental.status"
             :payment-confirmed="rental.payment_confirmed"
             :insurance-flag="rental.insurance_flag"
-            :is-owner-view="false"
             status="pending"
           />
         </div>
@@ -67,7 +66,6 @@
             :booking-status="rental.current_status || rental.status"
             :payment-confirmed="rental.payment_confirmed"
             :insurance-flag="rental.insurance_flag"
-            :is-owner-view="false"
             status="active"
           />
         </div>
@@ -105,7 +103,6 @@
             :booking-status="rental.current_status || rental.status"
             :payment-confirmed="rental.payment_confirmed"
             :insurance-flag="rental.insurance_flag"
-            :is-owner-view="false"
             status="upcoming"
           />
         </div>
@@ -144,7 +141,6 @@
             :booking-status="rental.current_status || rental.status"
             :payment-confirmed="rental.payment_confirmed"
             :insurance-flag="rental.insurance_flag"
-            :is-owner-view="false"
             status="history"
           />
         </div>
