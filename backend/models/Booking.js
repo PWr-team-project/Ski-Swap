@@ -41,16 +41,46 @@ const bookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  total_price: {
-    // Without insurance
+  base_price: {
     type: Number,
     required: true,
     min: 0
   },
-  payment_confirmed:{
-    type: Boolean,
-    default: false
-  }
+  discount: {
+    type: Number,
+    default: 0,
+    min: 0,
+    validate: {
+      validator: (discount) => {
+        return discount <= this.amount
+      },
+      message: 'Discount amount cannot be greater than the payment amount.',
+    },
+  },
+  tax_rate: {
+    type: Number,
+    default: 23,
+    min: 0,
+    max: 100,
+  },
+  skiswap_fee: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  total_price: {
+    // Without insurance
+    type: Number,
+    virtual: true,
+    get: () => {
+      return (this.base_price - this.discount) * (1 + this.tax_rate / 100) + this.skiswap_fee;
+    }
+  },
+  payment_id:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Payment',
+    default: null
+  },
 }, {
   timestamps: true
 });
@@ -60,6 +90,7 @@ bookingSchema.index({ renter_id: 1 });
 bookingSchema.index({ owner_id: 1 });
 bookingSchema.index({ listing_id: 1 });
 bookingSchema.index({ current_status: 1 });
+bookingSchema.index({ payment_id: 1 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
 

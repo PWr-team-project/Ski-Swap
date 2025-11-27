@@ -462,4 +462,30 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// Get booking confirmation data by ID
+router.get('/:id/confirmation', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate({
+        path: 'listing',
+        populate: [
+          { path: 'category_id', select: 'name' },
+          { path: 'location_id' },
+          { path: 'owner_id', select: 'nickname first_name last_name profile_photo email' }
+        ] 
+      })
+      .populate({ path: 'renter_id', select: 'nickname first_name last_name profile_photo email'} )
+      .populate('payment_id');
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    res.json({ booking });
+  } catch (error) {
+    console.error('Error fetching booking confirmation:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
