@@ -63,32 +63,19 @@
 
         <!-- Action Buttons - Bottom Right -->
         <div class="action-buttons">
+          <!-- Owner Buttons -->
+          <button v-if="showOwnerAccept" @click="handleAction('accept')" class="btn btn-success">Accept</button>
+          <button v-if="showOwnerDecline" @click="handleAction('decline')" class="btn btn-danger">Decline</button>
+          <button v-if="showOwnerCancel" @click="handleAction('cancel')" class="btn btn-danger">Cancel</button>
+          <button v-if="showOwnerConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm Handoff</button>
+          <button v-if="showOwnerConfirmReturn" @click="handleAction('confirm-return')" class="btn btn-success">Confirm Return</button>
+          <button v-if="showOwnerEverythingOK" @click="handleAction('everything-ok')" class="btn btn-success">Equipment checked</button>
+          <button v-if="showOwnerSomethingWrong" @click="handleAction('something-wrong')" class="btn btn-dispute">Something's Wrong</button>
+          <button v-if="showOwnerContactSupport" @click="handleAction('contact-support')" class="btn btn-support">Contact Support</button>
+          <button v-if="showOwnerShowReview" @click="handleAction('show-review')" class="btn btn-review">Show Review</button>
+
           <!-- View Details - Always First and Sky Blue -->
           <button @click="$emit('view-details', bookingId)" class="btn btn-details">View Details</button>
-
-          <!-- Owner Buttons -->
-          <template v-if="isOwnerView">
-            <button v-if="showOwnerAccept" @click="handleAction('accept')" class="btn btn-success">Accept</button>
-            <button v-if="showOwnerDecline" @click="handleAction('decline')" class="btn btn-danger">Decline</button>
-            <button v-if="showOwnerCancel" @click="handleAction('cancel')" class="btn btn-danger">Cancel</button>
-            <button v-if="showOwnerConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm</button>
-            <button v-if="showOwnerConfirmReturn" @click="handleAction('confirm-return')" class="btn btn-success">Confirm Return</button>
-            <button v-if="showOwnerEverythingOK" @click="handleAction('everything-ok')" class="btn btn-success">Everything OK</button>
-            <button v-if="showOwnerSomethingWrong" @click="handleAction('something-wrong')" class="btn btn-dispute">Something's Wrong</button>
-            <button v-if="showOwnerContactSupport" @click="handleAction('contact-support')" class="btn btn-support">Contact Support</button>
-            <button v-if="showOwnerShowReview" @click="handleAction('show-review')" class="btn btn-review">Show Review</button>
-          </template>
-
-          <!-- Renter Buttons -->
-          <template v-else>
-            <button v-if="showRenterPay" @click="handleAction('pay')" class="btn btn-success">Pay Now</button>
-            <button v-if="showRenterCancel" @click="handleAction('cancel')" class="btn btn-danger">Cancel</button>
-            <button v-if="showRenterConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm Handoff</button>
-            <button v-if="showRenterConfirmReturn" @click="handleAction('confirm-return')" class="btn btn-success">Confirm Return</button>
-            <button v-if="showRenterReview" @click="handleAction('review')" class="btn btn-review">Write Review</button>
-            <button v-if="showRenterRentAgain" @click="handleAction('rent-again')" class="btn btn-success">Rent Again</button>
-            <button v-if="showRenterContactSupport" @click="handleAction('contact-support')" class="btn btn-support">Contact Support</button>
-          </template>
         </div>
       </div>
     </div>
@@ -127,10 +114,11 @@ const otherUser = computed(() => {
 const statusClass = computed(() => {
   const status = props.bookingStatus;
   if (['CANCELLED', 'DECLINED', 'DISPUTED'].includes(status)) return 'status-error';
-  if (['COMPLETED', 'REVIEWED', 'DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
+  if (['COMPLETED', 'DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
   if (['IN_PROGRESS', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'].includes(status)) return 'status-active';
   if (['PENDING'].includes(status)) return 'status-pending';
   if (['ACCEPTED'].includes(status)) return 'status-upcoming';
+  if (['REVIEWED'].includes(status)) return 'status-reviewed';
   return 'status-default';
 });
 
@@ -139,7 +127,7 @@ const statusText = computed(() => {
     'PENDING': 'Pending',
     'ACCEPTED': 'Accepted',
     'PICKUP': 'Pickup',
-    'PICKUP_OWNER': 'Pickup',
+    'PICKUP_OWNER': 'Active',
     'PICKUP_RENTER': 'Pickup',
     'IN_PROGRESS': 'Active',
     'RETURN': 'Return',
@@ -156,9 +144,9 @@ const statusText = computed(() => {
 });
 
 // Show contact info based on status
-const locationAllowedStates = ['ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
+const locationAllowedStates = [];
 const showContactInfo = computed(() => locationAllowedStates.includes(props.bookingStatus));
-const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
+const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED','PICKUP'].includes(props.bookingStatus));
 
 // Owner button visibility
 const showOwnerAccept = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
@@ -277,6 +265,9 @@ const handleAction = (action) => {
 
 .status-error {
   background: #ef4444;
+}
+.status-reviewed {
+  background: #8b5cf6;
 }
 
 .status-default {

@@ -79,15 +79,13 @@
           </template>
 
           <!-- Renter Buttons -->
-          <template v-else>
-            <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success">Pay Now</button>
-            <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger">Cancel</button>
-            <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Handoff</button>
-            <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
-            <button v-if="showRenterReview" @click="navigateToDetails" class="btn btn-review">Write Review</button>
-            <button v-if="showRenterRentAgain" @click="navigateToDetails" class="btn btn-success">Rent Again</button>
-            <button v-if="showContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
-          </template>
+          <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success">Pay Now</button>
+          <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger">Cancel</button>
+          <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Pickup</button>
+          <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
+          <button v-if="showRenterReview" @click="navigateToDetails" class="btn btn-review">Write Review</button>
+          <button v-if="showRenterRentAgain" @click="navigateToDetails" class="btn btn-success">Rent Again</button>
+          <button v-if="showContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
         </div>
       </div>
     </div>
@@ -132,10 +130,10 @@ const statusLabels = {
   'ACCEPTED': 'Accepted',
   'PICKUP': 'Pickup',
   'PICKUP_OWNER': 'Pickup',
-  'PICKUP_RENTER': 'Pickup',
+  'PICKUP_RENTER': 'Active',
   'IN_PROGRESS': 'Active',
   'RETURN': 'Return',
-  'RETURN_RENTER': 'Return',
+  'RETURN_RENTER': 'Completed',
   'RETURN_OWNER': 'Return',
   'COMPLETED': 'Completed',
   'REVIEWED': 'Reviewed',
@@ -152,35 +150,27 @@ const getStatusLabel = computed(() => {
 const getStatusClass = computed(() => {
   const status = props.bookingStatus;
   if (['CANCELLED', 'DECLINED', 'DISPUTED'].includes(status)) return 'status-error';
-  if (['COMPLETED', 'REVIEWED', 'DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
+  if (['COMPLETED','DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
   if (['IN_PROGRESS', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'].includes(status)) return 'status-active';
   if (['PENDING'].includes(status)) return 'status-pending';
   if (['ACCEPTED'].includes(status)) return 'status-upcoming';
+  if (['REVIEWED'].includes(status)) return 'status-reviewed';
   return 'status-default';
 });
 
-const locationAllowedStates = ['ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
+const locationAllowedStates = ['ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER'];
 const showLocation = computed(() => locationAllowedStates.includes(props.bookingStatus));
 const showPhone = computed(() => locationAllowedStates.includes(props.bookingStatus));
 const showContactInfo = computed(() => locationAllowedStates.includes(props.bookingStatus));
-const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
+const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED','PICKUP'].includes(props.bookingStatus));
 
-const showPayButton = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus) && !props.paymentConfirmed);
-const showCancelButton = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
-const showConfirmPickupButton = computed(() => !props.isOwnerView && ['PICKUP', 'PICKUP_OWNER'].includes(props.bookingStatus));
-const showConfirmReturnButton = computed(() => !props.isOwnerView && ['RETURN', 'RETURN_OWNER'].includes(props.bookingStatus));
-const showContactSupportButton = computed(() => !props.isOwnerView && props.bookingStatus === 'DISPUTED');
-const showRenterReview = computed(() => !props.isOwnerView && props.bookingStatus === 'COMPLETED');
-const showRenterRentAgain = computed(() => !props.isOwnerView && ['REVIEWED', 'CANCELLED'].includes(props.bookingStatus));
-
-const showAcceptButton = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
-const showDeclineButton = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
-const showOwnerConfirmHandoffButton = computed(() => props.isOwnerView && ['PICKUP', 'PICKUP_RENTER'].includes(props.bookingStatus));
-const showOwnerConfirmReturnButton = computed(() => props.isOwnerView && props.bookingStatus === 'RETURN');
-const showEverythingOKButton = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
-const showSomethingWrongButton = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
-const showOwnerContactSupportButton = computed(() => props.isOwnerView && props.bookingStatus === 'DISPUTED');
-const showOwnerShowReview = computed(() => props.isOwnerView && props.bookingStatus === 'REVIEWED');
+const showPayButton = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus) && !props.paymentConfirmed);
+const showCancelButton = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
+const showConfirmPickupButton = computed(() => ['PICKUP', 'PICKUP_OWNER'].includes(props.bookingStatus));
+const showConfirmReturnButton = computed(() => ['RETURN', 'RETURN_OWNER'].includes(props.bookingStatus));
+const showContactSupportButton = computed(() => props.bookingStatus === 'DISPUTED');
+const showRenterReview = computed(() => props.bookingStatus === 'COMPLETED');
+const showRenterRentAgain = computed(() => ['REVIEWED', 'CANCELLED', 'DECLINED'].includes(props.bookingStatus));
 
 const getImageUrl = (photoPath) => {
   if (!photoPath) return '/assets/images/placeholder.jpg';
@@ -279,6 +269,10 @@ const navigateToDetails = () => {
 
 .status-error {
   background: #ef4444;
+}
+
+.status-reviewed {
+  background: #8b5cf6;
 }
 
 .status-default {
