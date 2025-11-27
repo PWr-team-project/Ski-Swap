@@ -12,6 +12,7 @@ coverage/
 .yarn-integrity
 .env
 .env.test
+*.local
 .cache
 .parcel-cache
 .next
