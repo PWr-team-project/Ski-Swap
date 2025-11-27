@@ -93,8 +93,11 @@ router.put('/profile', auth, upload.fields([
       location_country,
       location_state,
       location_city,
+      location_postcode,
       location_street,
       location_street_number,
+      location_latitude,
+      location_longitude,
       upgrade_to_company,
       NIP_number,
       website_address,
@@ -126,10 +129,44 @@ router.put('/profile', auth, upload.fields([
     if (phone_number !== undefined) user.phone_number = phone_number || null;
     if (profile_description !== undefined) user.profile_description = profile_description || null;
 
-    // Handle location data
-    const hasLocationData = location_country || location_city || location_state || location_street || location_street_number;
+    // Handle location data - validate field lengths
+    const hasLocationData = location_country || location_city || location_state || location_street || location_street_number || location_postcode || location_latitude !== undefined || location_longitude !== undefined;
 
     if (hasLocationData) {
+      // Validate field lengths
+      if (location_street && location_street.length > 35) {
+        return res.status(400).json({ message: 'Street name must not exceed 35 characters' });
+      }
+      if (location_street_number && location_street_number.length > 5) {
+        return res.status(400).json({ message: 'Street number must not exceed 5 characters' });
+      }
+      if (location_city && location_city.length > 20) {
+        return res.status(400).json({ message: 'City name must not exceed 20 characters' });
+      }
+      if (location_postcode && location_postcode.length > 7) {
+        return res.status(400).json({ message: 'Postcode must not exceed 7 characters' });
+      }
+      if (location_state && location_state.length > 35) {
+        return res.status(400).json({ message: 'State/Province must not exceed 35 characters' });
+      }
+      if (location_country && location_country.length > 20) {
+        return res.status(400).json({ message: 'Country name must not exceed 20 characters' });
+      }
+
+      // Validate latitude and longitude
+      if (location_latitude !== undefined) {
+        const lat = parseFloat(location_latitude);
+        if (isNaN(lat) || lat < -90 || lat > 90) {
+          return res.status(400).json({ message: 'Latitude must be a number between -90 and 90' });
+        }
+      }
+      if (location_longitude !== undefined) {
+        const lng = parseFloat(location_longitude);
+        if (isNaN(lng) || lng < -180 || lng > 180) {
+          return res.status(400).json({ message: 'Longitude must be a number between -180 and 180' });
+        }
+      }
+
       if (user.location_id) {
         // Update existing location
         const location = await Location.findById(user.location_id);
@@ -137,20 +174,24 @@ router.put('/profile', auth, upload.fields([
           if (location_country !== undefined) location.country = location_country;
           if (location_state !== undefined) location.state = location_state || null;
           if (location_city !== undefined) location.city = location_city;
+          if (location_postcode !== undefined) location.postcode = location_postcode || null;
           if (location_street !== undefined) location.street = location_street || null;
           if (location_street_number !== undefined) location.street_number = location_street_number || null;
+          if (location_latitude !== undefined) location.latitude = parseFloat(location_latitude);
+          if (location_longitude !== undefined) location.longitude = parseFloat(location_longitude);
           await location.save();
         }
-      } else if (location_country && location_city) {
-        // Create new location (only if both country and city are provided)
+      } else if (location_country && location_city && location_latitude !== undefined && location_longitude !== undefined) {
+        // Create new location (require country, city, latitude, and longitude)
         const location = new Location({
           country: location_country,
           state: location_state || null,
           city: location_city,
+          postcode: location_postcode || null,
           street: location_street || null,
           street_number: location_street_number || null,
-          latitude: 0,
-          longitude: 0
+          latitude: parseFloat(location_latitude),
+          longitude: parseFloat(location_longitude)
         });
         await location.save();
         user.location_id = location._id;
