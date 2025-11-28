@@ -48,8 +48,8 @@ router.get('/renting', auth, async (req, res) => {
     });
 
     // Categorize bookings based on status
-    // Active: ACCEPTED (pickup <= 3 days), PICKUP, IN_PROGRESS, RETURN, VERIFY
-    // Upcoming: ACCEPTED (pickup > 3 days)
+    // Active: PICKUP, PICKUP_OWNER, PICKUP_RENTER, IN_PROGRESS, RETURN, RETURN_OWNER, RETURN_RENTER
+    // Upcoming: ACCEPTED
     // Pending: PENDING
     // History: COMPLETED, REVIEWED, CANCELLED, DECLINED, DISPUTED, DISPUTE_RESOLVED
     const categorized = {
@@ -59,7 +59,7 @@ router.get('/renting', auth, async (req, res) => {
       history: []
     };
 
-    const activeStatuses = ['PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY'];
+    const activeStatuses = ['PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
     const historyStatuses = ['COMPLETED', 'REVIEWED', 'CANCELLED', 'DECLINED', 'DISPUTED', 'DISPUTE_RESOLVED'];
 
     bookings.forEach(booking => {
@@ -163,7 +163,7 @@ router.get('/lending', auth, async (req, res) => {
     });
 
     // Categorize bookings based on status
-    // Active: ACCEPTED (pickup <= 3 days), PICKUP, IN_PROGRESS, RETURN, VERIFY
+    // Active: ACCEPTED (pickup <= 3 days), PICKUP, PICKUP_OWNER, PICKUP_RENTER, IN_PROGRESS, RETURN, RETURN_OWNER, RETURN_RENTER
     // Upcoming: ACCEPTED (pickup > 3 days)
     // Pending: PENDING
     // History: COMPLETED, REVIEWED, CANCELLED, DECLINED, DISPUTED, DISPUTE_RESOLVED
@@ -174,7 +174,7 @@ router.get('/lending', auth, async (req, res) => {
       history: []
     };
 
-    const activeStatuses = ['PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY'];
+    const activeStatuses = ['PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
     const historyStatuses = ['COMPLETED', 'REVIEWED', 'CANCELLED', 'DECLINED', 'DISPUTED', 'DISPUTE_RESOLVED'];
 
     bookings.forEach(booking => {
