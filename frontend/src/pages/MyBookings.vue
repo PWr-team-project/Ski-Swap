@@ -247,6 +247,7 @@ const confirmHandoff = async (bookingId) => {
     alert('Handoff confirmed!');
   } catch (err) {
     console.error('Error confirming handoff:', err);
+  }
 };
 
 const confirmReturn = async (bookingId) => {
