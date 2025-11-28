@@ -21,12 +21,12 @@ const STATE_TRANSITIONS = {
   },
   PICKUP_OWNER: {
     renter: ['IN_PROGRESS'], // After uploading photos and confirming
-    owner: [],
+    owner: [], // Owner see this status as in_progress
     system: ['IN_PROGRESS'] // Auto if start_date passed without photos
   },
   PICKUP_RENTER: {
-    renter: ['IN_PROGRESS'], // After uploading photos and confirming
-    owner: [],
+    renter: [], // Renter see this status as in_progress
+    owner: ['IN_PROGRESS'],
     system: ['IN_PROGRESS'] // Auto if start_date passed without photos
   },
   IN_PROGRESS: {
@@ -40,12 +40,12 @@ const STATE_TRANSITIONS = {
     system: ['RETURN_OWNER'] // Auto if end_date passed without photos
   },
   RETURN_OWNER: {
-    renter: [],
+    renter: [], 
     owner: ['COMPLETED', 'DISPUTED'], // Owner confirms or disputes
     system: ['COMPLETED'] // Auto if owner doesn't respond within 2 days from return date
   },
   RETURN_RENTER: {
-    renter: ['RETURN_OWNER'],
+    renter: ['RETURN_OWNER'], // Renter see this status as completed
     owner: ['COMPLETED', 'DISPUTED'], // Owner confirms or disputes
     system: ['COMPLETED'] // Auto if owner doesn't respond within 2 days from return date
   },

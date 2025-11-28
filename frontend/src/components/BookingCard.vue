@@ -170,13 +170,13 @@ const showRenterContactSupport = computed(() => !props.isOwnerView && props.book
 
 // Helper functions
 const getImageUrl = (photoPath) => {
-  if (!photoPath) return '/assets/images/placeholder.jpg';
+  if (!photoPath) return '/assets/images/image.png';
   if (photoPath.startsWith('http')) return photoPath;
   return `http://localhost:5000${photoPath}`;
 };
 
 const handleImageError = (e) => {
-  e.target.src = '/assets/images/placeholder.jpg';
+  e.target.src = '/assets/images/image.png';
 };
 
 const getUserName = (user) => {
