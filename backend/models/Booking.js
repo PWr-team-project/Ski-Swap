@@ -81,10 +81,6 @@ const bookingSchema = new mongoose.Schema({
     ref: 'Payment',
     default: null
   },
-  payment_confirmed:{
-    type: Boolean,
-    default: false
-  }
 }, {
   timestamps: true
 });

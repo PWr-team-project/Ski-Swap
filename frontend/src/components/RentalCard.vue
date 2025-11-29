@@ -18,10 +18,8 @@
       <div class="card-content">
         <!-- Equipment Name and Category -->
         <div class="header-section">
-          <div class="title-row">
-            <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
-            <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
-          </div>
+          <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
+          <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
         </div>
 
         <!-- 3-Column Grid -->
@@ -33,24 +31,24 @@
             <div class="column-subtext">{{ getDuration }} days</div>
           </div>
 
-          <!-- Column 2: Owner Info (Renter View) -->
+          <!-- Column 2: Owner/Renter Info -->
           <div class="info-column">
-            <div class="column-label">Owner</div>
+            <div class="column-label">{{ isOwnerView ? 'Renter' : 'Owner' }}</div>
             <div class="user-info">
               <div class="user-avatar">{{ getUserInitial }}</div>
               <div class="user-details">
                 <div class="column-value">{{ getUserName }}</div>
                 <div class="column-subtext" v-if="showContactInfo">
                   <div v-if="showLocation">{{ getShortLocation }}</div>
-                  <div v-if="showPhone && owner?.phone">{{ owner.phone }}</div>
+                  <div v-if="showPhone && userInfo?.phone">{{ userInfo.phone }}</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Column 3: Total Price -->
+          <!-- Column 3: Price and Extras -->
           <div class="info-column">
-            <div class="column-label">Total</div>
+            <div class="column-label">{{ isOwnerView ? 'Earnings' : 'Total' }}</div>
             <div class="column-value price">€{{ totalPrice?.toFixed(2) || '0.00' }}</div>
             <div class="column-subtext">
               <div class="badges">
@@ -63,21 +61,33 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons - Bottom Right -->
         <div class="action-buttons">
-          <!-- Left Side: Renter Action Buttons -->
-          <div class="action-buttons-left">
+          <!-- View Details - Always First and Sky Blue -->
+          <button @click="navigateToDetails" class="btn btn-details">View Details</button>
+
+          <!-- Owner Buttons -->
+          <template v-if="isOwnerView">
+            <button v-if="showAcceptButton" @click="navigateToDetails" class="btn btn-success">Accept</button>
+            <button v-if="showDeclineButton" @click="navigateToDetails" class="btn btn-danger">Decline</button>
+            <button v-if="showOwnerConfirmHandoffButton" @click="navigateToDetails" class="btn btn-success">Confirm</button>
+            <button v-if="showOwnerConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
+            <button v-if="showEverythingOKButton" @click="navigateToDetails" class="btn btn-success">Everything OK</button>
+            <button v-if="showSomethingWrongButton" @click="navigateToDetails" class="btn btn-dispute">Something's Wrong</button>
+            <button v-if="showOwnerContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
+            <button v-if="showOwnerShowReview" @click="navigateToDetails" class="btn btn-review">Show Review</button>
+          </template>
+
+          <!-- Renter Buttons -->
+          <template v-else>
             <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success">Pay Now</button>
             <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger">Cancel</button>
-            <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Pickup</button>
+            <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Handoff</button>
             <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
             <button v-if="showRenterReview" @click="navigateToDetails" class="btn btn-review">Write Review</button>
             <button v-if="showRenterRentAgain" @click="navigateToDetails" class="btn btn-success">Rent Again</button>
             <button v-if="showContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
-          </div>
-
-          <!-- Right Side: View Details - Always on Right -->
-          <button @click="navigateToDetails" class="btn btn-details">View Details</button>
+          </template>
         </div>
       </div>
     </div>
@@ -93,7 +103,8 @@ const router = useRouter();
 const props = defineProps({
   rentalId: String,
   listing: Object,
-  owner: Object, // Renter views the Owner
+  owner: Object,
+  renter: Object,
   startDate: String,
   endDate: String,
   totalPrice: Number,
@@ -103,20 +114,28 @@ const props = defineProps({
   location: Object,
   hasReview: Boolean,
   paymentConfirmed: Boolean,
-  insuranceFlag: Boolean
+  insuranceFlag: Boolean,
+  isOwnerView: {
+    type: Boolean,
+    default: false
+  }
 });
 
 const emit = defineEmits(['view-details']);
+
+const userInfo = computed(() => {
+  return props.isOwnerView ? props.renter : props.owner;
+});
 
 const statusLabels = {
   'PENDING': 'Pending',
   'ACCEPTED': 'Accepted',
   'PICKUP': 'Pickup',
   'PICKUP_OWNER': 'Pickup',
-  'PICKUP_RENTER': 'Active',
+  'PICKUP_RENTER': 'Pickup',
   'IN_PROGRESS': 'Active',
   'RETURN': 'Return',
-  'RETURN_RENTER': 'Completed',
+  'RETURN_RENTER': 'Return',
   'RETURN_OWNER': 'Return',
   'COMPLETED': 'Completed',
   'REVIEWED': 'Reviewed',
@@ -133,47 +152,55 @@ const getStatusLabel = computed(() => {
 const getStatusClass = computed(() => {
   const status = props.bookingStatus;
   if (['CANCELLED', 'DECLINED', 'DISPUTED'].includes(status)) return 'status-error';
-  if (['COMPLETED','DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
+  if (['COMPLETED', 'REVIEWED', 'DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
   if (['IN_PROGRESS', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'].includes(status)) return 'status-active';
   if (['PENDING'].includes(status)) return 'status-pending';
   if (['ACCEPTED'].includes(status)) return 'status-upcoming';
-  if (['REVIEWED'].includes(status)) return 'status-reviewed';
   return 'status-default';
 });
 
-const locationAllowedStates = ['ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER'];
+const locationAllowedStates = ['ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
 const showLocation = computed(() => locationAllowedStates.includes(props.bookingStatus));
 const showPhone = computed(() => locationAllowedStates.includes(props.bookingStatus));
 const showContactInfo = computed(() => locationAllowedStates.includes(props.bookingStatus));
-const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED','PICKUP'].includes(props.bookingStatus));
+const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
 
-const showPayButton = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus) && !props.paymentConfirmed);
-const showCancelButton = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
-const showConfirmPickupButton = computed(() => ['PICKUP', 'PICKUP_OWNER'].includes(props.bookingStatus));
-const showConfirmReturnButton = computed(() => ['RETURN', 'RETURN_OWNER'].includes(props.bookingStatus));
-const showContactSupportButton = computed(() => props.bookingStatus === 'DISPUTED');
-const showRenterReview = computed(() => props.bookingStatus === 'COMPLETED');
-const showRenterRentAgain = computed(() => ['REVIEWED', 'CANCELLED', 'DECLINED'].includes(props.bookingStatus));
+const showPayButton = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus) && !props.paymentConfirmed);
+const showCancelButton = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
+const showConfirmPickupButton = computed(() => !props.isOwnerView && ['PICKUP', 'PICKUP_OWNER'].includes(props.bookingStatus));
+const showConfirmReturnButton = computed(() => !props.isOwnerView && ['RETURN', 'RETURN_OWNER'].includes(props.bookingStatus));
+const showContactSupportButton = computed(() => !props.isOwnerView && props.bookingStatus === 'DISPUTED');
+const showRenterReview = computed(() => !props.isOwnerView && props.bookingStatus === 'COMPLETED');
+const showRenterRentAgain = computed(() => !props.isOwnerView && ['REVIEWED', 'CANCELLED'].includes(props.bookingStatus));
+
+const showAcceptButton = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
+const showDeclineButton = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
+const showOwnerConfirmHandoffButton = computed(() => props.isOwnerView && ['PICKUP', 'PICKUP_RENTER'].includes(props.bookingStatus));
+const showOwnerConfirmReturnButton = computed(() => props.isOwnerView && props.bookingStatus === 'RETURN');
+const showEverythingOKButton = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
+const showSomethingWrongButton = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
+const showOwnerContactSupportButton = computed(() => props.isOwnerView && props.bookingStatus === 'DISPUTED');
+const showOwnerShowReview = computed(() => props.isOwnerView && props.bookingStatus === 'REVIEWED');
 
 const getImageUrl = (photoPath) => {
-  if (!photoPath) return '/assets/images/image.png';
+  if (!photoPath) return '/assets/images/placeholder.jpg';
   if (photoPath.startsWith('http')) return photoPath;
   return `http://localhost:5000${photoPath}`;
 };
 
 const handleImageError = (e) => {
-  e.target.src = '/assets/images/image.png';
+  e.target.src = '/assets/images/placeholder.jpg';
 };
 
 const getUserName = computed(() => {
-  if (!props.owner) return 'Unknown';
-  const fullName = `${props.owner.first_name || ''} ${props.owner.last_name || ''}`.trim();
-  return fullName || props.owner.nickname || props.owner.email || 'Unknown';
+  if (!userInfo.value) return 'Unknown';
+  const fullName = `${userInfo.value.first_name || ''} ${userInfo.value.last_name || ''}`.trim();
+  return fullName || userInfo.value.nickname || userInfo.value.email || 'Unknown';
 });
 
 const getUserInitial = computed(() => {
-  if (!props.owner) return '?';
-  const name = props.owner.nickname || props.owner.first_name || props.owner.email || 'U';
+  if (!userInfo.value) return '?';
+  const name = userInfo.value.nickname || userInfo.value.first_name || userInfo.value.email || 'U';
   return name.charAt(0).toUpperCase();
 });
 
@@ -254,10 +281,6 @@ const navigateToDetails = () => {
   background: #ef4444;
 }
 
-.status-reviewed {
-  background: #8b5cf6;
-}
-
 .status-default {
   background: #6b7280;
 }
@@ -295,14 +318,10 @@ const navigateToDetails = () => {
 }
 
 .header-section {
-  padding-right: 6rem;
-}
-
-.title-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  gap: 1rem;
+  padding-right: 6rem;
 }
 
 .equipment-title {
@@ -310,6 +329,7 @@ const navigateToDetails = () => {
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
+  flex: 1;
 }
 
 .equipment-category {
@@ -319,7 +339,6 @@ const navigateToDetails = () => {
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .info-grid {
@@ -419,18 +438,9 @@ const navigateToDetails = () => {
 .action-buttons {
   display: flex;
   gap: 0.6rem;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
   flex-wrap: wrap;
   justify-content: flex-end;
   margin-top: auto;
-}
-
-.action-buttons-left {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
 }
 
 .btn {
@@ -450,7 +460,7 @@ const navigateToDetails = () => {
 .btn-details {
   background: #00AAFF;
   color: white;
-  margin-left: auto;
+  order: -1;
 }
 
 .btn-details:hover {
@@ -517,6 +527,8 @@ const navigateToDetails = () => {
   }
 
   .header-section {
+    flex-direction: column;
+    align-items: flex-start;
     padding-right: 4rem;
   }
 
@@ -527,20 +539,10 @@ const navigateToDetails = () => {
 
   .action-buttons {
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .action-buttons-left {
-    width: 100%;
-    flex-direction: column;
   }
 
   .btn {
     width: 100%;
-  }
-
-  .btn-details {
-    margin-left: 0;
   }
 }
 </style>

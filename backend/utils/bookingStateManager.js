@@ -1,4 +1,3 @@
-const Booking = require('../models/Booking');
 const BookingStatus = require('../models/BookingStatus');
 const BookingPhoto = require('../models/BookingPhoto');
 const Payment = require('../models/Payment');
@@ -22,12 +21,12 @@ const STATE_TRANSITIONS = {
   },
   PICKUP_OWNER: {
     renter: ['IN_PROGRESS'], // After uploading photos and confirming
-    owner: [], // Owner see this status as in_progress
+    owner: [],
     system: ['IN_PROGRESS'] // Auto if start_date passed without photos
   },
   PICKUP_RENTER: {
-    renter: [], // Renter see this status as in_progress
-    owner: ['IN_PROGRESS'],
+    renter: ['IN_PROGRESS'], // After uploading photos and confirming
+    owner: [],
     system: ['IN_PROGRESS'] // Auto if start_date passed without photos
   },
   IN_PROGRESS: {
@@ -41,12 +40,12 @@ const STATE_TRANSITIONS = {
     system: ['RETURN_OWNER'] // Auto if end_date passed without photos
   },
   RETURN_OWNER: {
-    renter: [], 
+    renter: [],
     owner: ['COMPLETED', 'DISPUTED'], // Owner confirms or disputes
     system: ['COMPLETED'] // Auto if owner doesn't respond within 2 days from return date
   },
   RETURN_RENTER: {
-    renter: ['RETURN_OWNER'], // Renter see this status as completed
+    renter: ['RETURN_OWNER'],
     owner: ['COMPLETED', 'DISPUTED'], // Owner confirms or disputes
     system: ['COMPLETED'] // Auto if owner doesn't respond within 2 days from return date
   },
@@ -125,27 +124,10 @@ function isValidTransition(currentStatus, newStatus, actor) {
  * Check if payment is completed for a booking
  */
 async function isPaymentCompleted(bookingId) {
-  // Check Booking.payment_confirmed first (faster, denormalized field)
-  const booking = await Booking.findById(bookingId);
-  if (booking && booking.payment_confirmed) {
-    return true;
-  }
-
-  // Fallback: check Payment table (source of truth)
   const payment = await Payment.findOne({
     booking_id: bookingId,
     payment_status: 'completed'
   });
-
-  // If payment exists but booking not marked, sync them
-  if (payment && booking && !booking.payment_confirmed) {
-    await Booking.findByIdAndUpdate(bookingId, {
-      payment_confirmed: true
-    });
-    console.warn(`Synced payment_confirmed for booking ${bookingId}`);
-    return true;
-  }
-
   return !!payment;
 }
 
@@ -210,7 +192,7 @@ async function changeBookingStatus(bookingId, newStatus, actor, userId = null, n
       }
     }
 
-    // Create new status entry in BookingStatus (for history/audit)
+    // Create new status entry
     const newStatusEntry = new BookingStatus({
       booking_id: bookingId,
       status: newStatus,
@@ -220,11 +202,6 @@ async function changeBookingStatus(bookingId, newStatus, actor, userId = null, n
     });
 
     await newStatusEntry.save();
-
-    // Update Booking.current_status for fast queries (keep in sync)
-    await Booking.findByIdAndUpdate(bookingId, {
-      current_status: newStatus
-    });
 
     return {
       success: true,

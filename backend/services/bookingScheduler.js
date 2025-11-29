@@ -30,7 +30,7 @@ async function checkAndTransitionBookings() {
     for (const booking of activeBookings) {
       const currentStatus = await getCurrentStatus(booking._id);
 
-      // Rule 0: PENDING -> CANCELLED if no response from owner after 24 hours
+      // Rule 0: PENDING -> CANCELLED if no response from owner after 48 hours
       if (currentStatus === 'PENDING') {
         // Find when PENDING status was set
         const pendingStatus = await BookingStatus.findOne({
@@ -39,10 +39,10 @@ async function checkAndTransitionBookings() {
         }).sort({ createdAt: -1 });
 
         if (pendingStatus) {
-          const twentyFourHoursAfterPending = new Date(pendingStatus.createdAt);
-          twentyFourHoursAfterPending.setHours(twentyFourHoursAfterPending.getHours() + 24);
+          const fortyEightHoursAfterPending = new Date(pendingStatus.createdAt);
+          fortyEightHoursAfterPending.setHours(fortyEightHoursAfterPending.getHours() + 48);
 
-          if (now >= twentyFourHoursAfterPending) {
+          if (now >= fortyEightHoursAfterPending) {
             const result = await changeBookingStatus(
               booking._id,
               'CANCELLED',
@@ -114,22 +114,22 @@ async function checkAndTransitionBookings() {
         }
       }
 
-      // Rule 3: IN_PROGRESS -> RETURN 1 days before end_date
+      // Rule 3: IN_PROGRESS -> RETURN 2 days before end_date
       if (currentStatus === 'IN_PROGRESS') {
-        const oneDayBeforeEnd = new Date(booking.end_date);
-        oneDayBeforeEnd.setDate(oneDayBeforeEnd.getDate() - 1);
+        const twoDaysBeforeEnd = new Date(booking.end_date);
+        twoDaysBeforeEnd.setDate(twoDaysBeforeEnd.getDate() - 2);
 
-        if (now >= oneDayBeforeEnd) {
+        if (now >= twoDaysBeforeEnd) {
           const result = await changeBookingStatus(
             booking._id,
             'RETURN',
             'system',
             null,
-            'Automatic transition to RETURN - 1 day before end date'
+            'Automatic transition to RETURN - approaching return date'
           );
 
           if (result.success) {
-            console.log(`[BookingScheduler] Booking ${booking._id}: IN_PROGRESS -> RETURN (auto)`);
+            console.log(`[BookingScheduler] Booking ${booking._id}: IN_PROGRESS -> RETURN`);
             transitionCount++;
           }
         }
@@ -177,28 +177,36 @@ async function checkAndTransitionBookings() {
         }
       }
 
-      // Rule 6: RETURN_OWNER/RETURN_RENTER -> COMPLETED if owner doesn't respond within 2 days from return date
+      // Rule 6: RETURN_OWNER/RETURN_RENTER -> COMPLETED if owner doesn't respond within 3 days
       if (currentStatus === 'RETURN_OWNER' || currentStatus === 'RETURN_RENTER') {
         // Find when this return status was set
-        const twoDaysAfterReturn = new Date(booking.end_date);
-        twoDaysAfterReturn.setDate(twoDaysAfterReturn.getDate() + 2);
+        const returnStatus = await BookingStatus.findOne({
+          booking_id: booking._id,
+          status: currentStatus
+        }).sort({ createdAt: -1 });
 
-        if (now >= twoDaysAfterReturn) {
-          const result = await changeBookingStatus(
-            booking._id,
-            'COMPLETED',
-            'system',
-            null,
-            'Automatic completion - owner did not verify equipment within 2 days'
-          );
+        if (returnStatus) {
+          const threeDaysAfterReturn = new Date(returnStatus.createdAt);
+          threeDaysAfterReturn.setDate(threeDaysAfterReturn.getDate() + 3);
 
-          if (result.success) {
-            console.log(`[BookingScheduler] Booking ${booking._id}: ${currentStatus} -> COMPLETED (auto)`);
-            transitionCount++;
+          if (now >= threeDaysAfterReturn) {
+            const result = await changeBookingStatus(
+              booking._id,
+              'COMPLETED',
+              'system',
+              null,
+              'Automatic completion - owner did not verify equipment within 3 days'
+            );
+
+            if (result.success) {
+              console.log(`[BookingScheduler] Booking ${booking._id}: ${currentStatus} -> COMPLETED (auto)`);
+              transitionCount++;
+            }
           }
         }
       }
     }
+
     console.log(`[BookingScheduler] Completed. ${transitionCount} booking(s) transitioned.`);
   } catch (error) {
     console.error('[BookingScheduler] Error during automated transitions:', error);

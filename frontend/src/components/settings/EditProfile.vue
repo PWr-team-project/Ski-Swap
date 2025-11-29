@@ -186,54 +186,35 @@
 
       <!-- Location Information -->
       <div class="form-section">
-        <div class="section-header-with-button">
-          <div class="section-header">
-            <span class="section-number">3</span>
-            <h3>Location</h3>
-          </div>
-          <button
-            type="button"
-            @click="fetchUserLocation"
-            class="geolocation-btn-inline"
-            :disabled="loadingLocation"
-          >
-            <span v-if="!loadingLocation">📍 Use My Current Location</span>
-            <span v-else>Getting location...</span>
-          </button>
+        <div class="section-header">
+          <span class="section-number">3</span>
+          <h3>Location</h3>
         </div>
 
-        <!-- Street and Street Number -->
         <div class="form-row">
           <div class="form-group">
-            <label for="street">Street</label>
+            <label for="country">Country</label>
             <input
-              id="street"
-              v-model="formData.location.street"
+              id="country"
+              v-model="formData.location.country"
               type="text"
               class="form-input"
-              placeholder="Main Street"
-              maxlength="35"
-              @input="validateField('street')"
+              placeholder="Poland"
             />
-            <small v-if="validationErrors.street" class="error-hint">{{ validationErrors.street }}</small>
           </div>
 
           <div class="form-group">
-            <label for="streetNumber">Street Number</label>
+            <label for="state">State/Province</label>
             <input
-              id="streetNumber"
-              v-model="formData.location.streetNumber"
+              id="state"
+              v-model="formData.location.state"
               type="text"
               class="form-input"
-              placeholder="123"
-              maxlength="5"
-              @input="validateField('streetNumber')"
+              placeholder="Mazowieckie"
             />
-            <small v-if="validationErrors.streetNumber" class="error-hint">{{ validationErrors.streetNumber }}</small>
           </div>
         </div>
 
-        <!-- City and Postcode -->
         <div class="form-row">
           <div class="form-group">
             <label for="city">City</label>
@@ -243,79 +224,40 @@
               type="text"
               class="form-input"
               placeholder="Warsaw"
-              maxlength="20"
-              @input="validateField('city')"
             />
-            <small v-if="validationErrors.city" class="error-hint">{{ validationErrors.city }}</small>
           </div>
 
           <div class="form-group">
-            <label for="postcode">Postcode</label>
+            <label for="street">Street</label>
             <input
-              id="postcode"
-              v-model="formData.location.postcode"
+              id="street"
+              v-model="formData.location.street"
               type="text"
               class="form-input"
-              placeholder="00-001"
-              maxlength="7"
-              @input="validateField('postcode')"
+              placeholder="Main Street"
             />
-            <small v-if="validationErrors.postcode" class="error-hint">{{ validationErrors.postcode }}</small>
           </div>
         </div>
 
-        <!-- State and Country -->
-        <div class="form-row">
+        <div class="form-group-with-buttons">
           <div class="form-group">
-            <label for="state">State/Province</label>
+            <label for="streetNumber">Street Number</label>
             <input
-              id="state"
-              v-model="formData.location.state"
+              id="streetNumber"
+              v-model="formData.location.streetNumber"
               type="text"
-              class="form-input"
-              placeholder="Mazowieckie"
-              maxlength="35"
-              @input="validateField('state')"
+              class="form-input form-input-short"
+              placeholder="123"
             />
-            <small v-if="validationErrors.state" class="error-hint">{{ validationErrors.state }}</small>
           </div>
-
-          <div class="form-group">
-            <label for="country">Country</label>
-            <input
-              id="country"
-              v-model="formData.location.country"
-              type="text"
-              class="form-input"
-              placeholder="Poland"
-              maxlength="20"
-              @input="validateField('country')"
-            />
-            <small v-if="validationErrors.country" class="error-hint">{{ validationErrors.country }}</small>
-          </div>
-        </div>
-
-        <!-- Map Section -->
-        <div v-if="showMap" class="map-section">
-          <label class="map-label">Confirm Your Location on Map</label>
-          <div ref="mapContainer" class="map-container"></div>
-          <div class="map-actions">
-            <button v-if="!locationConfirmed" type="button" @click="confirmLocation" class="confirm-map-btn">
-              ✓ Confirm Location
+          <div class="inline-buttons">
+            <button type="button" @click="resetLocation" class="cancel-btn-small" :disabled="loading">
+              Cancel
             </button>
-            <small v-if="locationConfirmed" class="success-hint">✓ Location confirmed!</small>
-            <small v-else class="input-hint">Drag the pin to adjust your exact location</small>
+            <button type="button" @click="saveLocation" class="save-btn-small" :disabled="loading">
+              {{ loading ? 'Saving...' : 'Save Changes' }}
+            </button>
           </div>
-        </div>
-
-        <!-- Save/Cancel Buttons -->
-        <div class="location-buttons">
-          <button type="button" @click="resetLocation" class="cancel-btn-small" :disabled="loading">
-            Cancel
-          </button>
-          <button type="button" @click="saveLocation" class="save-btn-small" :disabled="loading || !locationConfirmed">
-            {{ loading ? 'Saving...' : 'Save Changes' }}
-          </button>
         </div>
       </div>
 
@@ -427,11 +369,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { userService } from '@/services/userService'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 
 const authStore = useAuthStore()
 
@@ -442,27 +382,9 @@ const backgroundPhotoPreview = ref(null)
 const selectedProfilePhoto = ref(null)
 const selectedBackgroundPhoto = ref(null)
 const loading = ref(false)
-const loadingLocation = ref(false)
 const successMessage = ref('')
 const errorMessage = ref('')
 const showCompanyFields = ref(false)
-
-// Map-related refs
-const mapContainer = ref(null)
-const map = ref(null)
-const marker = ref(null)
-const showMap = ref(false)
-const locationConfirmed = ref(true) // Default to true so existing users can save
-
-// Validation errors
-const validationErrors = reactive({
-  street: '',
-  streetNumber: '',
-  city: '',
-  postcode: '',
-  state: '',
-  country: ''
-})
 
 const formData = reactive({
   firstName: '',
@@ -475,11 +397,8 @@ const formData = reactive({
     country: '',
     state: '',
     city: '',
-    postcode: '',
     street: '',
-    streetNumber: '',
-    latitude: 0,
-    longitude: 0
+    streetNumber: ''
   },
   company: {
     nipNumber: '',
@@ -491,14 +410,6 @@ const formData = reactive({
 // Initialize form with user data
 onMounted(async () => {
   await loadProfileData()
-})
-
-// Cleanup map on unmount
-onUnmounted(() => {
-  if (map.value) {
-    map.value.remove()
-    map.value = null
-  }
 })
 
 const loadProfileData = async () => {
@@ -523,13 +434,8 @@ const loadProfileData = async () => {
       formData.location.country = userData.location.country || ''
       formData.location.state = userData.location.state || ''
       formData.location.city = userData.location.city || ''
-      formData.location.postcode = userData.location.postcode || ''
       formData.location.street = userData.location.street || ''
       formData.location.streetNumber = userData.location.street_number || ''
-      formData.location.latitude = userData.location.latitude || 0
-      formData.location.longitude = userData.location.longitude || 0
-
-      // Don't show map on initial load - only when user changes location
     }
 
     // Update auth store with latest user data
@@ -538,166 +444,6 @@ const loadProfileData = async () => {
     console.error('Error loading profile:', error)
     errorMessage.value = 'Failed to load profile data'
   }
-}
-
-// Validation function
-const validateField = (fieldName) => {
-  const value = formData.location[fieldName]
-  validationErrors[fieldName] = ''
-
-  if (!value) {
-    return true // Empty is okay
-  }
-
-  const maxLengths = {
-    street: 35,
-    streetNumber: 5,
-    city: 20,
-    postcode: 7,
-    state: 35,
-    country: 20
-  }
-
-  if (value.length > maxLengths[fieldName]) {
-    validationErrors[fieldName] = `Maximum ${maxLengths[fieldName]} characters`
-    return false
-  }
-
-  return true
-}
-
-// Fetch user location from browser
-const fetchUserLocation = async () => {
-  if (!navigator.geolocation) {
-    errorMessage.value = 'Geolocation is not supported by your browser'
-    return
-  }
-
-  loadingLocation.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
-
-  try {
-    const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      })
-    })
-
-    const { latitude, longitude } = position.coords
-    formData.location.latitude = latitude
-    formData.location.longitude = longitude
-
-    // Use reverse geocoding to get address details
-    await reverseGeocode(latitude, longitude)
-
-    // Show map with the location
-    showMap.value = true
-    locationConfirmed.value = false
-    await nextTick()
-    initializeMap(latitude, longitude)
-
-    successMessage.value = 'Location fetched successfully! Please confirm on the map.'
-  } catch (error) {
-    console.error('Error getting location:', error)
-    if (error.code === 1) {
-      errorMessage.value = 'Location access denied. Please enable location permissions.'
-    } else if (error.code === 2) {
-      errorMessage.value = 'Location unavailable. Please try again.'
-    } else if (error.code === 3) {
-      errorMessage.value = 'Location request timed out. Please try again.'
-    } else {
-      errorMessage.value = 'Failed to get location. Please try again.'
-    }
-  } finally {
-    loadingLocation.value = false
-  }
-}
-
-// Reverse geocoding using Nominatim (OpenStreetMap)
-const reverseGeocode = async (lat, lng) => {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-      {
-        headers: {
-          'Accept-Language': 'en'
-        }
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error('Geocoding failed')
-    }
-
-    const data = await response.json()
-    const address = data.address
-
-    // Fill in the form fields
-    if (address) {
-      formData.location.street = (address.road || address.street || '').substring(0, 35)
-      formData.location.streetNumber = (address.house_number || '').substring(0, 5)
-      formData.location.city = (address.city || address.town || address.village || '').substring(0, 20)
-      formData.location.postcode = (address.postcode || '').substring(0, 7)
-      formData.location.state = (address.state || address.province || '').substring(0, 35)
-      formData.location.country = (address.country || '').substring(0, 20)
-    }
-  } catch (error) {
-    console.error('Error reverse geocoding:', error)
-    // Don't show error to user, they can manually fill in the fields
-  }
-}
-
-// Initialize Leaflet map
-const initializeMap = (lat, lng) => {
-  // Remove existing map if any
-  if (map.value) {
-    map.value.remove()
-  }
-
-  // Fix for default marker icon in Leaflet with webpack
-  delete L.Icon.Default.prototype._getIconUrl
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png'
-  })
-
-  // Create map
-  map.value = L.map(mapContainer.value).setView([lat, lng], 15)
-
-  // Add tile layer
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
-  }).addTo(map.value)
-
-  // Add draggable marker
-  marker.value = L.marker([lat, lng], { draggable: true }).addTo(map.value)
-
-  // Update coordinates when marker is dragged
-  marker.value.on('dragend', async (event) => {
-    const position = event.target.getLatLng()
-    formData.location.latitude = position.lat
-    formData.location.longitude = position.lng
-    locationConfirmed.value = false
-
-    // Optional: Update address fields when pin is moved
-    await reverseGeocode(position.lat, position.lng)
-  })
-}
-
-// Confirm location on map
-const confirmLocation = () => {
-  if (!formData.location.latitude || !formData.location.longitude) {
-    errorMessage.value = 'Please select a location on the map'
-    return
-  }
-
-  locationConfirmed.value = true
-  successMessage.value = 'Location confirmed! You can now save your changes.'
 }
 
 const handleProfilePhotoChange = async (event) => {
@@ -878,25 +624,6 @@ const savePersonalInfo = async () => {
 }
 
 const saveLocation = async () => {
-  // Validate all fields before saving
-  let hasErrors = false
-  Object.keys(validationErrors).forEach(field => {
-    if (!validateField(field)) {
-      hasErrors = true
-    }
-  })
-
-  if (hasErrors) {
-    errorMessage.value = 'Please fix validation errors before saving'
-    return
-  }
-
-  // Check if location needs to be confirmed on map
-  if (showMap.value && !locationConfirmed.value) {
-    errorMessage.value = 'Please confirm your location on the map before saving'
-    return
-  }
-
   loading.value = true
   successMessage.value = ''
   errorMessage.value = ''
@@ -906,11 +633,8 @@ const saveLocation = async () => {
     formDataToSend.append('location_country', formData.location.country || '')
     formDataToSend.append('location_state', formData.location.state || '')
     formDataToSend.append('location_city', formData.location.city || '')
-    formDataToSend.append('location_postcode', formData.location.postcode || '')
     formDataToSend.append('location_street', formData.location.street || '')
     formDataToSend.append('location_street_number', formData.location.streetNumber || '')
-    formDataToSend.append('location_latitude', formData.location.latitude || 0)
-    formDataToSend.append('location_longitude', formData.location.longitude || 0)
 
     const response = await userService.updateProfile(formDataToSend)
 
@@ -1476,121 +1200,6 @@ const getPhotoUrl = (photoPath) => {
   cursor: not-allowed;
 }
 
-/* Section Header with Button */
-.section-header-with-button {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-/* Inline Geolocation Button */
-.geolocation-btn-inline {
-  padding: 0.625rem 1.5rem;
-  background: linear-gradient(135deg, #00AAFF 0%, #0088cc 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 170, 255, 0.3);
-  white-space: nowrap;
-}
-
-.geolocation-btn-inline:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 170, 255, 0.4);
-  background: linear-gradient(135deg, #0088cc 0%, #00AAFF 100%);
-}
-
-.geolocation-btn-inline:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-/* Map Section */
-.map-section {
-  margin: 2rem 0;
-  padding: 1.5rem;
-  background: #f8fbff;
-  border: 2px solid #e3f2fd;
-  border-radius: 12px;
-}
-
-.map-label {
-  display: block;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #555;
-  margin-bottom: 1rem;
-}
-
-.map-container {
-  width: 100%;
-  height: 400px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 2px solid #e0e0e0;
-  margin-bottom: 1rem;
-}
-
-.map-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.confirm-map-btn {
-  padding: 0.75rem 2rem;
-  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 3px 10px rgba(255, 152, 0, 0.4);
-}
-
-.confirm-map-btn:hover {
-  background: linear-gradient(135deg, #F57C00 0%, #FF9800 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 152, 0, 0.5);
-}
-
-/* Location Buttons */
-.location-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 2px solid #e3f2fd;
-}
-
-/* Error Hints */
-.error-hint {
-  font-size: 0.8rem;
-  color: #d32f2f;
-  font-style: italic;
-  margin-top: 0.25rem;
-}
-
-/* Success Hints */
-.success-hint {
-  font-size: 0.9rem;
-  color: #4caf50;
-  font-weight: 600;
-  margin-top: 0.5rem;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .photos-grid {
@@ -1630,30 +1239,6 @@ const getPhotoUrl = (photoPath) => {
   }
 
   .upgrade-btn {
-    width: 100%;
-  }
-
-  .section-header-with-button {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .geolocation-btn-inline {
-    width: 100%;
-    padding: 0.75rem 1.5rem;
-  }
-
-  .map-container {
-    height: 300px;
-  }
-
-  .location-buttons {
-    flex-direction: column;
-  }
-
-  .location-buttons .cancel-btn-small,
-  .location-buttons .save-btn-small {
     width: 100%;
   }
 }

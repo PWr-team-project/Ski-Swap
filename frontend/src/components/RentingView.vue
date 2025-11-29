@@ -17,7 +17,7 @@
         <div v-if="bookings.pending.length > 0" class="rental-list">
           <RentalCard
             v-for="rental in bookings.pending"
-            :key="`${rental._id}-${rental.status}`"
+            :key="rental._id"
             :rental-id="rental._id"
             :listing="rental.listing_id"
             :owner="rental.listing_id?.owner_id"
@@ -25,9 +25,10 @@
             :end-date="rental.end_date"
             :total-price="rental.total_price"
             :location="rental.listing_id?.location_id"
-            :booking-status="rental.status"
+            :booking-status="rental.current_status || rental.status"
             :payment-confirmed="rental.payment_confirmed"
             :insurance-flag="rental.insurance_flag"
+            :is-owner-view="false"
             status="pending"
           />
         </div>
@@ -54,7 +55,7 @@
         <div v-if="bookings.active.length > 0" class="rental-list">
           <RentalCard
             v-for="rental in bookings.active"
-            :key="`${rental._id}-${rental.status}`"
+            :key="rental._id"
             :rental-id="rental._id"
             :listing="rental.listing_id"
             :owner="rental.listing_id?.owner_id"
@@ -63,9 +64,10 @@
             :total-price="rental.total_price"
             :days-remaining="rental.daysRemaining"
             :location="rental.listing_id?.location_id"
-            :booking-status="rental.status"
+            :booking-status="rental.current_status || rental.status"
             :payment-confirmed="rental.payment_confirmed"
             :insurance-flag="rental.insurance_flag"
+            :is-owner-view="false"
             status="active"
           />
         </div>
@@ -92,7 +94,7 @@
         <div v-if="bookings.upcoming.length > 0" class="rental-list">
           <RentalCard
             v-for="rental in bookings.upcoming"
-            :key="`${rental._id}-${rental.status}`"
+            :key="rental._id"
             :rental-id="rental._id"
             :listing="rental.listing_id"
             :owner="rental.listing_id?.owner_id"
@@ -100,9 +102,10 @@
             :end-date="rental.end_date"
             :total-price="rental.total_price"
             :location="rental.listing_id?.location_id"
-            :booking-status="rental.status"
+            :booking-status="rental.current_status || rental.status"
             :payment-confirmed="rental.payment_confirmed"
             :insurance-flag="rental.insurance_flag"
+            :is-owner-view="false"
             status="upcoming"
           />
         </div>
@@ -129,7 +132,7 @@
         <div v-if="bookings.history.length > 0" class="rental-list">
           <RentalCard
             v-for="rental in bookings.history"
-            :key="`${rental._id}-${rental.status}`"
+            :key="rental._id"
             :rental-id="rental._id"
             :listing="rental.listing_id"
             :owner="rental.listing_id?.owner_id"
@@ -138,9 +141,10 @@
             :total-price="rental.total_price"
             :location="rental.listing_id?.location_id"
             :has-review="hasReview(rental)"
-            :booking-status="rental.status"
+            :booking-status="rental.current_status || rental.status"
             :payment-confirmed="rental.payment_confirmed"
             :insurance-flag="rental.insurance_flag"
+            :is-owner-view="false"
             status="history"
           />
         </div>

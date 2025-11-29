@@ -1,37 +1,19 @@
 const mongoose = require('mongoose');
 
 const locationSchema = new mongoose.Schema({
-  street: {
-    type: String,
-    trim: true,
-    maxlength: 35
-  },
-  street_number: {
-    type: String,
-    trim: true,
-    maxlength: 5
-  },
   city: {
     type: String,
     required: true,
-    trim: true,
-    maxlength: 20
-  },
-  postcode: {
-    type: String,
-    trim: true,
-    maxlength: 7
+    trim: true
   },
   state: {
     type: String,
-    trim: true,
-    maxlength: 35
+    trim: true
   },
   country: {
     type: String,
     required: true,
-    trim: true,
-    maxlength: 20
+    trim: true
   },
   latitude: {
     type: Number,
@@ -44,6 +26,14 @@ const locationSchema = new mongoose.Schema({
     required: true,
     min: -180,
     max: 180
+  },
+  street: {
+    type: String,
+    trim: true
+  },
+  street_number: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true

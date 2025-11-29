@@ -73,21 +73,21 @@
       </button>
       <div v-show="expandedSections.attention" class="section-content">
         <div v-if="attentionBookings.length > 0" class="booking-list">
-          <BookingCard
+          <RentalCard
             v-for="booking in attentionBookings"
-            :key="`${booking._id}-${booking.status}`"
-            :booking-id="booking._id"
+            :key="booking._id"
+            :rental-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
             :end-date="booking.end_date"
             :total-price="booking.total_price"
             :location="booking.listing_id?.location_id"
-            :booking-status="booking.status"
+            :booking-status="booking.current_status || booking.status"
             :payment-confirmed="booking.payment_confirmed"
             :insurance-flag="booking.insurance_flag"
-            @view-details="viewDetails"
-            @action="handleBookingAction"
+            :is-owner-view="true"
+            status="pending"
           />
         </div>
         <div v-else class="empty-section">
@@ -111,10 +111,10 @@
       </button>
       <div v-show="expandedSections.activeUpcoming" class="section-content">
         <div v-if="activeUpcomingBookings.length > 0" class="booking-list">
-          <BookingCard
+          <RentalCard
             v-for="booking in activeUpcomingBookings"
-            :key="`${booking._id}-${booking.status}`"
-            :booking-id="booking._id"
+            :key="booking._id"
+            :rental-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
@@ -122,11 +122,11 @@
             :total-price="booking.total_price"
             :days-remaining="booking.daysRemaining"
             :location="booking.listing_id?.location_id"
-            :booking-status="booking.status"
+            :booking-status="booking.current_status || booking.status"
             :payment-confirmed="booking.payment_confirmed"
             :insurance-flag="booking.insurance_flag"
-            @view-details="viewDetails"
-            @action="handleBookingAction"
+            :is-owner-view="true"
+            status="active"
           />
         </div>
         <div v-else class="empty-section">
@@ -150,23 +150,22 @@
       </button>
       <div v-show="expandedSections.history" class="section-content">
         <div v-if="historyBookings.length > 0" class="booking-list">
-          <BookingCard
+          <RentalCard
             v-for="booking in historyBookings"
-            :key="`${booking._id}-${booking.status}`"
-            :booking-id="booking._id"
+            :key="booking._id"
+            :rental-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
             :end-date="booking.end_date"
             :total-price="booking.total_price"
             :location="booking.listing_id?.location_id"
-            :has-review="booking.status === 'REVIEWED'"
-            :booking-status="booking.status"
+            :has-review="booking.current_status === 'REVIEWED'"
+            :booking-status="booking.current_status || booking.status"
             :payment-confirmed="booking.payment_confirmed"
             :insurance-flag="booking.insurance_flag"
             :is-owner-view="true"
-            @view-details="viewDetails"
-            @action="handleBookingAction"
+            status="history"
           />
         </div>
         <div v-else class="empty-section">
@@ -221,118 +220,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits([
-  'view-details', 
-  'accept-request', 
-  'decline-request', 
-  'contact-renter',
-  'cancel-booking',
-  'confirm-handoff',
-  'confirm-return',
-  'verify-complete',
-  'open-dispute',
-  'contact-support',
-  'view-review'
-]);
-
-// Track which sections are expanded
-const expandedSections = ref({
-  attention: false,
-  activeUpcoming: false,
-  history: false
-});
-
-// Compute bookings for "Requires Attention" section
-// States: PENDING, PICKUP, PICKUP_OWNER, PICKUP_RENTER, RETURN, RETURN_OWNER, RETURN_RENTER
-const attentionBookings = computed(() => {
-  const attentionStatuses = ['PENDING', 'PICKUP', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
-  const allBookings = [
-    ...props.bookings.pending,
-    ...props.bookings.active,
-    ...props.bookings.upcoming
-  ];
-
-  return allBookings.filter(booking =>
-    attentionStatuses.includes(booking.status)
-  ).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-});
-
-// Compute bookings for "Active & Upcoming" section
-// States: ACCEPTED, IN_PROGRESS (sorted by closest start/end date, exclude passed dates)
-const activeUpcomingBookings = computed(() => {
-  const activeStatuses = ['ACCEPTED', 'IN_PROGRESS','PICKUP_OWNER'];
-  const now = new Date();
-
-  const allBookings = [
-    ...props.bookings.active,
-    ...props.bookings.upcoming
-  ];
-
-  return allBookings.filter(booking => {
-    const isActiveStatus = activeStatuses.includes(booking.status);
-    const endDate = new Date(booking.end_date);
-    const isNotPassed = endDate >= now;
-    return isActiveStatus && isNotPassed;
-  }).sort((a, b) => {
-    // Sort by closest date (start_date for upcoming, end_date for active)
-    const aDate = a.status === 'IN_PROGRESS' ? new Date(a.end_date) : new Date(a.start_date);
-    const bDate = b.status === 'IN_PROGRESS' ? new Date(b.end_date) : new Date(b.start_date);
-    return aDate - bDate;
-  });
-});
-
-// Compute bookings for "History" section
-// States: COMPLETED, REVIEWED, CANCELLED, DECLINED, DISPUTED, DISPUTE_RESOLVED
-const historyBookings = computed(() => {
-  const historyStatuses = ['COMPLETED', 'REVIEWED', 'CANCELLED', 'DECLINED', 'DISPUTED', 'DISPUTE_RESOLVED'];
-
-  return props.bookings.history.filter(booking =>
-    historyStatuses.includes(booking.status)
-  ).sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
-});
-
-// Total bookings count
-const totalBookings = computed(() => {
-  return attentionBookings.value.length +
-         activeUpcomingBookings.value.length +
-         historyBookings.value.length;
-});
-
-// Determine which section to expand by default
-const initializeExpandedSections = () => {
-  // Priority: Attention > Active & Upcoming > History
-  if (attentionBookings.value.length > 0) {
-    expandedSections.value.attention = true;
-  } else if (activeUpcomingBookings.value.length > 0) {
-    expandedSections.value.activeUpcoming = true;
-  } else if (historyBookings.value.length > 0) {
-    expandedSections.value.history = true;
-  }
-};
-
-// Watch for bookings changes to reinitialize
-watch(() => props.bookings, () => {
-  // Reset all sections
-  expandedSections.value = {
-    attention: false,
-    activeUpcoming: false,
-    history: false
-  };
-  initializeExpandedSections();
-}, { deep: true });
-
-onMounted(() => {
-  initializeExpandedSections();
-});
-
-const toggleSection = (section) => {
-  expandedSections.value[section] = !expandedSections.value[section];
-};
-
-const formatRating = (rating) => {
-  if (!rating || rating === 0) return 'N/A';
-  return parseFloat(rating).toFixed(1);
-};
+const emit = defineEmits(['view-details', 'accept-request', 'decline-request', 'contact-renter']);
 
 // Track which sections are expanded
 const expandedSections = ref({
@@ -453,40 +341,6 @@ const declineRequest = (bookingId) => {
 
 const contactRenter = (renterId) => {
   emit('contact-renter', renterId);
-};
-
-const handleBookingAction = ({ action, bookingId }) => {
-  switch (action) {
-    case 'accept':
-      emit('accept-request', bookingId);
-      break;
-    case 'decline':
-      emit('decline-request', bookingId);
-      break;
-    case 'cancel':
-      emit('cancel-booking', bookingId);
-      break;
-    case 'confirm-handoff':
-      emit('confirm-handoff', bookingId);
-      break;
-    case 'confirm-return':
-      emit('confirm-return', bookingId);
-      break;
-    case 'everything-ok':
-      emit('verify-complete', bookingId);
-      break;
-    case 'something-wrong':
-      emit('open-dispute', bookingId);
-      break;
-    case 'contact-support':
-      emit('contact-support', bookingId);
-      break;
-    case 'show-review':
-      emit('view-review', bookingId);
-      break;
-    default:
-      console.warn('Unknown action:', action);
-  }
 };
 
 const viewMyListings = () => {

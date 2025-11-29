@@ -180,7 +180,7 @@ const options = {
             booking_id: { type: 'string' },
             status: {
               type: 'string',
-              enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER', 'COMPLETED', 'REVIEWED', 'DISPUTED', 'DISPUTE_RESOLVED'],
+              enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY', 'COMPLETED', 'REVIEWED', 'DISPUTED'],
             },
             changed_by: { type: 'string', enum: ['renter', 'owner', 'system'] },
             changed_by_user_id: { type: 'string' },
@@ -1394,8 +1394,7 @@ const options = {
       '/api/bookings/{id}/status': {
         put: {
           tags: ['Bookings'],
-          summary: 'Update booking status (deprecated - use /status/transition or action endpoints instead)',
-          deprecated: true,
+          summary: 'Update booking status',
           security: [{ bearerAuth: [] }],
           parameters: [
             {
@@ -1416,7 +1415,7 @@ const options = {
                   properties: {
                     status: {
                       type: 'string',
-                      enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER', 'COMPLETED', 'REVIEWED', 'DISPUTED', 'DISPUTE_RESOLVED'],
+                      enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'VERIFY', 'COMPLETED', 'REVIEWED', 'DISPUTED'],
                     },
                   },
                 },
@@ -1685,7 +1684,6 @@ const options = {
         post: {
           tags: ['Booking Status'],
           summary: 'Confirm pickup (renter only)',
-          description: 'Renter confirms equipment pickup. PICKUP -> PICKUP_RENTER (renter confirms first) or PICKUP_OWNER -> IN_PROGRESS (renter confirms after owner). Requires photos to be uploaded first.',
           security: [{ bearerAuth: [] }],
           parameters: [
             {
@@ -1711,14 +1709,6 @@ const options = {
                 },
               },
             },
-            400: {
-              description: 'Invalid state transition',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/Error' },
-                },
-              },
-            },
           },
         },
       },
@@ -1726,7 +1716,6 @@ const options = {
         post: {
           tags: ['Booking Status'],
           summary: 'Confirm return (renter only)',
-          description: 'Renter confirms equipment return (RETURN -> RETURN_RENTER)',
           security: [{ bearerAuth: [] }],
           parameters: [
             {
@@ -1749,104 +1738,6 @@ const options = {
                       statusEntry: { $ref: '#/components/schemas/BookingStatus' },
                     },
                   },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/api/bookings/{id}/actions/owner-confirm-handoff': {
-        post: {
-          tags: ['Booking Status'],
-          summary: 'Confirm equipment handoff (owner only)',
-          description: 'Owner confirms giving equipment to renter. PICKUP -> PICKUP_OWNER (owner confirms first) or PICKUP_RENTER -> IN_PROGRESS (owner confirms after renter)',
-          security: [{ bearerAuth: [] }],
-          parameters: [
-            {
-              name: 'id',
-              in: 'path',
-              required: true,
-              description: 'Booking ID',
-              schema: { type: 'string' },
-            },
-          ],
-          responses: {
-            200: {
-              description: 'Handoff confirmed',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      message: { type: 'string' },
-                      statusEntry: { $ref: '#/components/schemas/BookingStatus' },
-                    },
-                  },
-                },
-              },
-            },
-            400: {
-              description: 'Invalid state transition',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/Error' },
-                },
-              },
-            },
-            403: {
-              description: 'Not authorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/Error' },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/api/bookings/{id}/actions/owner-confirm-return': {
-        post: {
-          tags: ['Booking Status'],
-          summary: 'Confirm receiving equipment back (owner only)',
-          description: 'Owner confirms receiving equipment back from renter (RETURN -> RETURN_OWNER). Owner must then verify equipment condition.',
-          security: [{ bearerAuth: [] }],
-          parameters: [
-            {
-              name: 'id',
-              in: 'path',
-              required: true,
-              description: 'Booking ID',
-              schema: { type: 'string' },
-            },
-          ],
-          responses: {
-            200: {
-              description: 'Return confirmed',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      message: { type: 'string' },
-                      statusEntry: { $ref: '#/components/schemas/BookingStatus' },
-                    },
-                  },
-                },
-              },
-            },
-            400: {
-              description: 'Invalid state transition',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/Error' },
-                },
-              },
-            },
-            403: {
-              description: 'Not authorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/Error' },
                 },
               },
             },
@@ -1857,7 +1748,6 @@ const options = {
         post: {
           tags: ['Booking Status'],
           summary: 'Verify equipment returned (owner only)',
-          description: 'Owner verifies equipment is returned in good condition. RETURN_OWNER -> COMPLETED or RETURN_RENTER -> COMPLETED. This marks the booking as successfully completed.',
           security: [{ bearerAuth: [] }],
           parameters: [
             {
@@ -1883,14 +1773,6 @@ const options = {
                 },
               },
             },
-            400: {
-              description: 'Invalid state transition',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/Error' },
-                },
-              },
-            },
           },
         },
       },
@@ -1898,7 +1780,6 @@ const options = {
         post: {
           tags: ['Booking Status'],
           summary: 'Open dispute (owner only)',
-          description: 'Owner opens a dispute about equipment condition or damage. RETURN_OWNER -> DISPUTED or RETURN_RENTER -> DISPUTED. Support team will be notified.',
           security: [{ bearerAuth: [] }],
           parameters: [
             {
@@ -1917,7 +1798,7 @@ const options = {
                   type: 'object',
                   required: ['reason'],
                   properties: {
-                    reason: { type: 'string', description: 'Detailed reason for the dispute' },
+                    reason: { type: 'string' },
                   },
                 },
               },
@@ -1935,14 +1816,6 @@ const options = {
                       statusEntry: { $ref: '#/components/schemas/BookingStatus' },
                     },
                   },
-                },
-              },
-            },
-            400: {
-              description: 'Invalid state transition or missing reason',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/Error' },
                 },
               },
             },

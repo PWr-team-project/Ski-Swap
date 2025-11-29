@@ -18,10 +18,8 @@
       <div class="card-content">
         <!-- Equipment Name and Category -->
         <div class="header-section">
-          <div class="title-row">
-            <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
-            <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
-          </div>
+          <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
+          <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
         </div>
 
         <!-- 3-Column Grid -->
@@ -33,24 +31,24 @@
             <div class="column-subtext">{{ getDuration(startDate, endDate) }} days</div>
           </div>
 
-          <!-- Column 2: Renter Info (Owner View) -->
+          <!-- Column 2: Owner/Renter Info -->
           <div class="info-column">
-            <div class="column-label">Renter</div>
+            <div class="column-label">{{ isOwnerView ? 'Renter' : 'Owner' }}</div>
             <div class="user-info">
-              <div class="user-avatar">{{ getUserInitial(renter) }}</div>
+              <div class="user-avatar">{{ getUserInitial(otherUser) }}</div>
               <div class="user-details">
-                <div class="column-value">{{ getUserName(renter) }}</div>
+                <div class="column-value">{{ getUserName(otherUser) }}</div>
                 <div class="column-subtext" v-if="showContactInfo">
                   <div v-if="location">{{ getShortLocation(location) }}</div>
-                  <div v-if="renter?.phone">{{ renter.phone }}</div>
+                  <div v-if="otherUser?.phone">{{ otherUser.phone }}</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Column 3: Earnings -->
+          <!-- Column 3: Price and Extras -->
           <div class="info-column">
-            <div class="column-label">Earnings</div>
+            <div class="column-label">{{ isOwnerView ? 'Earnings' : 'Total' }}</div>
             <div class="column-value price">€{{ totalPrice?.toFixed(2) || '0.00' }}</div>
             <div class="column-subtext">
               <div class="badges">
@@ -63,23 +61,34 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons - Bottom Right -->
         <div class="action-buttons">
-          <!-- Left Side: Owner Action Buttons -->
-          <div class="action-buttons-left">
+          <!-- View Details - Always First and Sky Blue -->
+          <button @click="$emit('view-details', bookingId)" class="btn btn-details">View Details</button>
+
+          <!-- Owner Buttons -->
+          <template v-if="isOwnerView">
             <button v-if="showOwnerAccept" @click="handleAction('accept')" class="btn btn-success">Accept</button>
             <button v-if="showOwnerDecline" @click="handleAction('decline')" class="btn btn-danger">Decline</button>
             <button v-if="showOwnerCancel" @click="handleAction('cancel')" class="btn btn-danger">Cancel</button>
-            <button v-if="showOwnerConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm Handoff</button>
+            <button v-if="showOwnerConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm</button>
             <button v-if="showOwnerConfirmReturn" @click="handleAction('confirm-return')" class="btn btn-success">Confirm Return</button>
-            <button v-if="showOwnerEverythingOK" @click="handleAction('everything-ok')" class="btn btn-success">Equipment checked</button>
+            <button v-if="showOwnerEverythingOK" @click="handleAction('everything-ok')" class="btn btn-success">Everything OK</button>
             <button v-if="showOwnerSomethingWrong" @click="handleAction('something-wrong')" class="btn btn-dispute">Something's Wrong</button>
             <button v-if="showOwnerContactSupport" @click="handleAction('contact-support')" class="btn btn-support">Contact Support</button>
             <button v-if="showOwnerShowReview" @click="handleAction('show-review')" class="btn btn-review">Show Review</button>
-          </div>
+          </template>
 
-          <!-- Right Side: View Details - Always on Right -->
-          <button @click="$emit('view-details', bookingId)" class="btn btn-details">View Details</button>
+          <!-- Renter Buttons -->
+          <template v-else>
+            <button v-if="showRenterPay" @click="handleAction('pay')" class="btn btn-success">Pay Now</button>
+            <button v-if="showRenterCancel" @click="handleAction('cancel')" class="btn btn-danger">Cancel</button>
+            <button v-if="showRenterConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm Handoff</button>
+            <button v-if="showRenterConfirmReturn" @click="handleAction('confirm-return')" class="btn btn-success">Confirm Return</button>
+            <button v-if="showRenterReview" @click="handleAction('review')" class="btn btn-review">Write Review</button>
+            <button v-if="showRenterRentAgain" @click="handleAction('rent-again')" class="btn btn-success">Rent Again</button>
+            <button v-if="showRenterContactSupport" @click="handleAction('contact-support')" class="btn btn-support">Contact Support</button>
+          </template>
         </div>
       </div>
     </div>
@@ -92,27 +101,36 @@ import { computed } from 'vue';
 const props = defineProps({
   bookingId: String,
   listing: Object,
-  renter: Object, // Owner views the Renter
+  renter: Object,
+  owner: Object,
   startDate: String,
   endDate: String,
   totalPrice: Number,
   bookingStatus: String, // Actual booking status (PENDING, ACCEPTED, etc.)
   paymentConfirmed: Boolean,
   insuranceFlag: Boolean,
-  location: Object
+  location: Object,
+  isOwnerView: {
+    type: Boolean,
+    default: false
+  }
 });
 
 const emit = defineEmits(['view-listing', 'view-details', 'action']);
+
+// Determine other user
+const otherUser = computed(() => {
+  return props.isOwnerView ? props.renter : props.owner;
+});
 
 // Status mapping
 const statusClass = computed(() => {
   const status = props.bookingStatus;
   if (['CANCELLED', 'DECLINED', 'DISPUTED'].includes(status)) return 'status-error';
-  if (['COMPLETED', 'DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
+  if (['COMPLETED', 'REVIEWED', 'DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
   if (['IN_PROGRESS', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'].includes(status)) return 'status-active';
   if (['PENDING'].includes(status)) return 'status-pending';
   if (['ACCEPTED'].includes(status)) return 'status-upcoming';
-  if (['REVIEWED'].includes(status)) return 'status-reviewed';
   return 'status-default';
 });
 
@@ -121,7 +139,7 @@ const statusText = computed(() => {
     'PENDING': 'Pending',
     'ACCEPTED': 'Accepted',
     'PICKUP': 'Pickup',
-    'PICKUP_OWNER': 'Active',
+    'PICKUP_OWNER': 'Pickup',
     'PICKUP_RENTER': 'Pickup',
     'IN_PROGRESS': 'Active',
     'RETURN': 'Return',
@@ -138,30 +156,39 @@ const statusText = computed(() => {
 });
 
 // Show contact info based on status
-const locationAllowedStates = [];
+const locationAllowedStates = ['ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
 const showContactInfo = computed(() => locationAllowedStates.includes(props.bookingStatus));
-const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED','PICKUP'].includes(props.bookingStatus));
+const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
 
 // Owner button visibility
-const showOwnerAccept = computed(() => props.bookingStatus === 'PENDING');
-const showOwnerDecline = computed(() => props.bookingStatus === 'PENDING');
-const showOwnerCancel = computed(() => props.bookingStatus === 'ACCEPTED');
-const showOwnerConfirmHandoff = computed(() => ['PICKUP', 'PICKUP_RENTER'].includes(props.bookingStatus));
-const showOwnerConfirmReturn = computed(() => props.bookingStatus === 'RETURN');
-const showOwnerEverythingOK = computed(() => ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
-const showOwnerSomethingWrong = computed(() => ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
-const showOwnerContactSupport = computed(() => props.bookingStatus === 'DISPUTED');
-const showOwnerShowReview = computed(() => props.bookingStatus === 'REVIEWED');
+const showOwnerAccept = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
+const showOwnerDecline = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
+const showOwnerCancel = computed(() => props.isOwnerView && props.bookingStatus === 'ACCEPTED');
+const showOwnerConfirmHandoff = computed(() => props.isOwnerView && ['PICKUP', 'PICKUP_RENTER'].includes(props.bookingStatus));
+const showOwnerConfirmReturn = computed(() => props.isOwnerView && props.bookingStatus === 'RETURN');
+const showOwnerEverythingOK = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
+const showOwnerSomethingWrong = computed(() => props.isOwnerView && ['RETURN_RENTER', 'RETURN_OWNER'].includes(props.bookingStatus));
+const showOwnerContactSupport = computed(() => props.isOwnerView && props.bookingStatus === 'DISPUTED');
+const showOwnerShowReview = computed(() => props.isOwnerView && props.bookingStatus === 'REVIEWED');
+
+// Renter button visibility
+const showRenterPay = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus) && !props.paymentConfirmed);
+const showRenterCancel = computed(() => !props.isOwnerView && ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
+const showRenterConfirmHandoff = computed(() => !props.isOwnerView && ['PICKUP', 'PICKUP_OWNER'].includes(props.bookingStatus));
+const showRenterConfirmReturn = computed(() => !props.isOwnerView && ['RETURN', 'RETURN_OWNER'].includes(props.bookingStatus));
+const showRenterReview = computed(() => !props.isOwnerView && props.bookingStatus === 'COMPLETED');
+const showRenterRentAgain = computed(() => !props.isOwnerView && ['REVIEWED', 'CANCELLED'].includes(props.bookingStatus));
+const showRenterContactSupport = computed(() => !props.isOwnerView && props.bookingStatus === 'DISPUTED');
 
 // Helper functions
 const getImageUrl = (photoPath) => {
-  if (!photoPath) return '/assets/images/image.png';
+  if (!photoPath) return '/assets/images/placeholder.jpg';
   if (photoPath.startsWith('http')) return photoPath;
   return `http://localhost:5000${photoPath}`;
 };
 
 const handleImageError = (e) => {
-  e.target.src = '/assets/images/image.png';
+  e.target.src = '/assets/images/placeholder.jpg';
 };
 
 const getUserName = (user) => {
@@ -251,9 +278,6 @@ const handleAction = (action) => {
 .status-error {
   background: #ef4444;
 }
-.status-reviewed {
-  background: #8b5cf6;
-}
 
 .status-default {
   background: #6b7280;
@@ -296,14 +320,10 @@ const handleAction = (action) => {
 
 /* Header Section */
 .header-section {
-  padding-right: 6rem; /* Space for status badge */
-}
-
-.title-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  gap: 1rem;
+  padding-right: 6rem; /* Space for status badge */
 }
 
 .equipment-title {
@@ -311,6 +331,7 @@ const handleAction = (action) => {
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
+  flex: 1;
 }
 
 .equipment-category {
@@ -320,7 +341,6 @@ const handleAction = (action) => {
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 /* 3-Column Grid */
@@ -424,16 +444,9 @@ const handleAction = (action) => {
 .action-buttons {
   display: flex;
   gap: 0.6rem;
-  justify-content: space-between;
-  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   margin-top: auto;
-  flex-wrap: wrap;
-}
-
-.action-buttons-left {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
 }
 
 .btn {
@@ -453,7 +466,7 @@ const handleAction = (action) => {
 .btn-details {
   background: #00AAFF;
   color: white;
-  margin-left: auto;
+  order: -1; /* Always first */
 }
 
 .btn-details:hover {
@@ -521,6 +534,8 @@ const handleAction = (action) => {
   }
 
   .header-section {
+    flex-direction: column;
+    align-items: flex-start;
     padding-right: 4rem;
   }
 
@@ -531,20 +546,10 @@ const handleAction = (action) => {
 
   .action-buttons {
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .action-buttons-left {
-    width: 100%;
-    flex-direction: column;
   }
 
   .btn {
     width: 100%;
-  }
-
-  .btn-details {
-    margin-left: 0;
   }
 }
 </style>
