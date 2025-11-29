@@ -18,8 +18,10 @@
       <div class="card-content">
         <!-- Equipment Name and Category -->
         <div class="header-section">
-          <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
-          <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
+          <div class="title-row">
+            <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
+            <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
+          </div>
         </div>
 
         <!-- 3-Column Grid -->
@@ -61,31 +63,21 @@
           </div>
         </div>
 
-        <!-- Action Buttons - Bottom Right -->
+        <!-- Action Buttons -->
         <div class="action-buttons">
-          <!-- View Details - Always First and Sky Blue -->
+          <!-- Left Side: Renter Action Buttons -->
+          <div class="action-buttons-left">
+            <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success">Pay Now</button>
+            <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger">Cancel</button>
+            <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Pickup</button>
+            <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
+            <button v-if="showRenterReview" @click="navigateToDetails" class="btn btn-review">Write Review</button>
+            <button v-if="showRenterRentAgain" @click="navigateToDetails" class="btn btn-success">Rent Again</button>
+            <button v-if="showContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
+          </div>
+
+          <!-- Right Side: View Details - Always on Right -->
           <button @click="navigateToDetails" class="btn btn-details">View Details</button>
-
-          <!-- Owner Buttons -->
-          <template v-if="isOwnerView">
-            <button v-if="showAcceptButton" @click="navigateToDetails" class="btn btn-success">Accept</button>
-            <button v-if="showDeclineButton" @click="navigateToDetails" class="btn btn-danger">Decline</button>
-            <button v-if="showOwnerConfirmHandoffButton" @click="navigateToDetails" class="btn btn-success">Confirm</button>
-            <button v-if="showOwnerConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
-            <button v-if="showEverythingOKButton" @click="navigateToDetails" class="btn btn-success">Everything OK</button>
-            <button v-if="showSomethingWrongButton" @click="navigateToDetails" class="btn btn-dispute">Something's Wrong</button>
-            <button v-if="showOwnerContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
-            <button v-if="showOwnerShowReview" @click="navigateToDetails" class="btn btn-review">Show Review</button>
-          </template>
-
-          <!-- Renter Buttons -->
-          <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success">Pay Now</button>
-          <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger">Cancel</button>
-          <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Pickup</button>
-          <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
-          <button v-if="showRenterReview" @click="navigateToDetails" class="btn btn-review">Write Review</button>
-          <button v-if="showRenterRentAgain" @click="navigateToDetails" class="btn btn-success">Rent Again</button>
-          <button v-if="showContactSupportButton" @click="navigateToDetails" class="btn btn-support">Contact Support</button>
         </div>
       </div>
     </div>
@@ -312,10 +304,14 @@ const navigateToDetails = () => {
 }
 
 .header-section {
+  padding-right: 6rem;
+}
+
+.title-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding-right: 6rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .equipment-title {
@@ -323,7 +319,6 @@ const navigateToDetails = () => {
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
-  flex: 1;
 }
 
 .equipment-category {
@@ -333,6 +328,7 @@ const navigateToDetails = () => {
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .info-grid {
@@ -432,9 +428,16 @@ const navigateToDetails = () => {
 .action-buttons {
   display: flex;
   gap: 0.6rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.action-buttons-left {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .btn {
@@ -454,7 +457,7 @@ const navigateToDetails = () => {
 .btn-details {
   background: #00AAFF;
   color: white;
-  order: -1;
+  margin-left: auto;
 }
 
 .btn-details:hover {
@@ -521,8 +524,6 @@ const navigateToDetails = () => {
   }
 
   .header-section {
-    flex-direction: column;
-    align-items: flex-start;
     padding-right: 4rem;
   }
 
@@ -533,10 +534,20 @@ const navigateToDetails = () => {
 
   .action-buttons {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-buttons-left {
+    width: 100%;
+    flex-direction: column;
   }
 
   .btn {
     width: 100%;
+  }
+
+  .btn-details {
+    margin-left: 0;
   }
 }
 </style>

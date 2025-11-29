@@ -18,8 +18,10 @@
       <div class="card-content">
         <!-- Equipment Name and Category -->
         <div class="header-section">
-          <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
-          <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
+          <div class="title-row">
+            <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
+            <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
+          </div>
         </div>
 
         <!-- 3-Column Grid -->
@@ -61,20 +63,22 @@
           </div>
         </div>
 
-        <!-- Action Buttons - Bottom Right -->
+        <!-- Action Buttons -->
         <div class="action-buttons">
-          <!-- Owner Buttons -->
-          <button v-if="showOwnerAccept" @click="handleAction('accept')" class="btn btn-success">Accept</button>
-          <button v-if="showOwnerDecline" @click="handleAction('decline')" class="btn btn-danger">Decline</button>
-          <button v-if="showOwnerCancel" @click="handleAction('cancel')" class="btn btn-danger">Cancel</button>
-          <button v-if="showOwnerConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm Handoff</button>
-          <button v-if="showOwnerConfirmReturn" @click="handleAction('confirm-return')" class="btn btn-success">Confirm Return</button>
-          <button v-if="showOwnerEverythingOK" @click="handleAction('everything-ok')" class="btn btn-success">Equipment checked</button>
-          <button v-if="showOwnerSomethingWrong" @click="handleAction('something-wrong')" class="btn btn-dispute">Something's Wrong</button>
-          <button v-if="showOwnerContactSupport" @click="handleAction('contact-support')" class="btn btn-support">Contact Support</button>
-          <button v-if="showOwnerShowReview" @click="handleAction('show-review')" class="btn btn-review">Show Review</button>
+          <!-- Left Side: Owner Action Buttons -->
+          <div class="action-buttons-left">
+            <button v-if="showOwnerAccept" @click="handleAction('accept')" class="btn btn-success">Accept</button>
+            <button v-if="showOwnerDecline" @click="handleAction('decline')" class="btn btn-danger">Decline</button>
+            <button v-if="showOwnerCancel" @click="handleAction('cancel')" class="btn btn-danger">Cancel</button>
+            <button v-if="showOwnerConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm Handoff</button>
+            <button v-if="showOwnerConfirmReturn" @click="handleAction('confirm-return')" class="btn btn-success">Confirm Return</button>
+            <button v-if="showOwnerEverythingOK" @click="handleAction('everything-ok')" class="btn btn-success">Equipment checked</button>
+            <button v-if="showOwnerSomethingWrong" @click="handleAction('something-wrong')" class="btn btn-dispute">Something's Wrong</button>
+            <button v-if="showOwnerContactSupport" @click="handleAction('contact-support')" class="btn btn-support">Contact Support</button>
+            <button v-if="showOwnerShowReview" @click="handleAction('show-review')" class="btn btn-review">Show Review</button>
+          </div>
 
-          <!-- View Details - Always First and Sky Blue -->
+          <!-- Right Side: View Details - Always on Right -->
           <button @click="$emit('view-details', bookingId)" class="btn btn-details">View Details</button>
         </div>
       </div>
@@ -311,10 +315,14 @@ const handleAction = (action) => {
 
 /* Header Section */
 .header-section {
+  padding-right: 6rem; /* Space for status badge */
+}
+
+.title-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding-right: 6rem; /* Space for status badge */
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .equipment-title {
@@ -322,7 +330,6 @@ const handleAction = (action) => {
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
-  flex: 1;
 }
 
 .equipment-category {
@@ -332,6 +339,7 @@ const handleAction = (action) => {
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* 3-Column Grid */
@@ -435,9 +443,16 @@ const handleAction = (action) => {
 .action-buttons {
   display: flex;
   gap: 0.6rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.action-buttons-left {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .btn {
@@ -457,7 +472,7 @@ const handleAction = (action) => {
 .btn-details {
   background: #00AAFF;
   color: white;
-  order: -1; /* Always first */
+  margin-left: auto;
 }
 
 .btn-details:hover {
@@ -525,8 +540,6 @@ const handleAction = (action) => {
   }
 
   .header-section {
-    flex-direction: column;
-    align-items: flex-start;
     padding-right: 4rem;
   }
 
@@ -537,10 +550,20 @@ const handleAction = (action) => {
 
   .action-buttons {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-buttons-left {
+    width: 100%;
+    flex-direction: column;
   }
 
   .btn {
     width: 100%;
+  }
+
+  .btn-details {
+    margin-left: 0;
   }
 }
 </style>
