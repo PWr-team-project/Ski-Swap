@@ -25,19 +25,8 @@ router.get('/renting', auth, async (req, res) => {
       })
       .sort({ start_date: -1 });
 
-    // Get booking statuses (get latest status for each booking)
-    const bookingIds = bookings.map(b => b._id);
-    const statuses = await BookingStatus.aggregate([
-      { $match: { booking_id: { $in: bookingIds } } },
-      { $sort: { createdAt: -1 } },
-      { $group: { _id: '$booking_id', latestStatus: { $first: '$$ROOT' } } }
-    ]);
-    const statusMap = {};
-    statuses.forEach(s => {
-      statusMap[s._id.toString()] = s.latestStatus;
-    });
-
     // Get reviews
+    const bookingIds = bookings.map(b => b._id);
     const reviews = await Review.find({
       booking_id: { $in: bookingIds },
       review_type: 'owner_to_renter'
@@ -63,14 +52,12 @@ router.get('/renting', auth, async (req, res) => {
     const historyStatuses = ['COMPLETED', 'REVIEWED', 'CANCELLED', 'DECLINED', 'DISPUTED', 'DISPUTE_RESOLVED'];
 
     bookings.forEach(booking => {
-      const statusEntry = statusMap[booking._id.toString()];
-      const currentStatus = statusEntry?.status || 'PENDING';
+      const currentStatus = booking.current_status;
       const review = reviewMap[booking._id.toString()];
 
       const bookingData = {
         ...booking.toObject(),
         status: currentStatus,
-        bookingStatus: statusEntry,
         ownerReview: review
       };
 
@@ -133,19 +120,8 @@ router.get('/lending', auth, async (req, res) => {
       .populate('renter_id', 'nickname first_name last_name profile_photo email')
       .sort({ start_date: -1 });
 
-    // Get booking statuses (get latest status for each booking)
-    const bookingIds = bookings.map(b => b._id);
-    const statuses = await BookingStatus.aggregate([
-      { $match: { booking_id: { $in: bookingIds } } },
-      { $sort: { createdAt: -1 } },
-      { $group: { _id: '$booking_id', latestStatus: { $first: '$$ROOT' } } }
-    ]);
-    const statusMap = {};
-    statuses.forEach(s => {
-      statusMap[s._id.toString()] = s.latestStatus;
-    });
-
     // Get payments
+    const bookingIds = bookings.map(b => b._id);
     const payments = await Payment.find({ booking_id: { $in: bookingIds } });
     const paymentMap = {};
     payments.forEach(p => {
@@ -178,15 +154,13 @@ router.get('/lending', auth, async (req, res) => {
     const historyStatuses = ['COMPLETED', 'REVIEWED', 'CANCELLED', 'DECLINED', 'DISPUTED', 'DISPUTE_RESOLVED'];
 
     bookings.forEach(booking => {
-      const statusEntry = statusMap[booking._id.toString()];
-      const currentStatus = statusEntry?.status || 'PENDING';
+      const currentStatus = booking.current_status;
       const payment = paymentMap[booking._id.toString()];
       const review = reviewMap[booking._id.toString()];
 
       const bookingData = {
         ...booking.toObject(),
         status: currentStatus,
-        bookingStatus: statusEntry,
         payment: payment,
         renterReview: review
       };
@@ -269,14 +243,10 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to view this booking' });
     }
 
-    // Get booking status
-    const bookingStatus = await BookingStatus.findOne({ booking_id: req.params.id });
-
-    // Return booking with status included
+    // Return booking with status from Booking.current_status (fast query)
     const bookingData = {
       ...booking.toObject(),
-      status: bookingStatus?.status || 'pending',
-      bookingStatus: bookingStatus
+      status: booking.current_status
     };
 
     res.json(bookingData);

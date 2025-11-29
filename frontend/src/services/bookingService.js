@@ -125,6 +125,8 @@ export const bookingService = {
 
   /**
    * Renter confirms equipment pickup
+   * - PICKUP -> PICKUP_RENTER (renter confirms first)
+   * - PICKUP_OWNER -> IN_PROGRESS (renter confirms after owner)
    * @param {string} bookingId - Booking ID
    */
   async confirmPickup(bookingId) {
@@ -133,11 +135,33 @@ export const bookingService = {
   },
 
   /**
+   * Owner confirms equipment handoff
+   * - PICKUP -> PICKUP_OWNER (owner confirms first)
+   * - PICKUP_RENTER -> IN_PROGRESS (owner confirms after renter)
+   * @param {string} bookingId - Booking ID
+   */
+  async ownerConfirmHandoff(bookingId) {
+    const response = await apiClient.post(`/api/bookings/${bookingId}/actions/owner-confirm-handoff`);
+    return response.data;
+  },
+
+  /**
    * Renter confirms equipment return
+   * - RETURN -> RETURN_RENTER (renter confirms return)
    * @param {string} bookingId - Booking ID
    */
   async confirmReturn(bookingId) {
     const response = await apiClient.post(`/api/bookings/${bookingId}/actions/confirm-return`);
+    return response.data;
+  },
+
+  /**
+   * Owner confirms receiving equipment back
+   * - RETURN -> RETURN_OWNER (owner confirms return)
+   * @param {string} bookingId - Booking ID
+   */
+  async ownerConfirmReturn(bookingId) {
+    const response = await apiClient.post(`/api/bookings/${bookingId}/actions/owner-confirm-return`);
     return response.data;
   },
 

@@ -200,7 +200,7 @@
                   :title="!canConfirmHandoff ? 'Please upload pickup photos first' : ''"
                   class="btn btn-success"
                 >
-                  Confirm Handoff
+                  Confirm Pickup
                 </button>
 
                 <!-- Confirm Return - RETURN, RETURN_OWNER (green) -->
@@ -783,8 +783,9 @@ const handleRenterConfirmHandoff = async () => {
   if (!confirm('Confirm you have received the equipment?')) return;
 
   try {
-    const newStatus = currentStatus.value === 'PICKUP_OWNER' ? 'IN_PROGRESS' : 'PICKUP_RENTER';
-    await bookingService.transitionStatus(booking.value._id, newStatus, 'Renter confirmed handoff');
+    // Use dedicated renter pickup confirmation endpoint
+    // Will transition: PICKUP -> PICKUP_RENTER or PICKUP_OWNER -> IN_PROGRESS
+    await bookingService.confirmPickup(booking.value._id);
     alert('Handoff confirmed!');
     await fetchBookingDetails();
   } catch (err) {
@@ -798,8 +799,9 @@ const handleOwnerConfirmHandoff = async () => {
   if (!confirm('Confirm you have handed off the equipment?')) return;
 
   try {
-    const newStatus = currentStatus.value === 'PICKUP_RENTER' ? 'IN_PROGRESS' : 'PICKUP_OWNER';
-    await bookingService.transitionStatus(booking.value._id, newStatus, 'Owner confirmed handoff');
+    // Use dedicated owner handoff confirmation endpoint
+    // Will transition: PICKUP -> PICKUP_OWNER or PICKUP_RENTER -> IN_PROGRESS
+    await bookingService.ownerConfirmHandoff(booking.value._id);
     alert('Handoff confirmed!');
     await fetchBookingDetails();
   } catch (err) {
@@ -808,7 +810,7 @@ const handleOwnerConfirmHandoff = async () => {
   }
 };
 
-// Renter confirms return -> RETURN_RENTER or COMPLETED
+// Renter confirms return -> RETURN_RENTER (owner still needs to verify)
 const handleRenterConfirmReturn = async () => {
   // Check if return photos have been uploaded
   if (!hasReturnPhotos.value) {
@@ -819,9 +821,11 @@ const handleRenterConfirmReturn = async () => {
   if (!confirm('Confirm you have returned the equipment?')) return;
 
   try {
-    const newStatus = currentStatus.value === 'RETURN_OWNER' ? 'COMPLETED' : 'RETURN_RENTER';
-    await bookingService.transitionStatus(booking.value._id, newStatus, 'Renter confirmed return');
-    alert('Return confirmed!');
+    // Use dedicated renter return confirmation endpoint
+    // Will transition: RETURN -> RETURN_RENTER (owner needs to verify condition)
+    // Note: Renter cannot confirm from RETURN_OWNER state (owner is verifying)
+    await bookingService.confirmReturn(booking.value._id);
+    alert('Return confirmed! Waiting for owner verification.');
     await fetchBookingDetails();
   } catch (err) {
     console.error('Error confirming return:', err);
@@ -829,13 +833,15 @@ const handleRenterConfirmReturn = async () => {
   }
 };
 
-// Owner confirms return -> RETURN_OWNER
+// Owner confirms return -> RETURN_OWNER (then needs to verify condition)
 const handleOwnerConfirmReturn = async () => {
   if (!confirm('Confirm equipment has been returned?')) return;
 
   try {
-    await bookingService.transitionStatus(booking.value._id, 'RETURN_OWNER', 'Owner confirmed return');
-    alert('Return confirmed!');
+    // Use dedicated owner return confirmation endpoint
+    // Will transition: RETURN -> RETURN_OWNER (owner needs to verify condition)
+    await bookingService.ownerConfirmReturn(booking.value._id);
+    alert('Return confirmed! Please verify equipment condition.');
     await fetchBookingDetails();
   } catch (err) {
     console.error('Error confirming return:', err);
@@ -848,7 +854,9 @@ const handleEverythingOK = async () => {
   if (!confirm("Confirm equipment is in good condition?")) return;
 
   try {
-    await bookingService.transitionStatus(booking.value._id, 'COMPLETED', 'Owner verified equipment is OK');
+    // Use dedicated verify complete endpoint
+    // Will transition: RETURN_OWNER -> COMPLETED or RETURN_RENTER -> COMPLETED
+    await bookingService.verifyComplete(booking.value._id);
     alert('Booking completed!');
     await fetchBookingDetails();
   } catch (err) {
@@ -862,7 +870,9 @@ const handleDispute = async () => {
   if (!reason) return;
 
   try {
-    await bookingService.transitionStatus(booking.value._id, 'DISPUTED', reason);
+    // Use dedicated dispute endpoint
+    // Will transition: RETURN_OWNER -> DISPUTED or RETURN_RENTER -> DISPUTED
+    await bookingService.openDispute(booking.value._id, reason);
     alert('Dispute opened. Our support team will contact you.');
     await fetchBookingDetails();
   } catch (err) {

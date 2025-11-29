@@ -203,6 +203,7 @@ const acceptBookingRequest = async (bookingId) => {
   try {
     await bookingService.acceptBooking(bookingId);
     alert('Booking request accepted!');
+    await fetchData();
   } catch (err) {
     console.error('Error accepting booking:', err);
     alert(err.response?.data?.message || 'Failed to accept booking.');
@@ -216,6 +217,7 @@ const declineBookingRequest = async (bookingId) => {
   try {
     await bookingService.declineBooking(bookingId, reason);
     alert('Booking request declined.');
+    await fetchData();
   } catch (err) {
     console.error('Error declining booking:', err);
     alert(err.response?.data?.message || 'Failed to decline booking.');
@@ -233,6 +235,7 @@ const cancelBooking = async (bookingId) => {
   try {
     await bookingService.cancelBooking(bookingId);
     alert('Booking cancelled successfully');
+    await fetchData();
   } catch (err) {
     console.error('Error cancelling booking:', err);
     alert(err.response?.data?.message || 'Failed to cancel booking.');
@@ -243,11 +246,14 @@ const confirmHandoff = async (bookingId) => {
   if (!confirm('Confirm that you have handed off the equipment?')) return;
 
   try {
-    // Transition to PICKUP_OWNER
-    await bookingService.transitionStatus(bookingId, 'PICKUP_OWNER', 'Owner confirmed handoff');
+    // Use dedicated owner handoff endpoint
+    // Will transition: PICKUP -> PICKUP_OWNER or PICKUP_RENTER -> IN_PROGRESS
+    await bookingService.ownerConfirmHandoff(bookingId);
     alert('Handoff confirmed!');
+    await fetchData();
   } catch (err) {
     console.error('Error confirming handoff:', err);
+    alert(err.response?.data?.message || 'Failed to confirm handoff.');
   }
 };
 
@@ -255,9 +261,11 @@ const confirmReturn = async (bookingId) => {
   if (!confirm('Confirm that the equipment has been returned?')) return;
 
   try {
-    // Transition to RETURN_OWNER
-    await bookingService.transitionStatus(bookingId, 'RETURN_OWNER', 'Owner confirmed return');
-    alert('Return confirmed!');
+    // Use dedicated owner return confirmation endpoint
+    // Will transition: RETURN -> RETURN_OWNER
+    await bookingService.ownerConfirmReturn(bookingId);
+    alert('Return confirmed! Please verify equipment condition.');
+    await fetchData();
   } catch (err) {
     console.error('Error confirming return:', err);
     alert(err.response?.data?.message || 'Failed to confirm return.');
@@ -270,8 +278,10 @@ const verifyComplete = async (bookingId) => {
   try {
     await bookingService.verifyComplete(bookingId);
     alert('Rental completed successfully!');
+    await fetchData();
   } catch (err) {
     console.error('Error verifying completion:', err);
+    alert(err.response?.data?.message || 'Failed to verify completion.');
   }
 };
 
@@ -282,8 +292,11 @@ const openDispute = async (bookingId) => {
   try {
     await bookingService.openDispute(bookingId, reason);
     alert('Dispute opened. Support will contact you.');
+    await fetchData();
   } catch (err) {
     console.error('Error opening dispute:', err);
+    alert(err.response?.data?.message || 'Failed to open dispute.');
+  }
 };
 
 const contactSupport = (bookingId) => {
