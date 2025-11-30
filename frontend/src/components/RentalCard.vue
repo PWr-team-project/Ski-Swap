@@ -33,24 +33,24 @@
             <div class="column-subtext">{{ getDuration }} days</div>
           </div>
 
-          <!-- Column 2: Owner/Renter Info -->
+          <!-- Column 2: Owner Info (Renter View) -->
           <div class="info-column">
-            <div class="column-label">{{ isOwnerView ? 'Renter' : 'Owner' }}</div>
+            <div class="column-label">Owner</div>
             <div class="user-info">
               <div class="user-avatar">{{ getUserInitial }}</div>
               <div class="user-details">
                 <div class="column-value">{{ getUserName }}</div>
                 <div class="column-subtext" v-if="showContactInfo">
                   <div v-if="showLocation">{{ getShortLocation }}</div>
-                  <div v-if="showPhone && userInfo?.phone">{{ userInfo.phone }}</div>
+                  <div v-if="showPhone && owner?.phone">{{ owner.phone }}</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Column 3: Price and Extras -->
+          <!-- Column 3: Total Price -->
           <div class="info-column">
-            <div class="column-label">{{ isOwnerView ? 'Earnings' : 'Total' }}</div>
+            <div class="column-label">Total</div>
             <div class="column-value price">€{{ totalPrice?.toFixed(2) || '0.00' }}</div>
             <div class="column-subtext">
               <div class="badges">
@@ -93,8 +93,7 @@ const router = useRouter();
 const props = defineProps({
   rentalId: String,
   listing: Object,
-  owner: Object,
-  renter: Object,
+  owner: Object, // Renter views the Owner
   startDate: String,
   endDate: String,
   totalPrice: Number,
@@ -104,18 +103,10 @@ const props = defineProps({
   location: Object,
   hasReview: Boolean,
   paymentConfirmed: Boolean,
-  insuranceFlag: Boolean,
-  isOwnerView: {
-    type: Boolean,
-    default: false
-  }
+  insuranceFlag: Boolean
 });
 
 const emit = defineEmits(['view-details']);
-
-const userInfo = computed(() => {
-  return props.isOwnerView ? props.renter : props.owner;
-});
 
 const statusLabels = {
   'PENDING': 'Pending',
@@ -175,14 +166,14 @@ const handleImageError = (e) => {
 };
 
 const getUserName = computed(() => {
-  if (!userInfo.value) return 'Unknown';
-  const fullName = `${userInfo.value.first_name || ''} ${userInfo.value.last_name || ''}`.trim();
-  return fullName || userInfo.value.nickname || userInfo.value.email || 'Unknown';
+  if (!props.owner) return 'Unknown';
+  const fullName = `${props.owner.first_name || ''} ${props.owner.last_name || ''}`.trim();
+  return fullName || props.owner.nickname || props.owner.email || 'Unknown';
 });
 
 const getUserInitial = computed(() => {
-  if (!userInfo.value) return '?';
-  const name = userInfo.value.nickname || userInfo.value.first_name || userInfo.value.email || 'U';
+  if (!props.owner) return '?';
+  const name = props.owner.nickname || props.owner.first_name || props.owner.email || 'U';
   return name.charAt(0).toUpperCase();
 });
 

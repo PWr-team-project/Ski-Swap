@@ -64,6 +64,12 @@
           @decline-request="declineBookingRequest"
           @contact-renter="contactRenter"
           @cancel-booking="cancelBooking"
+          @confirm-handoff="confirmHandoff"
+          @confirm-return="confirmReturn"
+          @verify-complete="verifyComplete"
+          @open-dispute="openDispute"
+          @contact-support="contactSupport"
+          @view-review="viewReview"
         />
       </div>
     </div>
@@ -180,24 +186,22 @@ const fetchLendoutData = async (token) => {
 };
 
 const viewBookingDetails = (bookingId) => {
-  // TODO: Navigate to booking details page or open modal
-  console.log('View booking details:', bookingId);
-  alert('Booking details view coming soon!');
+  if (bookingId) {
+    router.push(`/booking/${bookingId}`);
+  }
 };
 
 const reviewEquipment = (bookingId) => {
-  // TODO: Open review modal
-  console.log('Review equipment:', bookingId);
-  alert('Review functionality coming soon!');
+  // Navigate to review page or open modal
+  // For now, redirect to booking details where review might be
+  router.push(`/booking/${bookingId}`);
 };
 
 const acceptBookingRequest = async (bookingId) => {
   if (!confirm('Accept this booking request?')) return;
 
   try {
-    // Use the action endpoint which performs PENDING -> ACCEPTED transition
     await bookingService.acceptBooking(bookingId);
-
     alert('Booking request accepted!');
     await fetchData();
   } catch (err) {
@@ -207,12 +211,11 @@ const acceptBookingRequest = async (bookingId) => {
 };
 
 const declineBookingRequest = async (bookingId) => {
-  if (!confirm('Decline this booking request?')) return;
+  const reason = prompt('Please provide a reason for declining:');
+  if (reason === null) return; // Cancelled
 
   try {
-    // Use the action endpoint which performs PENDING -> DECLINED transition
-    await bookingService.declineBooking(bookingId);
-
+    await bookingService.declineBooking(bookingId, reason);
     alert('Booking request declined.');
     await fetchData();
   } catch (err) {
@@ -223,16 +226,14 @@ const declineBookingRequest = async (bookingId) => {
 
 const contactRenter = (renterId) => {
   if (renterId) {
-    // Navigate to messages with this renter
-    router.push('/messages');
+    router.push(`/messages/${renterId}`);
   }
 };
 
 const cancelBooking = async (bookingId) => {
   if (!confirm('Cancel this booking? This action cannot be undone.')) return;
   try {
-    await bookingService.cancel(bookingId);
-
+    await bookingService.cancelBooking(bookingId);
     alert('Booking cancelled successfully');
     await fetchData();
   } catch (err) {
