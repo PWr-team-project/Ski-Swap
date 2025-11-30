@@ -267,7 +267,9 @@ router.post('/:id/actions/cancel', auth, async (req, res) => {
 
 /**
  * POST /api/bookings/:id/actions/confirm-pickup
- * Renter confirms pickup (PICKUP -> IN_PROGRESS)
+ * Renter confirms pickup
+ * - PICKUP -> PICKUP_RENTER (renter confirms first)
+ * - PICKUP_OWNER -> IN_PROGRESS (renter confirms after owner)
  * Requires photos to be uploaded first
  */
 router.post('/:id/actions/confirm-pickup', auth, async (req, res) => {
@@ -283,9 +285,26 @@ router.post('/:id/actions/confirm-pickup', auth, async (req, res) => {
       return res.status(403).json({ message: 'Only the renter can confirm pickup' });
     }
 
+    // Get current status to determine next state
+    const currentStatus = await getCurrentStatus(req.params.id);
+    let newStatus;
+    let message;
+
+    if (currentStatus === 'PICKUP') {
+      newStatus = 'PICKUP_RENTER';
+      message = 'Pickup confirmed. Waiting for owner confirmation.';
+    } else if (currentStatus === 'PICKUP_OWNER') {
+      newStatus = 'IN_PROGRESS';
+      message = 'Pickup confirmed. Rental is now in progress!';
+    } else {
+      return res.status(400).json({
+        message: `Cannot confirm pickup from status: ${currentStatus}`
+      });
+    }
+
     const result = await changeBookingStatus(
       req.params.id,
-      'IN_PROGRESS',
+      newStatus,
       'renter',
       req.userId,
       'Renter confirmed equipment pickup'
@@ -296,7 +315,7 @@ router.post('/:id/actions/confirm-pickup', auth, async (req, res) => {
     }
 
     res.json({
-      message: 'Pickup confirmed successfully',
+      message,
       statusEntry: result.statusEntry
     });
   } catch (error) {
@@ -307,7 +326,8 @@ router.post('/:id/actions/confirm-pickup', auth, async (req, res) => {
 
 /**
  * POST /api/bookings/:id/actions/confirm-return
- * Renter confirms return (RETURN -> VERIFY)
+ * Renter confirms return
+ * - RETURN -> RETURN_RENTER (renter confirms return, owner needs to verify)
  * Requires photos to be uploaded first
  */
 router.post('/:id/actions/confirm-return', auth, async (req, res) => {
@@ -323,9 +343,26 @@ router.post('/:id/actions/confirm-return', auth, async (req, res) => {
       return res.status(403).json({ message: 'Only the renter can confirm return' });
     }
 
+    // Get current status to determine next state
+    const currentStatus = await getCurrentStatus(req.params.id);
+
+    if (currentStatus !== 'RETURN' && currentStatus !== 'RETURN_OWNER') {
+      return res.status(400).json({
+        message: `Cannot confirm return from status: ${currentStatus}`
+      });
+    }
+
+    // Renter can only confirm from RETURN state
+    // If in RETURN_OWNER, owner already confirmed and is verifying
+    if (currentStatus === 'RETURN_OWNER') {
+      return res.status(400).json({
+        message: 'Owner has already confirmed return and is verifying equipment condition'
+      });
+    }
+
     const result = await changeBookingStatus(
       req.params.id,
-      'VERIFY',
+      'RETURN_RENTER',
       'renter',
       req.userId,
       'Renter confirmed equipment return'
@@ -346,8 +383,119 @@ router.post('/:id/actions/confirm-return', auth, async (req, res) => {
 });
 
 /**
+ * POST /api/bookings/:id/actions/owner-confirm-handoff
+ * Owner confirms handoff of equipment
+ * - PICKUP -> PICKUP_OWNER (owner confirms first)
+ * - PICKUP_RENTER -> IN_PROGRESS (owner confirms after renter)
+ */
+router.post('/:id/actions/owner-confirm-handoff', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('listing_id');
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Verify owner
+    if (booking.listing_id.owner_id.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Only the owner can confirm handoff' });
+    }
+
+    // Get current status to determine next state
+    const currentStatus = await getCurrentStatus(req.params.id);
+    let newStatus;
+    let message;
+
+    if (currentStatus === 'PICKUP') {
+      newStatus = 'PICKUP_OWNER';
+      message = 'Handoff confirmed. Waiting for renter confirmation.';
+    } else if (currentStatus === 'PICKUP_RENTER') {
+      newStatus = 'IN_PROGRESS';
+      message = 'Handoff confirmed. Rental is now in progress!';
+    } else {
+      return res.status(400).json({
+        message: `Cannot confirm handoff from status: ${currentStatus}`
+      });
+    }
+
+    const result = await changeBookingStatus(
+      req.params.id,
+      newStatus,
+      'owner',
+      req.userId,
+      'Owner confirmed equipment handoff'
+    );
+
+    if (!result.success) {
+      return res.status(400).json({ message: result.error });
+    }
+
+    res.json({
+      message,
+      statusEntry: result.statusEntry
+    });
+  } catch (error) {
+    console.error('Error confirming handoff:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+/**
+ * POST /api/bookings/:id/actions/owner-confirm-return
+ * Owner confirms receiving equipment back
+ * - RETURN -> RETURN_OWNER (owner confirms return, needs to verify condition)
+ */
+router.post('/:id/actions/owner-confirm-return', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('listing_id');
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Verify owner
+    if (booking.listing_id.owner_id.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Only the owner can confirm return' });
+    }
+
+    // Get current status to determine next state
+    const currentStatus = await getCurrentStatus(req.params.id);
+
+    if (currentStatus !== 'RETURN') {
+      return res.status(400).json({
+        message: `Cannot confirm return from status: ${currentStatus}`
+      });
+    }
+
+    const result = await changeBookingStatus(
+      req.params.id,
+      'RETURN_OWNER',
+      'owner',
+      req.userId,
+      'Owner confirmed receiving equipment'
+    );
+
+    if (!result.success) {
+      return res.status(400).json({ message: result.error });
+    }
+
+    res.json({
+      message: 'Return confirmed. Please verify equipment condition.',
+      statusEntry: result.statusEntry
+    });
+  } catch (error) {
+    console.error('Error confirming return:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+/**
  * POST /api/bookings/:id/actions/verify-complete
- * Owner verifies equipment is returned in good condition (VERIFY -> COMPLETED)
+ * Owner verifies equipment is returned in good condition
+ * - RETURN_OWNER -> COMPLETED (everything OK)
+ * - RETURN_RENTER -> COMPLETED (everything OK)
  */
 router.post('/:id/actions/verify-complete', auth, async (req, res) => {
   try {
@@ -361,6 +509,15 @@ router.post('/:id/actions/verify-complete', auth, async (req, res) => {
     // Verify owner
     if (booking.listing_id.owner_id.toString() !== req.userId) {
       return res.status(403).json({ message: 'Only the owner can verify equipment condition' });
+    }
+
+    // Get current status
+    const currentStatus = await getCurrentStatus(req.params.id);
+
+    if (currentStatus !== 'RETURN_OWNER' && currentStatus !== 'RETURN_RENTER') {
+      return res.status(400).json({
+        message: `Cannot verify completion from status: ${currentStatus}`
+      });
     }
 
     const result = await changeBookingStatus(
@@ -387,7 +544,9 @@ router.post('/:id/actions/verify-complete', auth, async (req, res) => {
 
 /**
  * POST /api/bookings/:id/actions/dispute
- * Owner opens a dispute (VERIFY -> DISPUTED)
+ * Owner opens a dispute about equipment condition
+ * - RETURN_OWNER -> DISPUTED
+ * - RETURN_RENTER -> DISPUTED
  */
 router.post('/:id/actions/dispute', auth, async (req, res) => {
   try {
@@ -407,6 +566,15 @@ router.post('/:id/actions/dispute', auth, async (req, res) => {
     // Verify owner
     if (booking.listing_id.owner_id.toString() !== req.userId) {
       return res.status(403).json({ message: 'Only the owner can open disputes' });
+    }
+
+    // Get current status
+    const currentStatus = await getCurrentStatus(req.params.id);
+
+    if (currentStatus !== 'RETURN_OWNER' && currentStatus !== 'RETURN_RENTER') {
+      return res.status(400).json({
+        message: `Cannot open dispute from status: ${currentStatus}`
+      });
     }
 
     const result = await changeBookingStatus(

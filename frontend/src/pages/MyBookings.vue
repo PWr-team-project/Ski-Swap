@@ -199,7 +199,7 @@ const acceptBookingRequest = async (bookingId) => {
     await bookingService.acceptBooking(bookingId);
 
     alert('Booking request accepted!');
-    fetchData();
+    await fetchData();
   } catch (err) {
     console.error('Error accepting booking:', err);
     alert(err.response?.data?.message || 'Failed to accept booking.');
@@ -214,7 +214,7 @@ const declineBookingRequest = async (bookingId) => {
     await bookingService.declineBooking(bookingId);
 
     alert('Booking request declined.');
-    fetchData();
+    await fetchData();
   } catch (err) {
     console.error('Error declining booking:', err);
     alert(err.response?.data?.message || 'Failed to decline booking.');
@@ -230,16 +230,81 @@ const contactRenter = (renterId) => {
 
 const cancelBooking = async (bookingId) => {
   if (!confirm('Cancel this booking? This action cannot be undone.')) return;
-
   try {
     await bookingService.cancel(bookingId);
 
     alert('Booking cancelled successfully');
-    fetchData();
+    await fetchData();
   } catch (err) {
     console.error('Error cancelling booking:', err);
     alert(err.response?.data?.message || 'Failed to cancel booking.');
   }
+};
+
+const confirmHandoff = async (bookingId) => {
+  if (!confirm('Confirm that you have handed off the equipment?')) return;
+
+  try {
+    // Use dedicated owner handoff endpoint
+    // Will transition: PICKUP -> PICKUP_OWNER or PICKUP_RENTER -> IN_PROGRESS
+    await bookingService.ownerConfirmHandoff(bookingId);
+    alert('Handoff confirmed!');
+    await fetchData();
+  } catch (err) {
+    console.error('Error confirming handoff:', err);
+    alert(err.response?.data?.message || 'Failed to confirm handoff.');
+  }
+};
+
+const confirmReturn = async (bookingId) => {
+  if (!confirm('Confirm that the equipment has been returned?')) return;
+
+  try {
+    // Use dedicated owner return confirmation endpoint
+    // Will transition: RETURN -> RETURN_OWNER
+    await bookingService.ownerConfirmReturn(bookingId);
+    alert('Return confirmed! Please verify equipment condition.');
+    await fetchData();
+  } catch (err) {
+    console.error('Error confirming return:', err);
+    alert(err.response?.data?.message || 'Failed to confirm return.');
+  }
+};
+
+const verifyComplete = async (bookingId) => {
+  if (!confirm('Confirm that the equipment is in good condition and complete the rental?')) return;
+
+  try {
+    await bookingService.verifyComplete(bookingId);
+    alert('Rental completed successfully!');
+    await fetchData();
+  } catch (err) {
+    console.error('Error verifying completion:', err);
+    alert(err.response?.data?.message || 'Failed to verify completion.');
+  }
+};
+
+const openDispute = async (bookingId) => {
+  const reason = prompt('Please describe the issue with the returned equipment:');
+  if (!reason) return;
+
+  try {
+    await bookingService.openDispute(bookingId, reason);
+    alert('Dispute opened. Support will contact you.');
+    await fetchData();
+  } catch (err) {
+    console.error('Error opening dispute:', err);
+    alert(err.response?.data?.message || 'Failed to open dispute.');
+  }
+};
+
+const contactSupport = (bookingId) => {
+  // Navigate to support page or show modal
+  alert(`Please contact support at support@ski-swap.com referencing booking #${bookingId}`);
+};
+
+const viewReview = (bookingId) => {
+  router.push(`/booking/${bookingId}`);
 };
 
 // Lifecycle

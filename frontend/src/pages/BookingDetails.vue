@@ -20,6 +20,15 @@
           <h1 class="booking-number">Booking #{{ booking._id.slice(-8).toUpperCase() }}</h1>
         </div>
 
+        <!-- Need Help Button - Fixed to top right -->
+        <button
+          v-if="showNeedHelp"
+          @click="handleNeedHelp"
+          class="btn-help-fixed"
+        >
+          Need Help
+        </button>
+
         <!-- Two Column Layout (Equal Width) -->
         <div class="content-grid">
           <!-- LEFT COLUMN -->
@@ -32,46 +41,89 @@
               />
             </div>
 
-            <!-- Equipment Rented Card -->
-            <div class="card equipment-card" @click="navigateToListing">
-              <div class="equipment-content">
-                <img
-                  :src="getImageUrl(booking.listing_id?.photos?.[0])"
-                  :alt="booking.listing_id?.title"
-                  class="equipment-thumbnail"
-                  @error="handleImageError"
-                />
-                <div class="equipment-info">
-                  <h4 class="equipment-title">{{ booking.listing_id?.title || 'Listing Unavailable' }}</h4>
-                  <p class="equipment-category">{{ booking.listing_id?.category_id?.name || 'Category' }}</p>
+            <!-- Merged Equipment & Owner Card -->
+            <div class="card merged-info-card">
+              <!-- Left Side: Equipment -->
+              <div class="merged-section equipment-section" @click="navigateToListing">
+                <div class="equipment-content">
+                  <img
+                    :src="getImageUrl(booking.listing_id?.photos?.[0])"
+                    :alt="booking.listing_id?.title"
+                    class="equipment-thumbnail"
+                    @error="handleImageError"
+                  />
+                  <div class="equipment-info">
+                    <h4 class="equipment-title">{{ booking.listing_id?.title || 'Listing Unavailable' }}</h4>
+                    <p class="equipment-category">{{ booking.listing_id?.category_id?.name || 'Category' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Divider -->
+              <div class="merged-divider"></div>
+
+              <!-- Right Side: Owner/Renter -->
+              <div class="merged-section owner-section" @click="navigateToProfile">
+                <div class="owner-content">
+                  <div class="user-avatar" v-if="otherUser.profile_photo">
+                    <img :src="getImageUrl(otherUser.profile_photo)" :alt="otherUserName" />
+                  </div>
+                  <div v-else class="user-avatar avatar-placeholder">
+                    {{ otherUserInitial }}
+                  </div>
+                  <div class="user-info">
+                    <h4 class="user-name">{{ otherUserName }}</h4>
+                    <p class="user-role">{{ isRenter ? 'Owner' : 'Renter' }}</p>
+                    <div class="user-rating" v-if="otherUser.rating_avg">
+                      <div class="stars">
+                        <img
+                          v-for="star in 5"
+                          :key="star"
+                          :src="star <= Math.floor(otherUser.rating_avg) ? '/assets/icons/star_icon.svg' : '/assets/icons/star_empty.svg'"
+                          alt="star"
+                          class="star-icon"
+                        />
+                      </div>
+                      <span class="rating-text">{{ otherUser.rating_avg.toFixed(1) }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Equipment Owner/Renter Card -->
-            <div class="card owner-card" @click="navigateToProfile">
-              <div class="owner-content">
-                <div class="user-avatar" v-if="otherUser.profile_photo">
-                  <img :src="getImageUrl(otherUser.profile_photo)" :alt="otherUserName" />
+            <!-- Location Panel (when visible) -->
+            <div v-if="showLocationPanel" class="card location-card">
+              <h4 class="card-title">Location</h4>
+              <div class="location-info">
+                <div class="location-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
                 </div>
-                <div v-else class="user-avatar avatar-placeholder">
-                  {{ otherUserInitial }}
+                <div class="location-text">{{ fullAddress }}</div>
+              </div>
+              <div v-if="showContactInfo" class="phone-info">
+                <div class="phone-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
                 </div>
-                <div class="user-info">
-                  <h4 class="user-name">{{ otherUserName }}</h4>
-                  <p class="user-role">{{ isRenter ? 'Owner' : 'Renter' }}</p>
-                  <div class="user-rating" v-if="otherUser.rating_avg">
-                    <div class="stars">
-                      <img
-                        v-for="star in 5"
-                        :key="star"
-                        :src="star <= Math.floor(otherUser.rating_avg) ? '/assets/icons/star_filled.svg' : '/assets/icons/star_empty.svg'"
-                        alt="star"
-                        class="star-icon"
-                      />
-                    </div>
-                    <span class="rating-text">{{ otherUser.rating_avg.toFixed(1) }}</span>
-                  </div>
+                <div class="phone-text">{{ otherUserPhone }}</div>
+              </div>
+            </div>
+
+            <!-- Insurance Info (if applicable) -->
+            <div v-if="booking.insurance_flag" class="card insurance-card">
+              <div class="insurance-content">
+                <div class="insurance-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="insurance-label">Insurance Purchased</div>
+                  <div class="insurance-value">Coverage included</div>
                 </div>
               </div>
             </div>
@@ -97,43 +149,6 @@
                 <div class="block-label">{{ isRenter ? 'Total Price' : 'Total Earnings' }}</div>
                 <div class="block-value price">€{{ booking.total_price?.toFixed(2) || '0.00' }}</div>
                 <div class="block-subtext">incl. booking fee</div>
-              </div>
-            </div>
-
-            <!-- Insurance Info (if applicable) -->
-            <div v-if="booking.insurance_flag" class="card insurance-card">
-              <div class="insurance-content">
-                <div class="insurance-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                  </svg>
-                </div>
-                <div>
-                  <div class="insurance-label">Insurance Purchased</div>
-                  <div class="insurance-value">Coverage included</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Location Panel (when visible) -->
-            <div v-if="showLocationPanel" class="card location-card">
-              <h4 class="card-title">Location</h4>
-              <div class="location-info">
-                <div class="location-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                  </svg>
-                </div>
-                <div class="location-text">{{ fullAddress }}</div>
-              </div>
-              <div v-if="showContactInfo" class="phone-info">
-                <div class="phone-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                  </svg>
-                </div>
-                <div class="phone-text">{{ otherUserPhone }}</div>
               </div>
             </div>
 
@@ -163,24 +178,37 @@
                 <button
                   v-if="showRenterUploadPhotos"
                   @click="openPhotoModal(photoUploadTypeForRenter)"
-                  class="btn btn-secondary"
+                  :class="[
+                    'btn',
+                    (photoUploadTypeForRenter === 'pickup' && hasPickupPhotos) ||
+                    (photoUploadTypeForRenter === 'return' && hasReturnPhotos)
+                      ? 'btn-photos-uploaded'
+                      : 'btn-secondary'
+                  ]"
                 >
-                  Upload Photos
+                  <span v-if="(photoUploadTypeForRenter === 'pickup' && hasPickupPhotos) || (photoUploadTypeForRenter === 'return' && hasReturnPhotos)">
+                    ✓ Photos Uploaded
+                  </span>
+                  <span v-else>Upload Photos</span>
                 </button>
 
                 <!-- Confirm Handoff - PICKUP, PICKUP_OWNER (green) -->
                 <button
                   v-if="showRenterConfirmHandoff"
                   @click="handleRenterConfirmHandoff"
+                  :disabled="!canConfirmHandoff"
+                  :title="!canConfirmHandoff ? 'Please upload pickup photos first' : ''"
                   class="btn btn-success"
                 >
-                  Confirm Handoff
+                  Confirm Pickup
                 </button>
 
                 <!-- Confirm Return - RETURN, RETURN_OWNER (green) -->
                 <button
                   v-if="showRenterConfirmReturn"
                   @click="handleRenterConfirmReturn"
+                  :disabled="!canConfirmReturn"
+                  :title="!canConfirmReturn ? 'Please upload return photos first' : ''"
                   class="btn btn-success"
                 >
                   Confirm Return
@@ -211,15 +239,6 @@
                   class="btn btn-support"
                 >
                   Contact Support
-                </button>
-
-                <!-- Need Help - Most states (light red) -->
-                <button
-                  v-if="showNeedHelp"
-                  @click="handleNeedHelp"
-                  class="btn btn-help"
-                >
-                  Need Help
                 </button>
               </template>
 
@@ -306,15 +325,6 @@
                   Contact Support
                 </button>
 
-                <!-- Need Help - Most states (light red) -->
-                <button
-                  v-if="showNeedHelp"
-                  @click="handleNeedHelp"
-                  class="btn btn-help"
-                >
-                  Need Help
-                </button>
-
                 <!-- Show Review - REVIEWED (violet) -->
                 <button
                   v-if="showOwnerShowReview"
@@ -361,6 +371,17 @@
             {{ photoModalDescription }}
           </p>
 
+          <!-- Previously Uploaded Photos -->
+          <div v-if="existingPhotos.length > 0" class="existing-photos-section">
+            <h4 class="existing-photos-title">Previously Uploaded Photos</h4>
+            <div class="photos-preview">
+              <div v-for="(photo, index) in existingPhotos" :key="`existing-${index}`" class="photo-preview-item existing-photo">
+                <img :src="getImageUrl(photo)" :alt="`Uploaded Photo ${index + 1}`" />
+                <div class="existing-photo-badge">✓</div>
+              </div>
+            </div>
+          </div>
+
           <!-- File Input -->
           <div class="file-upload-area" @click="triggerFileInput">
             <input
@@ -376,20 +397,23 @@
               <circle cx="8.5" cy="8.5" r="1.5"></circle>
               <polyline points="21 15 16 10 5 21"></polyline>
             </svg>
-            <p>Click to upload photos</p>
+            <p>{{ existingPhotos.length > 0 ? 'Click to upload additional photos' : 'Click to upload photos' }}</p>
             <p class="upload-hint">or drag and drop (max 10 photos)</p>
           </div>
 
           <!-- Selected Photos Preview -->
-          <div v-if="selectedPhotos.length > 0" class="photos-preview">
-            <div v-for="(photo, index) in selectedPhotos" :key="index" class="photo-preview-item">
-              <img :src="photo.preview" :alt="`Photo ${index + 1}`" />
-              <button @click="removePhoto(index)" class="remove-photo-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+          <div v-if="selectedPhotos.length > 0" class="new-photos-section">
+            <h4 class="new-photos-title">New Photos to Upload</h4>
+            <div class="photos-preview">
+              <div v-for="(photo, index) in selectedPhotos" :key="index" class="photo-preview-item">
+                <img :src="photo.preview" :alt="`Photo ${index + 1}`" />
+                <button @click="removePhoto(index)" class="remove-photo-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -434,6 +458,13 @@ const photoUploadType = ref('pickup');
 const selectedPhotos = ref([]);
 const uploadingPhotos = ref(false);
 const fileInput = ref(null);
+
+// Track if photos have been uploaded for current session
+const pickupPhotosUploaded = ref(false);
+const returnPhotosUploaded = ref(false);
+
+// Store existing uploaded photos
+const existingPhotos = ref([]);
 
 // Computed
 const isRenter = computed(() => {
@@ -514,6 +545,26 @@ const photoUploadTypeForRenter = computed(() => {
     return 'pickup';
   }
   return 'return';
+});
+
+// Check if photos have been uploaded (from backend or current session)
+const hasPickupPhotos = computed(() => {
+  return pickupPhotosUploaded.value ||
+         (booking.value.pickup_photos && booking.value.pickup_photos.length > 0);
+});
+
+const hasReturnPhotos = computed(() => {
+  return returnPhotosUploaded.value ||
+         (booking.value.return_photos && booking.value.return_photos.length > 0);
+});
+
+// Can confirm handoff/return only if photos are uploaded
+const canConfirmHandoff = computed(() => {
+  return hasPickupPhotos.value;
+});
+
+const canConfirmReturn = computed(() => {
+  return hasReturnPhotos.value;
 });
 
 // ===============================
@@ -723,11 +774,18 @@ const handleCancel = async () => {
 
 // Renter confirms handoff -> PICKUP_RENTER or IN_PROGRESS
 const handleRenterConfirmHandoff = async () => {
+  // Check if pickup photos have been uploaded
+  if (!hasPickupPhotos.value) {
+    alert('Please upload pickup photos before confirming handoff.');
+    return;
+  }
+
   if (!confirm('Confirm you have received the equipment?')) return;
 
   try {
-    const newStatus = currentStatus.value === 'PICKUP_OWNER' ? 'IN_PROGRESS' : 'PICKUP_RENTER';
-    await bookingService.transitionStatus(booking.value._id, newStatus, 'Renter confirmed handoff');
+    // Use dedicated renter pickup confirmation endpoint
+    // Will transition: PICKUP -> PICKUP_RENTER or PICKUP_OWNER -> IN_PROGRESS
+    await bookingService.confirmPickup(booking.value._id);
     alert('Handoff confirmed!');
     await fetchBookingDetails();
   } catch (err) {
@@ -741,8 +799,9 @@ const handleOwnerConfirmHandoff = async () => {
   if (!confirm('Confirm you have handed off the equipment?')) return;
 
   try {
-    const newStatus = currentStatus.value === 'PICKUP_RENTER' ? 'IN_PROGRESS' : 'PICKUP_OWNER';
-    await bookingService.transitionStatus(booking.value._id, newStatus, 'Owner confirmed handoff');
+    // Use dedicated owner handoff confirmation endpoint
+    // Will transition: PICKUP -> PICKUP_OWNER or PICKUP_RENTER -> IN_PROGRESS
+    await bookingService.ownerConfirmHandoff(booking.value._id);
     alert('Handoff confirmed!');
     await fetchBookingDetails();
   } catch (err) {
@@ -751,14 +810,22 @@ const handleOwnerConfirmHandoff = async () => {
   }
 };
 
-// Renter confirms return -> RETURN_RENTER or COMPLETED
+// Renter confirms return -> RETURN_RENTER (owner still needs to verify)
 const handleRenterConfirmReturn = async () => {
+  // Check if return photos have been uploaded
+  if (!hasReturnPhotos.value) {
+    alert('Please upload return photos before confirming return.');
+    return;
+  }
+
   if (!confirm('Confirm you have returned the equipment?')) return;
 
   try {
-    const newStatus = currentStatus.value === 'RETURN_OWNER' ? 'COMPLETED' : 'RETURN_RENTER';
-    await bookingService.transitionStatus(booking.value._id, newStatus, 'Renter confirmed return');
-    alert('Return confirmed!');
+    // Use dedicated renter return confirmation endpoint
+    // Will transition: RETURN -> RETURN_RENTER (owner needs to verify condition)
+    // Note: Renter cannot confirm from RETURN_OWNER state (owner is verifying)
+    await bookingService.confirmReturn(booking.value._id);
+    alert('Return confirmed! Waiting for owner verification.');
     await fetchBookingDetails();
   } catch (err) {
     console.error('Error confirming return:', err);
@@ -766,13 +833,15 @@ const handleRenterConfirmReturn = async () => {
   }
 };
 
-// Owner confirms return -> RETURN_OWNER
+// Owner confirms return -> RETURN_OWNER (then needs to verify condition)
 const handleOwnerConfirmReturn = async () => {
   if (!confirm('Confirm equipment has been returned?')) return;
 
   try {
-    await bookingService.transitionStatus(booking.value._id, 'RETURN_OWNER', 'Owner confirmed return');
-    alert('Return confirmed!');
+    // Use dedicated owner return confirmation endpoint
+    // Will transition: RETURN -> RETURN_OWNER (owner needs to verify condition)
+    await bookingService.ownerConfirmReturn(booking.value._id);
+    alert('Return confirmed! Please verify equipment condition.');
     await fetchBookingDetails();
   } catch (err) {
     console.error('Error confirming return:', err);
@@ -785,7 +854,9 @@ const handleEverythingOK = async () => {
   if (!confirm("Confirm equipment is in good condition?")) return;
 
   try {
-    await bookingService.transitionStatus(booking.value._id, 'COMPLETED', 'Owner verified equipment is OK');
+    // Use dedicated verify complete endpoint
+    // Will transition: RETURN_OWNER -> COMPLETED or RETURN_RENTER -> COMPLETED
+    await bookingService.verifyComplete(booking.value._id);
     alert('Booking completed!');
     await fetchBookingDetails();
   } catch (err) {
@@ -799,7 +870,9 @@ const handleDispute = async () => {
   if (!reason) return;
 
   try {
-    await bookingService.transitionStatus(booking.value._id, 'DISPUTED', reason);
+    // Use dedicated dispute endpoint
+    // Will transition: RETURN_OWNER -> DISPUTED or RETURN_RENTER -> DISPUTED
+    await bookingService.openDispute(booking.value._id, reason);
     alert('Dispute opened. Our support team will contact you.');
     await fetchBookingDetails();
   } catch (err) {
@@ -828,6 +901,16 @@ const handleNeedHelp = () => {
 const openPhotoModal = (type) => {
   photoUploadType.value = type;
   selectedPhotos.value = [];
+
+  // Load existing photos for this type
+  if (type === 'pickup' && booking.value.pickup_photos) {
+    existingPhotos.value = booking.value.pickup_photos;
+  } else if (type === 'return' && booking.value.return_photos) {
+    existingPhotos.value = booking.value.return_photos;
+  } else {
+    existingPhotos.value = [];
+  }
+
   showPhotoModal.value = true;
 };
 
@@ -873,6 +956,14 @@ const uploadPhotos = async () => {
   try {
     const files = selectedPhotos.value.map(p => p.file);
     await bookingService.uploadPhotos(booking.value._id, photoUploadType.value, files);
+
+    // Track that photos have been uploaded
+    if (photoUploadType.value === 'pickup') {
+      pickupPhotosUploaded.value = true;
+    } else {
+      returnPhotosUploaded.value = true;
+    }
+
     alert('Photos uploaded successfully!');
     closePhotoModal();
     await fetchBookingDetails();
@@ -886,13 +977,13 @@ const uploadPhotos = async () => {
 
 // Helpers
 const getImageUrl = (photoPath) => {
-  if (!photoPath) return '/assets/images/placeholder.jpg';
+  if (!photoPath) return '/assets/images/image.png';
   if (photoPath.startsWith('http')) return photoPath;
   return `http://localhost:5000${photoPath}`;
 };
 
 const handleImageError = (e) => {
-  e.target.src = '/assets/images/placeholder.jpg';
+  e.target.src = '/assets/images/image.png';
 };
 
 const formatDateRange = (start, end) => {
@@ -1004,6 +1095,10 @@ onMounted(() => {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 170, 255, 0.3);
 }
+/* Booking Container */
+.booking-container {
+  position: relative;
+}
 
 /* Header */
 .booking-header {
@@ -1011,10 +1106,34 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
+
 .booking-number {
   font-size: 2.5rem;
   font-weight: 700;
   color: #1a1a1a;
+}
+/* Fixed Need Help Button - Top Right */
+.btn-help-fixed {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.875rem 1.5rem;
+  background: #fca5a5;
+  color: #991b1b;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(252, 165, 165, 0.3);
+}
+
+.btn-help-fixed:hover {
+  background: #f87171;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(248, 113, 113, 0.4);
 }
 
 /* Content Grid - Equal Width */
@@ -1047,23 +1166,52 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-/* Equipment Card */
-.equipment-card {
+/* Merged Info Card */
+.merged-info-card {
+  display: flex;
+  align-items: center;
+  padding: 0; /* Remove default padding to control inner sections */
+  overflow: hidden; /* Ensure rounded corners */
+}
+
+.merged-section {
+  flex: 1;
+  padding: 1.5rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease;
 }
 
-.equipment-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 170, 255, 0.2);
+.merged-section:hover {
+  background-color: #f8fafc;
 }
 
+.merged-divider {
+  width: 1px;
+  height: 60px; /* Or auto/100% depending on alignment */
+  background-color: #e5e7eb;
+  margin: 0;
+}
+
+/* Equipment Section Specifics */
 .equipment-content {
   display: flex;
   gap: 1rem;
   align-items: center;
 }
 
+/* Owner Section Specifics */
+.owner-content {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+.owner-content {
+  justify-content: flex-start;
+}
+
+
+/* Info Blocks */
 .equipment-thumbnail {
   width: 80px;
   height: 80px;
@@ -1086,23 +1234,6 @@ onMounted(() => {
 .equipment-category {
   font-size: 0.85rem;
   color: #666;
-}
-
-/* Owner Card */
-.owner-card {
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.owner-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 170, 255, 0.2);
-}
-
-.owner-content {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
 }
 
 .user-avatar {
@@ -1168,8 +1299,6 @@ onMounted(() => {
   color: #666;
   font-weight: 600;
 }
-
-/* Info Blocks */
 .info-blocks {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1366,6 +1495,17 @@ onMounted(() => {
   transform: translateY(-2px);
 }
 
+.btn-photos-uploaded {
+  background: #10b981;
+  color: white;
+}
+
+.btn-photos-uploaded:hover {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
 .btn-review {
   background: #8b5cf6;
   color: white;
@@ -1512,6 +1652,53 @@ onMounted(() => {
   margin-bottom: 1.5rem;
 }
 
+.existing-photos-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f0fdf4;
+  border-radius: 12px;
+  border: 1px solid #86efac;
+}
+
+.existing-photos-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #065f46;
+  margin-bottom: 1rem;
+}
+
+.existing-photo {
+  position: relative;
+  opacity: 0.9;
+}
+
+.existing-photo-badge {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 24px;
+  height: 24px;
+  background: #10b981;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.new-photos-section {
+  margin-top: 1.5rem;
+}
+
+.new-photos-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
 .file-upload-area {
   border: 2px dashed #d1d5db;
   border-radius: 12px;
@@ -1613,6 +1800,10 @@ onMounted(() => {
 
   .booking-number {
     font-size: 1.75rem;
+  }
+   .btn-help-fixed {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.85rem;
   }
 
   .info-blocks {

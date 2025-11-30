@@ -9,13 +9,30 @@ const Listing = require('../models/Listing');
 
 // Status scenarios to distribute across 20 bookings
 const STATUS_SCENARIOS = [
+  // Basic states
   'PENDING', 'PENDING',
   'ACCEPTED', 'ACCEPTED',
-  'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER',
-  'IN_PROGRESS', 'IN_PROGRESS', 'IN_PROGRESS',
-  'RETURN', 'RETURN_OWNER', 'RETURN_RENTER',
-  'COMPLETED', 'COMPLETED', 'COMPLETED',
+
+  // PICKUP phase - different orders
+  'PICKUP',
+  'PICKUP_OWNER',
+  'PICKUP_RENTER',
+  'IN_PROGRESS_RENTER_FIRST',  // Renter confirmed first
+  'IN_PROGRESS_OWNER_FIRST',   // Owner confirmed first
+  'IN_PROGRESS',
+
+  // RETURN phase - different orders
+  'RETURN',
+  'RETURN_OWNER',
+  'RETURN_RENTER',
+  'COMPLETED_FROM_OWNER',      // Owner verified from RETURN_OWNER
+  'COMPLETED_FROM_RENTER',     // Owner verified from RETURN_RENTER
+  'COMPLETED',
+
+  // Post-completion
   'REVIEWED', 'REVIEWED',
+
+  // Cancellations
   'CANCELLED',
   'DECLINED'
 ];
@@ -47,6 +64,8 @@ function generateDateRange(status) {
       break;
 
     case 'IN_PROGRESS':
+    case 'IN_PROGRESS_RENTER_FIRST':
+    case 'IN_PROGRESS_OWNER_FIRST':
       // Started 2 days ago, ends in 5 days
       start_date = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
       end_date = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
@@ -74,6 +93,8 @@ function generateDateRange(status) {
       break;
 
     case 'COMPLETED':
+    case 'COMPLETED_FROM_OWNER':
+    case 'COMPLETED_FROM_RENTER':
     case 'REVIEWED':
       // Ended 5 days ago
       start_date = new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000);
@@ -102,16 +123,26 @@ async function createStatusHistory(bookingId, targetStatus, renterId, ownerId) {
     'PICKUP': ['PENDING', 'ACCEPTED', 'PICKUP'],
     'PICKUP_OWNER': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER'],
     'PICKUP_RENTER': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_RENTER'],
-    'IN_PROGRESS': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_RENTER', 'PICKUP_OWNER', 'IN_PROGRESS'],
-    'RETURN': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN'],
-    'RETURN_OWNER': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER'],
-    'RETURN_RENTER': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_RENTER'],
-    'COMPLETED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'COMPLETED'],
-    'REVIEWED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'COMPLETED', 'REVIEWED'],
+
+    // Two different paths to IN_PROGRESS
+    'IN_PROGRESS_RENTER_FIRST': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_RENTER', 'IN_PROGRESS'],
+    'IN_PROGRESS_OWNER_FIRST': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'IN_PROGRESS'],
+    'IN_PROGRESS': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'IN_PROGRESS'],
+
+    'RETURN': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'IN_PROGRESS', 'RETURN'],
+    'RETURN_OWNER': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER'],
+    'RETURN_RENTER': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_RENTER'],
+
+    // Two different paths to COMPLETED
+    'COMPLETED_FROM_OWNER': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'COMPLETED'],
+    'COMPLETED_FROM_RENTER': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_RENTER', 'COMPLETED'],
+    'COMPLETED': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'COMPLETED'],
+
+    'REVIEWED': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'COMPLETED', 'REVIEWED'],
     'DECLINED': ['PENDING', 'DECLINED'],
     'CANCELLED': ['PENDING', 'CANCELLED'],
-    'DISPUTED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'DISPUTED'],
-    'DISPUTE_RESOLVED': ['PENDING', 'ACCEPTED', 'PICKUP', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'DISPUTED', 'DISPUTE_RESOLVED']
+    'DISPUTED': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'DISPUTED'],
+    'DISPUTE_RESOLVED': ['PENDING', 'ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'DISPUTED', 'DISPUTE_RESOLVED']
   };
 
   const statuses = statusProgression[targetStatus] || ['PENDING'];
@@ -144,9 +175,21 @@ async function createStatusHistory(bookingId, targetStatus, renterId, ownerId) {
       changed_by = 'system';
       notes = 'Automatic transition to PICKUP on start date';
     } else if (status === 'IN_PROGRESS') {
-      changed_by = 'renter';
-      changed_by_user_id = renterId;
-      notes = 'Renter confirmed pickup';
+      // Check previous status to determine who confirmed last
+      const prevStatus = statuses[i - 1];
+      if (prevStatus === 'PICKUP_OWNER') {
+        changed_by = 'renter';
+        changed_by_user_id = renterId;
+        notes = 'Renter confirmed pickup (after owner)';
+      } else if (prevStatus === 'PICKUP_RENTER') {
+        changed_by = 'owner';
+        changed_by_user_id = ownerId;
+        notes = 'Owner confirmed handoff (after renter)';
+      } else {
+        // Fallback for simplified test data
+        changed_by = 'system';
+        notes = 'Both parties confirmed pickup';
+      }
     } else if (status === 'PICKUP_OWNER') {
       changed_by = 'owner';
       changed_by_user_id = ownerId;
@@ -290,6 +333,14 @@ async function populateBookings() {
       const days = Math.ceil((end_date - start_date) / (1000 * 60 * 60 * 24));
       const total_price = listing.daily_rate * days;
 
+      // Normalize status for booking (map test variants to actual status)
+      let normalizedStatus = targetStatus;
+      if (targetStatus.startsWith('IN_PROGRESS_')) normalizedStatus = 'IN_PROGRESS';
+      if (targetStatus.startsWith('COMPLETED_')) normalizedStatus = 'COMPLETED';
+
+      // Determine if payment is confirmed (all states beyond ACCEPTED except DECLINED/CANCELLED)
+      const paymentConfirmed = !['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED'].includes(normalizedStatus);
+
       // Create booking
       const booking = new Booking({
         listing_id: listing._id,
@@ -298,7 +349,8 @@ async function populateBookings() {
         start_date: start_date,
         end_date: end_date,
         total_price: total_price,
-        current_status: targetStatus
+        current_status: normalizedStatus,
+        payment_confirmed: paymentConfirmed
       });
       await booking.save();
 
@@ -323,6 +375,14 @@ async function populateBookings() {
       const days = Math.ceil((end_date - start_date) / (1000 * 60 * 60 * 24));
       const total_price = listing.daily_rate * days;
 
+      // Normalize status for booking (map test variants to actual status)
+      let normalizedStatus = targetStatus;
+      if (targetStatus.startsWith('IN_PROGRESS_')) normalizedStatus = 'IN_PROGRESS';
+      if (targetStatus.startsWith('COMPLETED_')) normalizedStatus = 'COMPLETED';
+
+      // Determine if payment is confirmed (all states beyond ACCEPTED except DECLINED/CANCELLED)
+      const paymentConfirmed = !['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED'].includes(normalizedStatus);
+
       // Create booking
       const booking = new Booking({
         listing_id: listing._id,
@@ -331,7 +391,8 @@ async function populateBookings() {
         start_date: start_date,
         end_date: end_date,
         total_price: total_price,
-        current_status: targetStatus
+        current_status: normalizedStatus,
+        payment_confirmed: paymentConfirmed
       });
       await booking.save();
 

@@ -75,15 +75,15 @@
         <div v-if="attentionBookings.length > 0" class="booking-list">
           <RentalCard
             v-for="booking in attentionBookings"
-            :key="booking._id"
-            :rental-id="booking._id"
+            :key="`${booking._id}-${booking.status}`"
+            :booking-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
             :end-date="booking.end_date"
             :total-price="booking.total_price"
             :location="booking.listing_id?.location_id"
-            :booking-status="booking.current_status || booking.status"
+            :booking-status="booking.status"
             :payment-confirmed="booking.payment_confirmed"
             :insurance-flag="booking.insurance_flag"
             :is-owner-view="true"
@@ -113,8 +113,8 @@
         <div v-if="activeUpcomingBookings.length > 0" class="booking-list">
           <RentalCard
             v-for="booking in activeUpcomingBookings"
-            :key="booking._id"
-            :rental-id="booking._id"
+            :key="`${booking._id}-${booking.status}`"
+            :booking-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
@@ -122,7 +122,7 @@
             :total-price="booking.total_price"
             :days-remaining="booking.daysRemaining"
             :location="booking.listing_id?.location_id"
-            :booking-status="booking.current_status || booking.status"
+            :booking-status="booking.status"
             :payment-confirmed="booking.payment_confirmed"
             :insurance-flag="booking.insurance_flag"
             :is-owner-view="true"
@@ -152,16 +152,16 @@
         <div v-if="historyBookings.length > 0" class="booking-list">
           <RentalCard
             v-for="booking in historyBookings"
-            :key="booking._id"
-            :rental-id="booking._id"
+            :key="`${booking._id}-${booking.status}`"
+            :booking-id="booking._id"
             :listing="booking.listing_id"
             :renter="booking.renter_id"
             :start-date="booking.start_date"
             :end-date="booking.end_date"
             :total-price="booking.total_price"
             :location="booking.listing_id?.location_id"
-            :has-review="booking.current_status === 'REVIEWED'"
-            :booking-status="booking.current_status || booking.status"
+            :has-review="booking.status === 'REVIEWED'"
+            :booking-status="booking.status"
             :payment-confirmed="booking.payment_confirmed"
             :insurance-flag="booking.insurance_flag"
             :is-owner-view="true"
@@ -232,7 +232,7 @@ const expandedSections = ref({
 // Compute bookings for "Requires Attention" section
 // States: PENDING, PICKUP, PICKUP_OWNER, PICKUP_RENTER, RETURN, RETURN_OWNER, RETURN_RENTER
 const attentionBookings = computed(() => {
-  const attentionStatuses = ['PENDING', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
+  const attentionStatuses = ['PENDING', 'PICKUP', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
   const allBookings = [
     ...props.bookings.pending,
     ...props.bookings.active,
@@ -240,14 +240,14 @@ const attentionBookings = computed(() => {
   ];
 
   return allBookings.filter(booking =>
-    attentionStatuses.includes(booking.current_status || booking.status)
+    attentionStatuses.includes(booking.status)
   ).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 });
 
 // Compute bookings for "Active & Upcoming" section
 // States: ACCEPTED, IN_PROGRESS (sorted by closest start/end date, exclude passed dates)
 const activeUpcomingBookings = computed(() => {
-  const activeStatuses = ['ACCEPTED', 'IN_PROGRESS'];
+  const activeStatuses = ['ACCEPTED', 'IN_PROGRESS','PICKUP_OWNER'];
   const now = new Date();
 
   const allBookings = [

@@ -18,8 +18,10 @@
       <div class="card-content">
         <!-- Equipment Name and Category -->
         <div class="header-section">
-          <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
-          <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
+          <div class="title-row">
+            <h3 class="equipment-title">{{ listing?.title || 'Listing Unavailable' }}</h3>
+            <span class="equipment-category">{{ listing?.category_id?.name || 'Equipment' }}</span>
+          </div>
         </div>
 
         <!-- 3-Column Grid -->
@@ -61,34 +63,23 @@
           </div>
         </div>
 
-        <!-- Action Buttons - Bottom Right -->
+        <!-- Action Buttons -->
         <div class="action-buttons">
-          <!-- View Details - Always First and Sky Blue -->
-          <button @click="$emit('view-details', bookingId)" class="btn btn-details">View Details</button>
-
-          <!-- Owner Buttons -->
-          <template v-if="isOwnerView">
+          <!-- Left Side: Owner Action Buttons -->
+          <div class="action-buttons-left">
             <button v-if="showOwnerAccept" @click="handleAction('accept')" class="btn btn-success">Accept</button>
             <button v-if="showOwnerDecline" @click="handleAction('decline')" class="btn btn-danger">Decline</button>
             <button v-if="showOwnerCancel" @click="handleAction('cancel')" class="btn btn-danger">Cancel</button>
-            <button v-if="showOwnerConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm</button>
+            <button v-if="showOwnerConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm Handoff</button>
             <button v-if="showOwnerConfirmReturn" @click="handleAction('confirm-return')" class="btn btn-success">Confirm Return</button>
-            <button v-if="showOwnerEverythingOK" @click="handleAction('everything-ok')" class="btn btn-success">Everything OK</button>
+            <button v-if="showOwnerEverythingOK" @click="handleAction('everything-ok')" class="btn btn-success">Equipment checked</button>
             <button v-if="showOwnerSomethingWrong" @click="handleAction('something-wrong')" class="btn btn-dispute">Something's Wrong</button>
             <button v-if="showOwnerContactSupport" @click="handleAction('contact-support')" class="btn btn-support">Contact Support</button>
             <button v-if="showOwnerShowReview" @click="handleAction('show-review')" class="btn btn-review">Show Review</button>
-          </template>
+          </div>
 
-          <!-- Renter Buttons -->
-          <template v-else>
-            <button v-if="showRenterPay" @click="handleAction('pay')" class="btn btn-success">Pay Now</button>
-            <button v-if="showRenterCancel" @click="handleAction('cancel')" class="btn btn-danger">Cancel</button>
-            <button v-if="showRenterConfirmHandoff" @click="handleAction('confirm-handoff')" class="btn btn-success">Confirm Handoff</button>
-            <button v-if="showRenterConfirmReturn" @click="handleAction('confirm-return')" class="btn btn-success">Confirm Return</button>
-            <button v-if="showRenterReview" @click="handleAction('review')" class="btn btn-review">Write Review</button>
-            <button v-if="showRenterRentAgain" @click="handleAction('rent-again')" class="btn btn-success">Rent Again</button>
-            <button v-if="showRenterContactSupport" @click="handleAction('contact-support')" class="btn btn-support">Contact Support</button>
-          </template>
+          <!-- Right Side: View Details - Always on Right -->
+          <button @click="$emit('view-details', bookingId)" class="btn btn-details">View Details</button>
         </div>
       </div>
     </div>
@@ -127,10 +118,11 @@ const otherUser = computed(() => {
 const statusClass = computed(() => {
   const status = props.bookingStatus;
   if (['CANCELLED', 'DECLINED', 'DISPUTED'].includes(status)) return 'status-error';
-  if (['COMPLETED', 'REVIEWED', 'DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
+  if (['COMPLETED', 'DISPUTE_RESOLVED'].includes(status)) return 'status-completed';
   if (['IN_PROGRESS', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'].includes(status)) return 'status-active';
   if (['PENDING'].includes(status)) return 'status-pending';
   if (['ACCEPTED'].includes(status)) return 'status-upcoming';
+  if (['REVIEWED'].includes(status)) return 'status-reviewed';
   return 'status-default';
 });
 
@@ -139,7 +131,7 @@ const statusText = computed(() => {
     'PENDING': 'Pending',
     'ACCEPTED': 'Accepted',
     'PICKUP': 'Pickup',
-    'PICKUP_OWNER': 'Pickup',
+    'PICKUP_OWNER': 'Active',
     'PICKUP_RENTER': 'Pickup',
     'IN_PROGRESS': 'Active',
     'RETURN': 'Return',
@@ -156,9 +148,9 @@ const statusText = computed(() => {
 });
 
 // Show contact info based on status
-const locationAllowedStates = ['ACCEPTED', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'IN_PROGRESS', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
+const locationAllowedStates = [];
 const showContactInfo = computed(() => locationAllowedStates.includes(props.bookingStatus));
-const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED'].includes(props.bookingStatus));
+const showPaymentBadge = computed(() => ['PENDING', 'ACCEPTED','PICKUP'].includes(props.bookingStatus));
 
 // Owner button visibility
 const showOwnerAccept = computed(() => props.isOwnerView && props.bookingStatus === 'PENDING');
@@ -182,13 +174,13 @@ const showRenterContactSupport = computed(() => !props.isOwnerView && props.book
 
 // Helper functions
 const getImageUrl = (photoPath) => {
-  if (!photoPath) return '/assets/images/placeholder.jpg';
+  if (!photoPath) return '/assets/images/image.png';
   if (photoPath.startsWith('http')) return photoPath;
   return `http://localhost:5000${photoPath}`;
 };
 
 const handleImageError = (e) => {
-  e.target.src = '/assets/images/placeholder.jpg';
+  e.target.src = '/assets/images/image.png';
 };
 
 const getUserName = (user) => {
@@ -278,6 +270,9 @@ const handleAction = (action) => {
 .status-error {
   background: #ef4444;
 }
+.status-reviewed {
+  background: #8b5cf6;
+}
 
 .status-default {
   background: #6b7280;
@@ -320,10 +315,14 @@ const handleAction = (action) => {
 
 /* Header Section */
 .header-section {
+  padding-right: 6rem; /* Space for status badge */
+}
+
+.title-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding-right: 6rem; /* Space for status badge */
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .equipment-title {
@@ -331,7 +330,6 @@ const handleAction = (action) => {
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
-  flex: 1;
 }
 
 .equipment-category {
@@ -341,6 +339,7 @@ const handleAction = (action) => {
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* 3-Column Grid */
@@ -444,9 +443,16 @@ const handleAction = (action) => {
 .action-buttons {
   display: flex;
   gap: 0.6rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.action-buttons-left {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .btn {
@@ -466,7 +472,7 @@ const handleAction = (action) => {
 .btn-details {
   background: #00AAFF;
   color: white;
-  order: -1; /* Always first */
+  margin-left: auto;
 }
 
 .btn-details:hover {
@@ -534,8 +540,6 @@ const handleAction = (action) => {
   }
 
   .header-section {
-    flex-direction: column;
-    align-items: flex-start;
     padding-right: 4rem;
   }
 
@@ -546,10 +550,20 @@ const handleAction = (action) => {
 
   .action-buttons {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-buttons-left {
+    width: 100%;
+    flex-direction: column;
   }
 
   .btn {
     width: 100%;
+  }
+
+  .btn-details {
+    margin-left: 0;
   }
 }
 </style>

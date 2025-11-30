@@ -21,3 +21,6 @@ log/
 .vs/
 frontend/nul
 nul
+
+# Markup files
+*.md
