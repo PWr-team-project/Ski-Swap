@@ -25,6 +25,11 @@ const paymentSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  skiswap_fee: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   currency:{
     type: String,
     enum: ['USD', 'EUR', 'PLN'],

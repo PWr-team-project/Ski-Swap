@@ -43,7 +43,7 @@ const bookingSchema = new mongoose.Schema({
   },
   base_price: {
     type: Number,
-    required: true,
+    default: 0,
     min: 0
   },
   discount: {
@@ -51,10 +51,10 @@ const bookingSchema = new mongoose.Schema({
     default: 0,
     min: 0,
     validate: {
-      validator: (discount) => {
-        return discount <= this.amount
+      validator: function(discount) {
+        return discount <= this.base_price;
       },
-      message: 'Discount amount cannot be greater than the payment amount.',
+      message: 'Discount amount cannot be greater than the base price.',
     },
   },
   tax_rate: {
@@ -65,16 +65,17 @@ const bookingSchema = new mongoose.Schema({
   },
   skiswap_fee: {
     type: Number,
-    required: true,
+    default: 0,
     min: 0
   },
   total_price: {
-    // Without insurance
     type: Number,
-    virtual: true,
-    get: () => {
-      return (this.base_price - this.discount) * (1 + this.tax_rate / 100) + this.skiswap_fee;
-    }
+    required: true,
+    min: 0
+  },
+  payment_confirmed: {
+    type: Boolean,
+    default: false
   },
   payment_id:{
     type: mongoose.Schema.Types.ObjectId,
