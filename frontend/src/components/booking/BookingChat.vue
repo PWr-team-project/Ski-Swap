@@ -87,12 +87,15 @@
     />
 
     <!-- Image Modal -->
-    <div v-if="showImageModal" class="image-modal" @click="closeImageModal">
-      <div class="modal-content">
-        <img :src="modalImageSrc" alt="Full size image" />
-        <button class="close-modal" @click="closeImageModal">&times;</button>
+    <!-- Image Modal -->
+    <Teleport to="body">
+      <div v-if="showImageModal" class="image-modal" @click="closeImageModal">
+        <div class="modal-content">
+          <img :src="modalImageSrc" alt="Full size image" />
+          <button class="close-modal" @click="closeImageModal">&times;</button>
+        </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
