@@ -58,7 +58,7 @@
         <div class="booking-section">
           <div class="booking-card">
             <!-- Calendar Component -->
-            <DateRangeCalendar v-model="selectedDates" />
+            <DateRangeCalendar v-model="selectedDates" :blockedDates="blockedDates" />
 
             <!-- Selected Dates Display -->
             <div class="selected-dates-display">
@@ -88,7 +88,7 @@
             </div>
 
             <!-- Action Button -->
-            <button class="request-button" :disabled="!canBook">
+            <button class="request-button" :disabled="!canBook" @click="handleSendRequest">
               Send Request
             </button>
 
@@ -182,6 +182,9 @@ const selectedDates = ref({
 // Related items
 const ownerOtherItems = ref([])
 const categoryItems = ref([])
+
+// Blocked dates for calendar
+const blockedDates = ref([])
 
 // Computed
 const currentPhoto = computed(() => {
@@ -354,16 +357,30 @@ const fetchListing = async () => {
       }
     }
 
-    // Fetch related items
+    // Fetch related items and blocked dates
     await Promise.all([
       fetchOwnerOtherItems(),
-      fetchCategoryItems()
+      fetchCategoryItems(),
+      fetchBlockedDates()
     ])
   } catch (err) {
     console.error('Error fetching listing:', err)
     error.value = 'Listing not found or could not be loaded.'
   } finally {
     loading.value = false
+  }
+}
+
+const fetchBlockedDates = async () => {
+  try {
+    if (!route.params.id) return
+
+    const response = await listingService.getBlockedDates(route.params.id)
+    blockedDates.value = response.blockedDates || []
+  } catch (err) {
+    console.error('Error fetching blocked dates:', err)
+    // Don't show error to user, just log it
+    blockedDates.value = []
   }
 }
 
@@ -415,6 +432,53 @@ const goToListing = (id) => {
   router.push(`/listing/${id}`)
 }
 
+const handleSendRequest = async () => {
+  // Check if user is logged in
+  if (!authStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+
+  // Check if user is trying to book their own listing
+  if (isOwner.value) {
+    alert('You cannot book your own listing')
+    return
+  }
+
+  // Validate selected dates
+  if (!selectedDates.value.pickupDate || !selectedDates.value.dropoffDate) {
+    alert('Please select pickup and drop-off dates')
+    return
+  }
+
+  try {
+    // Calculate total price with booking fee
+    const finalPrice = totalPrice.value + bookingFee.value
+
+    // Create booking data
+    const bookingData = {
+      listing_id: listing.value.id,
+      start_date: selectedDates.value.pickupDate.toISOString(),
+      end_date: selectedDates.value.dropoffDate.toISOString(),
+      total_price: finalPrice,
+      insurance_flag: false
+    }
+
+    // Send booking request
+    const response = await bookingService.create(bookingData)
+
+    // Show success message
+    alert('Booking request sent successfully! The owner will review your request.')
+
+    // Navigate to My Bookings page
+    router.push('/my-bookings')
+  } catch (err) {
+    console.error('Error creating booking:', err)
+    const errorMessage = err.response?.data?.message || 'Failed to send booking request. Please try again.'
+    alert(errorMessage)
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   fetchListing()
@@ -430,6 +494,7 @@ watch(() => route.params.id, () => {
       pickupDate: null,
       dropoffDate: null
     }
+    blockedDates.value = []
   }
 })
 </script>

@@ -28,10 +28,10 @@ export const bookingService = {
 
   /**
    * Create a new booking
-   * @param {Object} bookingData - Booking details (listing_id, start_date, end_date, etc.)
+   * @param {Object} bookingData - Booking details (listing_id, start_date, end_date, total_price, insurance_flag)
    */
   async create(bookingData) {
-    const response = await apiClient.post('/api/bookings', bookingData);
+    const response = await apiClient.post('/api/bookings/create', bookingData);
     return response.data;
   },
 

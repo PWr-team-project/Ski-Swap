@@ -6,6 +6,7 @@ const Payment = require('../models/Payment');
 const Review = require('../models/Review');
 const Listing = require('../models/Listing');
 const { auth } = require('../middleware/auth');
+const { hasDateConflict } = require('../utils/availabilityCalculator');
 
 // Get user's rentals (equipment I'm renting from others)
 router.get('/renting', auth, async (req, res) => {
@@ -274,12 +275,63 @@ router.post('/create', auth, async (req, res) => {
       });
     }
 
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
+    // Validate dates
+    if (startDate >= endDate) {
+      return res.status(400).json({
+        message: 'End date must be after start date'
+      });
+    }
+
+    // Validate rental period is not longer than 1 month (30 days)
+    const diffTime = Math.abs(endDate - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > 30) {
+      return res.status(400).json({
+        message: 'Rental period cannot exceed 30 days'
+      });
+    }
+
+    // Validate start date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (startDate < today) {
+      return res.status(400).json({
+        message: 'Start date cannot be in the past'
+      });
+    }
+
+    // Get listing and check if dates are available
+    const listing = await Listing.findById(listing_id);
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    // Check if user is trying to book their own listing
+    if (listing.owner_id.toString() === req.userId) {
+      return res.status(400).json({
+        message: 'You cannot book your own listing'
+      });
+    }
+
+    // Check for date conflicts with existing active bookings
+    const conflictExists = await hasDateConflict(listing_id, startDate, endDate);
+
+    if (conflictExists) {
+      return res.status(400).json({
+        message: 'Selected dates are not available. Please choose different dates.'
+      });
+    }
+
     // Create booking
     const booking = new Booking({
       renter_id: req.userId,
+      owner_id: listing.owner_id,
       listing_id,
-      start_date: new Date(start_date),
-      end_date: new Date(end_date),
+      start_date: startDate,
+      end_date: endDate,
       insurance_flag: insurance_flag || false,
       total_price: parseFloat(total_price)
     });

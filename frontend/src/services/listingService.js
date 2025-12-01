@@ -61,13 +61,22 @@ export const listingService = {
     return response.data;
   },
 
-  //TODO : Add rules for availability 
+  //TODO : Add rules for availability
   /**
    * Toggle listing availability
    * @param {string} id - Listing ID
    */
   async toggleAvailability(id) {
     const response = await apiClient.put(`/api/listings/${id}/availability`);
+    return response.data;
+  },
+
+  /**
+   * Get blocked dates for a listing
+   * @param {string} id - Listing ID
+   */
+  async getBlockedDates(id) {
+    const response = await apiClient.get(`/api/listings/${id}/blocked-dates`);
     return response.data;
   }
 };

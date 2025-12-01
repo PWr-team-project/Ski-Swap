@@ -21,7 +21,8 @@
             'in-range': isDateInRange(day),
             'pickup': isPickupDate(day),
             'dropoff': isDropoffDate(day),
-            'past': isPastDate(day)
+            'past': isPastDate(day),
+            'blocked': isDateBlocked(day)
           }"
           @click="selectDate(day)"
         >
@@ -39,6 +40,10 @@ const props = defineProps({
   modelValue: {
     type: Object,
     default: () => ({ pickupDate: null, dropoffDate: null })
+  },
+  blockedDates: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -144,7 +149,7 @@ const changeMonth = (direction) => {
 }
 
 const selectDate = (day) => {
-  if (day.otherMonth || isPastDate(day)) return
+  if (day.otherMonth || isPastDate(day) || isDateBlocked(day)) return
 
   const selectedDate = new Date(day.year, day.month, day.date)
 
@@ -156,6 +161,14 @@ const selectDate = (day) => {
     // Selected date is before pickup, make it the new pickup
     pickupDate.value = selectedDate
   } else {
+    // Check if any blocked dates exist between pickup and dropoff
+    const hasBlockedInRange = checkBlockedInRange(pickupDate.value, selectedDate)
+    if (hasBlockedInRange) {
+      // Reset and start new selection
+      pickupDate.value = selectedDate
+      dropoffDate.value = null
+      return
+    }
     // Selected date is after pickup, make it dropoff
     dropoffDate.value = selectedDate
   }
@@ -191,6 +204,33 @@ const isPastDate = (day) => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return date < today
+}
+
+const isDateBlocked = (day) => {
+  if (day.otherMonth) return false
+  const date = new Date(day.year, day.month, day.date)
+
+  return props.blockedDates.some(blocked => {
+    const blockStart = new Date(blocked.start_date)
+    const blockEnd = new Date(blocked.end_date)
+    blockStart.setHours(0, 0, 0, 0)
+    blockEnd.setHours(0, 0, 0, 0)
+    date.setHours(0, 0, 0, 0)
+
+    // Block all dates from start_date to end_date (inclusive)
+    // Drop-off day is also blocked (cannot be a pickup day for another booking)
+    return date >= blockStart && date <= blockEnd
+  })
+}
+
+const checkBlockedInRange = (startDate, endDate) => {
+  return props.blockedDates.some(blocked => {
+    const blockStart = new Date(blocked.start_date)
+    const blockEnd = new Date(blocked.end_date)
+
+    // Check if blocked range overlaps with selected range
+    return (startDate < blockEnd && endDate > blockStart)
+  })
 }
 </script>
 
@@ -266,7 +306,7 @@ const isPastDate = (day) => {
   background: #f8fbff;
 }
 
-.calendar-day:hover:not(.other-month):not(.past) {
+.calendar-day:hover:not(.other-month):not(.past):not(.blocked) {
   background: #e3f2fd;
 }
 
@@ -275,10 +315,12 @@ const isPastDate = (day) => {
   cursor: default;
 }
 
-.calendar-day.past {
+.calendar-day.past,
+.calendar-day.blocked {
   color: #ccc;
   cursor: not-allowed;
   text-decoration: line-through;
+  background: #f8fbff;
 }
 
 .calendar-day.selected,

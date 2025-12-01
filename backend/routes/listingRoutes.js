@@ -8,6 +8,7 @@ const Category = require('../models/Category');
 const Location = require('../models/Location');
 const jwt = require('jsonwebtoken');
 const {auth, isAdmin} = require('../middleware/auth');
+const { getBlockedDatesForListing } = require('../utils/availabilityCalculator');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/listings');
@@ -296,6 +297,26 @@ router.put('/:id', auth, upload.array('photos', 10), async (req, res) => {
   } catch (error) {
     console.error('Error updating listing:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get blocked dates for a listing
+// Dynamically calculates from active bookings
+router.get('/:id/blocked-dates', async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    // Get blocked dates from active bookings
+    const blockedDates = await getBlockedDatesForListing(req.params.id);
+
+    res.json({ blockedDates });
+  } catch (error) {
+    console.error('Error fetching blocked dates:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
