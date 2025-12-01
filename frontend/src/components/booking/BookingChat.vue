@@ -2,7 +2,7 @@
   <div class="booking-chat">
     <div class="chat-header">
       <h3>Booking Chat</h3>
-      <p v-if="isChatFrozen" class="frozen-notice">Chat is frozen (Booking completed)</p>
+
     </div>
 
     <!-- Messages Container -->
@@ -16,7 +16,7 @@
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
-        <p>Chat will be available after the owner accepts your booking request</p>
+        <p>Chat not available in current state of booking</p>
       </div>
 
       <div v-else-if="messages.length === 0" class="no-messages">
@@ -82,7 +82,7 @@
 
     <!-- Message Input (only when chat is enabled and not frozen) -->
     <MessageInput
-      v-if="chatEnabled && !isChatFrozen"
+      v-if="chatEnabled"
       @send-message="handleSendMessage"
     />
 
@@ -111,6 +111,10 @@ const props = defineProps({
   bookingId: {
     type: String,
     required: true
+  },
+  bookingStatus: {
+    type: String,
+    required: true
   }
 })
 
@@ -127,14 +131,28 @@ const modalImageSrc = ref('')
 
 // Fetch messages
 const fetchMessages = async () => {
+  console.log('[BookingChat] fetchMessages - bookingStatus:', props.bookingStatus)
+
+  // Don't fetch messages if status is PENDING
+  if (props.bookingStatus === 'PENDING') {
+    console.log('[BookingChat] Status is PENDING - chat disabled')
+    chatEnabled.value = false
+    loading.value = false
+    return
+  }
+
   loading.value = true
+
   try {
+    console.log('[BookingChat] Calling bookingMessageService.getMessages with bookingId:', props.bookingId)
     const response = await bookingMessageService.getMessages(props.bookingId)
+    console.log('[BookingChat] Service returned:', response)
+
     messages.value = response.messages || []
     chatEnabled.value = response.chatEnabled || false
     isChatFrozen.value = response.isChatFrozen || false
   } catch (error) {
-    console.error('Error fetching booking messages:', error)
+    console.error('[BookingChat] Service error:', error.response?.status, error.response?.data)
     if (error.response?.status === 403) {
       chatEnabled.value = false
     }
@@ -159,7 +177,7 @@ const handleSendMessage = async (messageData) => {
     // Don't add message here - let Socket.IO handle it to avoid duplicates
     // The message will be added via the socket listener
   } catch (error) {
-    console.error('Error sending booking message:', error)
+    console.error('[BookingChat] Send error:', error.response?.status, error.response?.data)
     alert('Failed to send message. Please try again.')
   }
 }
@@ -167,11 +185,24 @@ const handleSendMessage = async (messageData) => {
 // Setup Socket.IO listeners
 const setupSocketListeners = () => {
   socketService.onBookingMessageReceived((message) => {
-    console.log('Received booking message:', message)
     // Add message to list (duplicates are prevented by not adding in handleSendMessage)
     messages.value.push(message)
   })
 }
+
+// Watch for booking status changes to refetch messages
+watch(() => props.bookingStatus, async (newStatus, oldStatus) => {
+  console.log('[BookingChat] Status changed:', oldStatus, '->', newStatus)
+
+  // If status changed from PENDING to something else, fetch messages
+  if (oldStatus === 'PENDING' && newStatus !== 'PENDING') {
+    await fetchMessages()
+  } else if (newStatus === 'PENDING') {
+    // If status changed back to PENDING, clear messages and disable chat
+    chatEnabled.value = false
+    messages.value = []
+  }
+})
 
 // Scroll to bottom when messages change
 watch(() => messages.value, async () => {
@@ -261,6 +292,8 @@ const closeImageModal = () => {
 }
 
 onMounted(async () => {
+  console.log('[BookingChat] Mounted - bookingId:', props.bookingId, 'status:', props.bookingStatus)
+
   // Fetch initial messages
   await fetchMessages()
 

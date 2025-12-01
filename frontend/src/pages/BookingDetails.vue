@@ -339,7 +339,7 @@
 
           <!-- RIGHT COLUMN - Booking Chat -->
           <div class="right-column">
-            <BookingChat :bookingId="booking._id" />
+            <BookingChat :bookingId="booking._id" :bookingStatus="currentStatus" />
           </div>
         </div>
       </div>
