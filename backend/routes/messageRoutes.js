@@ -183,13 +183,14 @@ router.get('/conversation/:conversationId', auth, async (req, res) => {
   }
 });
 
-// Get io instance from main app
-let io;
-try {
-  io = require('../index').io;
-} catch (err) {
-  console.log('Socket.io not available yet');
-}
+// Get io instance from main app (lazy loading to avoid circular dependency)
+const getIO = () => {
+  try {
+    return require('../index').io;
+  } catch (err) {
+    return null;
+  }
+};
 
 // Send a message
 router.post('/send', auth, upload.single('image'), async (req, res) => {
@@ -265,6 +266,7 @@ router.post('/send', auth, upload.single('image'), async (req, res) => {
     };
 
     // Emit real-time event to conversation room
+    const io = getIO();
     if (io) {
       io.to(conversation._id.toString()).emit('message:received', formattedMessage);
     }
@@ -420,6 +422,7 @@ router.post('/start-listing-conversation', auth, async (req, res) => {
     };
 
     // Emit real-time event to conversation room
+    const io = getIO();
     if (io) {
       io.to(conversation._id.toString()).emit('message:received', formattedMessage);
     }

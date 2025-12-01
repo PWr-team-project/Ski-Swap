@@ -63,7 +63,7 @@
           <div v-else class="message">
             <!-- Message Image -->
             <div v-if="message.image" class="message-image">
-              <img :src="message.image" alt="Message image" @click="openImageModal(message.image)" />
+              <img :src="getFullImageUrl(message.image)" alt="Message image" @click="openImageModal(getFullImageUrl(message.image))" />
             </div>
 
             <!-- Message Content -->
@@ -101,6 +101,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { bookingMessageService } from '@/services/bookingMessageService'
 import socketService from '@/services/socketService'
+import { getFullImageUrl } from '@/utils/api'
 import MessageInput from '../messages/MessageInput.vue'
 
 const props = defineProps({
@@ -150,10 +151,10 @@ const handleSendMessage = async (messageData) => {
       formData.append('image', messageData.image)
     }
 
-    const response = await bookingMessageService.sendMessage(props.bookingId, formData)
+    await bookingMessageService.sendMessage(props.bookingId, formData)
 
-    // Add new message to list
-    messages.value.push(response.message)
+    // Don't add message here - let Socket.IO handle it to avoid duplicates
+    // The message will be added via the socket listener
   } catch (error) {
     console.error('Error sending booking message:', error)
     alert('Failed to send message. Please try again.')
@@ -164,10 +165,8 @@ const handleSendMessage = async (messageData) => {
 const setupSocketListeners = () => {
   socketService.onBookingMessageReceived((message) => {
     console.log('Received booking message:', message)
-    // Only add if not already in list (to avoid duplicates from own messages)
-    if (!messages.value.find(m => m._id === message._id)) {
-      messages.value.push(message)
-    }
+    // Add message to list (duplicates are prevented by not adding in handleSendMessage)
+    messages.value.push(message)
   })
 }
 

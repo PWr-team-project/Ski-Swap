@@ -51,3 +51,6 @@ log/
 CLAUDE.md
 .claude/
 claude.json
+
+# Uploads
+uploads/

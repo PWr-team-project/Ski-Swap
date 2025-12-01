@@ -18,13 +18,12 @@ const passwordResetTokenSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 300 // Document will be automatically deleted after 300 seconds (5 minutes)
+    index: { expires: 300 } // TTL index - document will be automatically deleted after 300 seconds (5 minutes)
   }
 });
 
 // Index for faster lookups
 passwordResetTokenSchema.index({ email: 1, code: 1 });
-passwordResetTokenSchema.index({ createdAt: 1 }, { expireAfterSeconds: 300 });
 
 const PasswordResetToken = mongoose.model('PasswordResetToken', passwordResetTokenSchema);
 
