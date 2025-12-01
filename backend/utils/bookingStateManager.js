@@ -2,6 +2,7 @@ const Booking = require('../models/Booking');
 const BookingStatus = require('../models/BookingStatus');
 const BookingPhoto = require('../models/BookingPhoto');
 const Payment = require('../models/Payment');
+const BookingMessage = require('../models/BookingMessage');
 
 // Define valid state transitions based on user requirements
 const STATE_TRANSITIONS = {
@@ -224,6 +225,19 @@ async function changeBookingStatus(bookingId, newStatus, actor, userId = null, n
     // Update Booking.current_status for fast queries (keep in sync)
     await Booking.findByIdAndUpdate(bookingId, {
       current_status: newStatus
+    });
+
+    // Create a status change message in the booking chat
+    await BookingMessage.create({
+      booking_id: bookingId,
+      sender_id: null, // System message
+      message_type: 'status_change',
+      message_text: `Booking status changed from ${currentStatus} to ${newStatus}`,
+      status_change: {
+        from_status: currentStatus,
+        to_status: newStatus
+      },
+      sent_at: new Date()
     });
 
     return {

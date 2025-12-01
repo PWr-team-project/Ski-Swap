@@ -337,17 +337,9 @@
             </div>
           </div>
 
-          <!-- RIGHT COLUMN - Placeholder for future implementation -->
+          <!-- RIGHT COLUMN - Booking Chat -->
           <div class="right-column">
-            <div class="placeholder-card">
-              <div class="placeholder-content">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <h3>Chat & Activity</h3>
-                <p>Coming soon...</p>
-              </div>
-            </div>
+            <BookingChat :bookingId="booking._id" />
           </div>
         </div>
       </div>
@@ -438,7 +430,9 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { bookingService } from '@/services/bookingService';
+import socketService from '@/services/socketService';
 import BookingProgressBar from '../components/BookingProgressBar.vue';
+import BookingChat from '../components/booking/BookingChat.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -1023,6 +1017,11 @@ const navigateToProfile = () => {
 // Lifecycle
 onMounted(() => {
   fetchBookingDetails();
+
+  // Connect to Socket.IO for real-time chat updates
+  if (authStore.user?.id) {
+    socketService.connect(authStore.user.id);
+  }
 });
 </script>
 

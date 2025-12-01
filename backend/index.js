@@ -21,6 +21,7 @@ const googleAuthRoutes = require('./routes/googleAuthRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const bookingStateRoutes = require('./routes/bookingStateRoutes');
 const bookingPhotoRoutes = require('./routes/bookingPhotoRoutes');
+const bookingMessageRoutes = require('./routes/bookingMessageRoutes');
 const emailRoutes = require('./routes/emailRoutes');
 
 // Import scheduler
@@ -77,6 +78,7 @@ app.use('/api/listings', listingRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/bookings', bookingStateRoutes); // Booking state management routes
 app.use('/api/bookings', bookingPhotoRoutes); // Booking photo routes
+app.use('/api/bookings', bookingMessageRoutes); // Booking message routes
 app.use('/api/verification', verificationRoutes);
 app.use('/api/admin', adminRoutes); // Admin routes
 app.use('/api/email', emailRoutes);
@@ -130,6 +132,18 @@ io.on('connection', (socket) => {
   socket.on('conversation:leave', (conversationId) => {
     socket.leave(conversationId);
     console.log(`Socket ${socket.id} left conversation ${conversationId}`);
+  });
+
+  // User joins a booking chat room
+  socket.on('booking:join', (bookingId) => {
+    socket.join(`booking-${bookingId}`);
+    console.log(`Socket ${socket.id} joined booking chat ${bookingId}`);
+  });
+
+  // User leaves a booking chat room
+  socket.on('booking:leave', (bookingId) => {
+    socket.leave(`booking-${bookingId}`);
+    console.log(`Socket ${socket.id} left booking chat ${bookingId}`);
   });
 
   // Send message (called from API, not directly from client)
