@@ -84,7 +84,7 @@ router.post(
       );
       
       // Send welcome email
-      await axios.post(process.env.API_URL + '/api/email/send/welcome', welcomeEmailDetails);
+      await axios.post(process.env.API_URL + '/api/email/welcome', welcomeEmailDetails);
 
       // Save user
       await newUser.save();

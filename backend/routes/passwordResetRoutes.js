@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const PasswordResetToken = require('../models/PasswordResetToken');
-const { sendPasswordResetEmail } = require('../services/emailService');
+const { sendEmailWithTemplate } = require('../services/emailService');
 
 // Generate random 6-digit code
 const generateResetCode = () => {
@@ -55,9 +55,14 @@ router.post(
       });
       await resetToken.save();
 
+      // Prepare email data
+      const data = {
+        to: user.email,
+        subject: 'Password Reset Code - SkiSwap',
+      };
       // Send email
       try {
-        await sendPasswordResetEmail(user.email, code, user.first_name);
+        await sendEmailWithTemplate(data, 'emailPasswordReset.html', { code, firstName: user.first_name });
         console.log(`Password reset code sent to ${user.email}`);
       } catch (emailError) {
         console.error('Failed to send email:', emailError);

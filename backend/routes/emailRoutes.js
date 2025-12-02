@@ -1,26 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
+const { renderHtml, sendEmailWithTemplate } = require('../services/emailService');
 const Booking = require('../models/Booking');
 const BookingStatus = require('../models/BookingStatus');
 const Payment = require('../models/Payment');
 const Review = require('../models/Review');
 const Listing = require('../models/Listing');
 const { auth } = require('../middleware/auth');
-const { sendEmail } = require('../services/emailService');
 const path = require('path');
 const fs = require('fs');
 
 
-
-const renderHtml = (templatePath, data) => {
-  const templateContent = fs.readFileSync(templatePath, 'utf8');
-  return templateContent.replace(/{{(\w+)}}/g, (match, key) => data[key]);
-};
-const templateDir = path.join(__dirname, '..', 'utils');
-
 // POST endpoint for sending generic email
-router.post('/send', auth, async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const { 
       to, 
@@ -62,7 +55,7 @@ router.post('/send', auth, async (req, res) => {
 );
 
 // POST endpoint for sending welcome email
-router.post('/send/welcome', auth, async (req, res) => {
+router.post('/welcome', auth, async (req, res) => {
   try {
     const { 
       to, 
@@ -93,7 +86,7 @@ router.post('/send/welcome', auth, async (req, res) => {
       bcc: []
     };
 
-    await sendEmail(welcomeEmail, res);
+    await sendEmail(welcomeEmail);
 
   } catch (error) {
     console.error('Error sending welcome email:', error);
@@ -102,7 +95,7 @@ router.post('/send/welcome', auth, async (req, res) => {
 });
 
 // POST endpoint for sending booking confirmation email
-router.post('/send/booking-confirmation', auth, async (req, res) => {
+router.post('/booking-confirmation', auth, async (req, res) => {
   try {
     const { 
       to,
@@ -118,25 +111,26 @@ router.post('/send/booking-confirmation', auth, async (req, res) => {
     if (!to || !nickname || !itemType || !itemName || !bookingDate || !price) {
       return res.status(400).json({ error: 'To, nickname, ItemType, ItemName, BookingDate, and Price are required' });
     }
-
-    const bookingConfirmationEmail = {
+    
+    const mailOptions = {
       to: to,
       subject: `Booking Confirmation: ${itemType}`,
-      html: renderHtml(path.join(templateDir, 'emailBookingConfirm.html'), {
-        itemType: itemType,
-        nickname: nickname,
-        itemName: itemName,
-        bookingDate: bookingDate,
-        bookingTime: bookingTime,
-        bookingDuration: bookingDuration,
-        price: price
-      }),
       attachments: null,
       cc: [],
       bcc: []
     };
 
-    await sendEmail(bookingConfirmationEmail, res);
+    const fillValues = {
+      itemType: itemType,
+      nickname: nickname,
+      itemName: itemName,
+      bookingDate: bookingDate,
+      bookingTime: bookingTime,
+      bookingDuration: bookingDuration,
+      price: price
+    };
+
+    await sendEmailWithTemplate(mailOptions, 'emailBookingConfirm.html', fillValues);
 
   } catch (error) {
     console.error('Error sending booking confirmation email:', error);
@@ -145,7 +139,7 @@ router.post('/send/booking-confirmation', auth, async (req, res) => {
 });
 
 // POST endpoint for sending payment receipt email
-router.post('/send/payment-receipt', auth, async (req, res) => {
+router.post('/payment-receipt', auth, async (req, res) => {
   try {
     const { 
       to,
@@ -161,23 +155,24 @@ router.post('/send/payment-receipt', auth, async (req, res) => {
       return res.status(400).json({ error: 'To, nickname, ItemType, ItemName, PaymentDate, Amount, and PaymentMethod are required' });
     }
 
-    const paymentReceiptEmail = {
+    const mailOptions = {
       to: to,
       subject: `Payment Receipt for ${itemType}`,
-      html: renderHtml(path.join(templateDir, 'emailPaymentReceipt.html'), {
-        itemType: itemType,
-        nickname: nickname,
-        itemName: itemName,
-        paymentDate: paymentDate,
-        amount: amount,
-        paymentMethod: paymentMethod
-      }),
       attachments: null,
       cc: [],
       bcc: []
     };
 
-    await sendEmail(paymentReceiptEmail, res);
+    const fillValues = {
+      itemType: itemType,
+      nickname: nickname,
+      itemName: itemName,
+      paymentDate: paymentDate,
+      amount: amount,
+      paymentMethod: paymentMethod
+    };
+
+    await sendEmailWithTemplate(mailOptions, 'emailPaymentReceipt.html', fillValues);
 
   } catch (error) {
     console.error('Error sending payment receipt email:', error);
@@ -185,7 +180,7 @@ router.post('/send/payment-receipt', auth, async (req, res) => {
   }
 });
 
-router.post('/send/cancel-booking', auth, async (req, res) => {
+router.post('/cancel-booking', auth, async (req, res) => {
   try {
     const { 
       to, 
@@ -199,21 +194,22 @@ router.post('/send/cancel-booking', auth, async (req, res) => {
       return res.status(400).json({ error: 'To, nickname, ItemType, and ItemName are required' });
     }
 
-    const cancellationEmail = {
+    const mailOptions = {
       to: to,
       subject: `Cancellation Notification: ${itemType}`,
-      html: renderHtml(path.join(templateDir, 'emailCancel.html'), {
-        nickname: nickname,
-        itemType: itemType,
-        itemName: itemName,
-        reason: reason
-      }),
       attachments: null,
       cc: [],
       bcc: []
     };
 
-    await sendEmail(cancellationEmail, res);
+    const fillValues = {
+      itemType: itemType,
+      nickname: nickname,
+      itemName: itemName,
+      reason: reason
+    };
+
+    await sendEmailWithTemplate(mailOptions, 'emailCancel.html', fillValues);
 
   } catch (error) {
     console.error('Error sending cancellation email:', error);
