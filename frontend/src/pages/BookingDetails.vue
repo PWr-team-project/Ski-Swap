@@ -1140,7 +1140,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* LEFT COLUMN */
@@ -1548,9 +1548,8 @@ onMounted(() => {
 
 /* RIGHT COLUMN - Placeholder */
 .right-column {
-  position: sticky;
-  top: 2rem;
-  height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
 }
 
 .placeholder-card {
