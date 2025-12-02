@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
@@ -63,9 +64,14 @@ router.post(
         user_type: user_type || 'individual', // Accept user_type from request, default to individual
         oauth_provider: 'local' // Explicitly set for non-OAuth registrations
       });
-
-      await newUser.save();
-
+      
+      const welcomeEmailDetails = {
+        to: email,
+        nickname: nickname,
+        firstName: first_name,
+        lastName: last_name,
+      };
+      
       // Create JWT token
       const token = jwt.sign(
         {
@@ -76,6 +82,12 @@ router.post(
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
       );
+      
+      // Send welcome email
+      await axios.post(process.env.API_URL + '/api/email/send/welcome', welcomeEmailDetails);
+
+      // Save user
+      await newUser.save();
 
       res.status(201).json({
         message: 'User registered successfully',

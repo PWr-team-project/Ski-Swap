@@ -7,17 +7,11 @@ const Payment = require('../models/Payment');
 const Review = require('../models/Review');
 const Listing = require('../models/Listing');
 const { auth } = require('../middleware/auth');
+const { sendEmail } = require('../services/emailService');
 const path = require('path');
 const fs = require('fs');
 
-// TODO: Replace with real credentials
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GOOGLE_APP_LOGIN,
-    pass: process.env.GOOGLE_APP_PASSWORD,
-  },
-});
+
 
 const renderHtml = (templatePath, data) => {
   const templateContent = fs.readFileSync(templatePath, 'utf8');
@@ -25,13 +19,13 @@ const renderHtml = (templatePath, data) => {
 };
 const templateDir = path.join(__dirname, '..', 'utils');
 
-const sendEmail = async (req, res) => {
+// POST endpoint for sending generic email
+router.post('/send', auth, async (req, res) => {
   try {
     const { 
-      nick,
       to, 
       subject, 
-      text, 
+      text = null, 
       html, 
       attachments = null, 
       cc = [], 
@@ -39,12 +33,12 @@ const sendEmail = async (req, res) => {
       replyTo = null
     } = req.body;
 
-    if (!from || !to || !subject) {
+    if (!to || !subject) {
       return res.status(400).json({ error: 'From, To and Subject are required' });
     }
 
     const mailOptions = {
-      from: `${nick} <${process.env.GOOGLE_APP_LOGIN}>`,
+      from: `SkiSwap <${process.env.GOOGLE_APP_LOGIN}>`,
       to: to,
       subject: subject,
       text: text,
@@ -63,16 +57,16 @@ const sendEmail = async (req, res) => {
     console.error('Error sending email:', error);
     res.status(500).json({ error: 'Failed to send email' });
   }
-};
+}
 
-// POST endpoint for sending generic email
-router.post('/send', auth, sendEmail);
+);
 
 // POST endpoint for sending welcome email
 router.post('/send/welcome', auth, async (req, res) => {
   try {
     const { 
       to, 
+      nickname,
       firstName, 
       lastName, 
       emailSubject = 'Welcome to SkiSwap!',
@@ -84,9 +78,10 @@ router.post('/send/welcome', auth, async (req, res) => {
     }
 
     const welcomeEmail = {
-      to,
+      to: to,
       subject: emailSubject,
       html: renderHtml(path.join(templateDir, 'emailWelcome.html'), {
+        nickname: nickname,
         firstName: firstName,
         lastName: lastName,
         name: `${firstName} ${lastName}`,
@@ -98,7 +93,7 @@ router.post('/send/welcome', auth, async (req, res) => {
       bcc: []
     };
 
-    await genericSendEmail(welcomeEmail, res);
+    await sendEmail(welcomeEmail, res);
 
   } catch (error) {
     console.error('Error sending welcome email:', error);
@@ -111,7 +106,7 @@ router.post('/send/booking-confirmation', auth, async (req, res) => {
   try {
     const { 
       to,
-      customerName,
+      nickname,
       itemType,
       itemName,
       bookingDate,
@@ -120,16 +115,16 @@ router.post('/send/booking-confirmation', auth, async (req, res) => {
       price
     } = req.body;
 
-    if (!to || !customerName || !itemType || !itemName || !bookingDate || !price) {
-      return res.status(400).json({ error: 'To, CustomerName, ItemType, ItemName, BookingDate, and Price are required' });
+    if (!to || !nickname || !itemType || !itemName || !bookingDate || !price) {
+      return res.status(400).json({ error: 'To, nickname, ItemType, ItemName, BookingDate, and Price are required' });
     }
 
     const bookingConfirmationEmail = {
-      to,
+      to: to,
       subject: `Booking Confirmation: ${itemType}`,
       html: renderHtml(path.join(templateDir, 'emailBookingConfirm.html'), {
         itemType: itemType,
-        customerName: customerName,
+        nickname: nickname,
         itemName: itemName,
         bookingDate: bookingDate,
         bookingTime: bookingTime,
@@ -141,7 +136,7 @@ router.post('/send/booking-confirmation', auth, async (req, res) => {
       bcc: []
     };
 
-    await genericSendEmail(bookingConfirmationEmail, res);
+    await sendEmail(bookingConfirmationEmail, res);
 
   } catch (error) {
     console.error('Error sending booking confirmation email:', error);
@@ -154,7 +149,7 @@ router.post('/send/payment-receipt', auth, async (req, res) => {
   try {
     const { 
       to,
-      customerName,
+      nickname,
       itemType,
       itemName,
       paymentDate,
@@ -162,16 +157,16 @@ router.post('/send/payment-receipt', auth, async (req, res) => {
       paymentMethod
     } = req.body;
 
-    if (!to || !customerName || !itemType || !itemName || !paymentDate || !amount || !paymentMethod) {
-      return res.status(400).json({ error: 'To, CustomerName, ItemType, ItemName, PaymentDate, Amount, and PaymentMethod are required' });
+    if (!to || !nickname || !itemType || !itemName || !paymentDate || !amount || !paymentMethod) {
+      return res.status(400).json({ error: 'To, nickname, ItemType, ItemName, PaymentDate, Amount, and PaymentMethod are required' });
     }
 
     const paymentReceiptEmail = {
-      to,
+      to: to,
       subject: `Payment Receipt for ${itemType}`,
       html: renderHtml(path.join(templateDir, 'emailPaymentReceipt.html'), {
         itemType: itemType,
-        customerName: customerName,
+        nickname: nickname,
         itemName: itemName,
         paymentDate: paymentDate,
         amount: amount,
@@ -182,7 +177,7 @@ router.post('/send/payment-receipt', auth, async (req, res) => {
       bcc: []
     };
 
-    await genericSendEmail(paymentReceiptEmail, res);
+    await sendEmail(paymentReceiptEmail, res);
 
   } catch (error) {
     console.error('Error sending payment receipt email:', error);
@@ -194,21 +189,21 @@ router.post('/send/cancel-booking', auth, async (req, res) => {
   try {
     const { 
       to, 
-      customerName, 
+      nickname, 
       itemType, 
       itemName,
       reason
     } = req.body;
 
-    if (!to || !customerName || !itemType || !itemName) {
-      return res.status(400).json({ error: 'To, CustomerName, ItemType, and ItemName are required' });
+    if (!to || !nickname || !itemType || !itemName) {
+      return res.status(400).json({ error: 'To, nickname, ItemType, and ItemName are required' });
     }
 
     const cancellationEmail = {
-      to,
+      to: to,
       subject: `Cancellation Notification: ${itemType}`,
       html: renderHtml(path.join(templateDir, 'emailCancel.html'), {
-        customerName: customerName,
+        nickname: nickname,
         itemType: itemType,
         itemName: itemName,
         reason: reason
@@ -218,7 +213,7 @@ router.post('/send/cancel-booking', auth, async (req, res) => {
       bcc: []
     };
 
-    await genericSendEmail(cancellationEmail, res);
+    await sendEmail(cancellationEmail, res);
 
   } catch (error) {
     console.error('Error sending cancellation email:', error);
