@@ -4,6 +4,7 @@ const Review = require('../models/Review');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
+const { changeBookingStatus } = require('../utils/bookingStateManager');
 
 // Create a review for a booking
 router.post('/bookings/:bookingId/reviews', auth, async (req, res) => {
@@ -64,9 +65,19 @@ router.post('/bookings/:bookingId/reviews', auth, async (req, res) => {
 
     await review.save();
 
-    // Update booking status to REVIEWED
-    booking.current_status = 'REVIEWED';
-    await booking.save();
+    // Update booking status to REVIEWED using proper state manager
+    const statusChange = await changeBookingStatus(
+      bookingId,
+      'REVIEWED',
+      'renter',
+      req.userId,
+      'Review submitted by renter'
+    );
+
+    if (!statusChange.success) {
+      console.error('Failed to update booking status to REVIEWED:', statusChange.error);
+      // Continue anyway - review is saved, just status update failed
+    }
 
     // Update owner's rating statistics
     await updateUserRating(ownerId);

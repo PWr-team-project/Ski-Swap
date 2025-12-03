@@ -4,6 +4,7 @@ const paymentSchema = new mongoose.Schema({
   payment_id: {
   type: String,
   unique: true,
+  sparse: true,  // Allow multiple null values
   trim: true,
   },
   booking_id: {
