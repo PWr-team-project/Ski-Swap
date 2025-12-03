@@ -353,6 +353,16 @@
       </div>
     </div>
 
+    <!-- Review Modal -->
+    <ReviewModal
+      :show="showReviewModal"
+      :owner-name="otherUserName"
+      :existing-review="existingReview"
+      :submitting="submittingReview"
+      @close="closeReviewModal"
+      @submit="submitReview"
+    />
+
     <!-- Photo Upload Modal -->
     <div v-if="showPhotoModal" class="modal-overlay" @click.self="closePhotoModal">
       <div class="modal-content photo-modal">
@@ -438,7 +448,9 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { bookingService } from '@/services/bookingService';
+import { reviewService } from '@/services/reviewService';
 import BookingProgressBar from '../components/BookingProgressBar.vue';
+import ReviewModal from '../components/ReviewModal.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -465,6 +477,12 @@ const returnPhotosUploaded = ref(false);
 
 // Store existing uploaded photos
 const existingPhotos = ref([]);
+
+// Review Modal
+const showReviewModal = ref(false);
+const existingReview = ref(null);
+const submittingReview = ref(false);
+const hasReview = ref(false);
 
 // Computed
 const isRenter = computed(() => {
@@ -662,9 +680,9 @@ const showOwnerContactSupport = computed(() => {
   return !isRenter.value && currentStatus.value === 'DISPUTED';
 });
 
-// Show Review - REVIEWED (violet)
+// Show Review - REVIEWED (violet) - only show if review exists
 const showOwnerShowReview = computed(() => {
-  return !isRenter.value && currentStatus.value === 'REVIEWED';
+  return !isRenter.value && currentStatus.value === 'REVIEWED' && hasReview.value;
 });
 
 // Need Help - Most states except DISPUTED, DISPUTE_RESOLVED
@@ -699,11 +717,29 @@ const fetchBookingDetails = async () => {
 
     // Fetch status history
     await fetchStatusHistory();
+
+    // Check if review exists for this booking
+    await checkReviewExists();
   } catch (err) {
     console.error('Error fetching booking details:', err);
     error.value = err.response?.data?.message || 'Failed to load booking details';
   } finally {
     loading.value = false;
+  }
+};
+
+const checkReviewExists = async () => {
+  try {
+    const response = await reviewService.getBookingReviews(booking.value._id);
+    if (response.reviews && response.reviews.length > 0) {
+      const review = response.reviews.find(r => r.review_type === 'renter_to_owner');
+      hasReview.value = !!review;
+    } else {
+      hasReview.value = false;
+    }
+  } catch (err) {
+    console.error('Error checking review exists:', err);
+    hasReview.value = false;
   }
 };
 
@@ -884,11 +920,55 @@ const handleDispute = async () => {
 };
 
 const handleReview = () => {
-  alert('Review functionality - To be implemented');
+  showReviewModal.value = true;
 };
 
-const handleShowReview = () => {
-  alert('Show review functionality - To be implemented');
+const handleShowReview = async () => {
+  try {
+    const response = await reviewService.getBookingReviews(booking.value._id);
+    if (response.reviews && response.reviews.length > 0) {
+      // Find the renter_to_owner review
+      const review = response.reviews.find(r => r.review_type === 'renter_to_owner');
+      if (review) {
+        existingReview.value = review;
+        showReviewModal.value = true;
+      } else {
+        alert('No review found for this booking.');
+      }
+    } else {
+      alert('No review found for this booking.');
+    }
+  } catch (err) {
+    console.error('Error fetching review:', err);
+    alert('Failed to load review.');
+  }
+};
+
+const closeReviewModal = () => {
+  showReviewModal.value = false;
+  existingReview.value = null;
+};
+
+const submitReview = async (reviewData) => {
+  submittingReview.value = true;
+
+  try {
+    await reviewService.createReview(booking.value._id, reviewData);
+
+    // Close modal first
+    closeReviewModal();
+
+    // Refresh booking details to update status
+    await fetchBookingDetails();
+
+    // Show success message after refresh
+    alert('Review submitted successfully!');
+  } catch (err) {
+    console.error('Error submitting review:', err);
+    alert(err.response?.data?.message || 'Failed to submit review.');
+  } finally {
+    submittingReview.value = false;
+  }
 };
 
 const handleContactSupport = () => {
@@ -1023,8 +1103,13 @@ const navigateToProfile = () => {
 };
 
 // Lifecycle
-onMounted(() => {
-  fetchBookingDetails();
+onMounted(async () => {
+  await fetchBookingDetails();
+
+  // Check if we should open the review modal from URL query
+  if (route.query.openReview === 'true' && isRenter.value && currentStatus.value === 'COMPLETED') {
+    showReviewModal.value = true;
+  }
 });
 </script>
 

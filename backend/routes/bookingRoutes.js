@@ -27,15 +27,15 @@ router.get('/renting', auth, async (req, res) => {
       })
       .sort({ start_date: -1 });
 
-    // Get reviews
+    // Get reviews (renter_to_owner reviews that the renter has submitted)
     const bookingIds = bookings.map(b => b._id);
     const reviews = await Review.find({
       booking_id: { $in: bookingIds },
-      review_type: 'owner_to_renter'
+      review_type: 'renter_to_owner'
     });
     const reviewMap = {};
     reviews.forEach(r => {
-      reviewMap[r.booking_id.toString()] = r;
+      reviewMap[r.booking_id.toString()] = true;
     });
 
     // Categorize bookings based on status
@@ -55,12 +55,12 @@ router.get('/renting', auth, async (req, res) => {
 
     bookings.forEach(booking => {
       const currentStatus = booking.current_status;
-      const review = reviewMap[booking._id.toString()];
+      const hasReview = reviewMap[booking._id.toString()] || false;
 
       const bookingData = {
         ...booking.toObject(),
         status: currentStatus,
-        ownerReview: review
+        hasReview: hasReview
       };
 
       // Calculate days remaining
@@ -334,10 +334,10 @@ router.get('/:id', auth, async (req, res) => {
         populate: [
           { path: 'category_id', select: 'name' },
           { path: 'location_id' },
-          { path: 'owner_id', select: 'nickname first_name last_name profile_photo email rating_avg review_count' }
+          { path: 'owner_id', select: 'nickname first_name last_name profile_photo email rating_avg' }
         ]
       })
-      .populate('renter_id', 'nickname first_name last_name profile_photo email rating_avg review_count');
+      .populate('renter_id', 'nickname first_name last_name profile_photo email rating_avg');
 
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });

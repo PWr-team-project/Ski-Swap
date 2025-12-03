@@ -22,6 +22,7 @@ const bookingRoutes = require('./routes/bookingRoutes');
 const bookingStateRoutes = require('./routes/bookingStateRoutes');
 const bookingPhotoRoutes = require('./routes/bookingPhotoRoutes');
 const emailRoutes = require('./routes/emailRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 // Import scheduler
 const { startScheduler } = require('./services/bookingScheduler');
@@ -77,6 +78,7 @@ app.use('/api/listings', listingRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/bookings', bookingStateRoutes); // Booking state management routes
 app.use('/api/bookings', bookingPhotoRoutes); // Booking photo routes
+app.use('/api', reviewRoutes); // Review routes (bookings/:bookingId/reviews and users/:userId/reviews)
 app.use('/api/verification', verificationRoutes);
 app.use('/api/admin', adminRoutes); // Admin routes
 app.use('/api/email', emailRoutes);
