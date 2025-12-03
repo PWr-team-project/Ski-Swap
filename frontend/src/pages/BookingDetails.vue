@@ -1550,6 +1550,8 @@ onMounted(() => {
 .right-column {
   display: flex;
   flex-direction: column;
+  height: 800px;
+  max-height: 800px;
 }
 
 .placeholder-card {

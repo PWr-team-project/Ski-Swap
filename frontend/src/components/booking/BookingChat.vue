@@ -131,11 +131,8 @@ const modalImageSrc = ref('')
 
 // Fetch messages
 const fetchMessages = async () => {
-  console.log('[BookingChat] fetchMessages - bookingStatus:', props.bookingStatus)
-
   // Don't fetch messages if status is PENDING
   if (props.bookingStatus === 'PENDING') {
-    console.log('[BookingChat] Status is PENDING - chat disabled')
     chatEnabled.value = false
     loading.value = false
     return
@@ -144,10 +141,7 @@ const fetchMessages = async () => {
   loading.value = true
 
   try {
-    console.log('[BookingChat] Calling bookingMessageService.getMessages with bookingId:', props.bookingId)
     const response = await bookingMessageService.getMessages(props.bookingId)
-    console.log('[BookingChat] Service returned:', response)
-
     messages.value = response.messages || []
     chatEnabled.value = response.chatEnabled || false
     isChatFrozen.value = response.isChatFrozen || false
@@ -292,7 +286,6 @@ const closeImageModal = () => {
 }
 
 onMounted(async () => {
-  console.log('[BookingChat] Mounted - bookingId:', props.bookingId, 'status:', props.bookingStatus)
 
   // Fetch initial messages
   await fetchMessages()
@@ -314,7 +307,8 @@ onUnmounted(() => {
 .booking-chat {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 800px;
+  max-height: 800px;
   background: white;
   border-radius: 15px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
