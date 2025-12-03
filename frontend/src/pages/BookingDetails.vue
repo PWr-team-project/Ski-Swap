@@ -728,7 +728,9 @@ const fetchStatusHistory = async () => {
 
 // Action Handlers
 const handlePayment = () => {
-  alert('Payment functionality - To be implemented');
+  if (booking.value._id) {
+    router.push(`/payment/${booking.value._id}`);
+  }
 };
 
 const handleAccept = async () => {

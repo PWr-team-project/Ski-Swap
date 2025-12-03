@@ -244,5 +244,26 @@ export const bookingService = {
   async deletePhoto(bookingId, photoId) {
     const response = await apiClient.delete(`/api/bookings/${bookingId}/photos/${photoId}`);
     return response.data;
+  },
+
+  // ============= Payment Methods =============
+
+  /**
+   * Process payment for a booking
+   * @param {string} bookingId - Booking ID
+   * @param {Object} paymentData - Payment details (includeInsurance, insuranceAmount, totalAmount)
+   */
+  async processPayment(bookingId, paymentData) {
+    const response = await apiClient.post(`/api/bookings/${bookingId}/payment/process`, paymentData);
+    return response.data;
+  },
+
+  /**
+   * Reject payment for a booking
+   * @param {string} bookingId - Booking ID
+   */
+  async rejectPayment(bookingId) {
+    const response = await apiClient.post(`/api/bookings/${bookingId}/payment/reject`);
+    return response.data;
   }
 };

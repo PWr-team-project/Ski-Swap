@@ -67,7 +67,7 @@
         <div class="action-buttons">
           <!-- Left Side: Renter Action Buttons -->
           <div class="action-buttons-left">
-            <button v-if="showPayButton" @click="navigateToDetails" class="btn btn-success">Pay Now</button>
+            <button v-if="showPayButton" @click="navigateToPayment" class="btn btn-success">Pay Now</button>
             <button v-if="showCancelButton" @click="navigateToDetails" class="btn btn-danger">Cancel</button>
             <button v-if="showConfirmPickupButton" @click="navigateToDetails" class="btn btn-success">Confirm Pickup</button>
             <button v-if="showConfirmReturnButton" @click="navigateToDetails" class="btn btn-success">Confirm Return</button>
@@ -201,6 +201,12 @@ const getDuration = computed(() => {
 const navigateToDetails = () => {
   if (props.rentalId) {
     router.push(`/booking/${props.rentalId}`);
+  }
+};
+
+const navigateToPayment = () => {
+  if (props.rentalId) {
+    router.push(`/payment/${props.rentalId}`);
   }
 };
 </script>
