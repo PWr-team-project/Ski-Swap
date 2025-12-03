@@ -217,7 +217,7 @@ const toggleSection = (section) => {
 };
 
 const hasReview = (booking) => {
-  return booking.ownerReview !== null && booking.ownerReview !== undefined;
+  return booking.hasReview === true;
 };
 
 </script>

@@ -17,6 +17,7 @@ import SingleListing from './pages/SingleListing.vue'
 import ProfileSettings from './pages/ProfileSettings.vue'
 import UserProfile from './pages/UserProfile.vue'
 import BookingDetails from './pages/BookingDetails.vue'
+import Payment from './pages/Payment.vue'
 
 // Admin pages
 import VerificationRequests from './pages/admin/VerificationRequests.vue'
@@ -104,6 +105,12 @@ const routes = [
     path: '/booking/:id',
     name: 'BookingDetails',
     component: BookingDetails,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/payment/:id',
+    name: 'Payment',
+    component: Payment,
     meta: { requiresAuth: true }
   },
   {

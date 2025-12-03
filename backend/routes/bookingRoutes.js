@@ -8,6 +8,8 @@ const Listing = require('../models/Listing');
 const { auth } = require('../middleware/auth');
 const { hasDateConflict } = require('../utils/availabilityCalculator');
 
+console.log('🔵 bookingRoutes.js is being loaded...');
+
 // Get user's rentals (equipment I'm renting from others)
 router.get('/renting', auth, async (req, res) => {
   try {
@@ -26,15 +28,15 @@ router.get('/renting', auth, async (req, res) => {
       })
       .sort({ start_date: -1 });
 
-    // Get reviews
+    // Get reviews (renter_to_owner reviews that the renter has submitted)
     const bookingIds = bookings.map(b => b._id);
     const reviews = await Review.find({
       booking_id: { $in: bookingIds },
-      review_type: 'owner_to_renter'
+      review_type: 'renter_to_owner'
     });
     const reviewMap = {};
     reviews.forEach(r => {
-      reviewMap[r.booking_id.toString()] = r;
+      reviewMap[r.booking_id.toString()] = true;
     });
 
     // Categorize bookings based on status
@@ -54,12 +56,12 @@ router.get('/renting', auth, async (req, res) => {
 
     bookings.forEach(booking => {
       const currentStatus = booking.current_status;
-      const review = reviewMap[booking._id.toString()];
+      const hasReview = reviewMap[booking._id.toString()] || false;
 
       const bookingData = {
         ...booking.toObject(),
         status: currentStatus,
-        ownerReview: review
+        hasReview: hasReview
       };
 
       // Calculate days remaining
@@ -220,6 +222,110 @@ router.get('/lending', auth, async (req, res) => {
   }
 });
 
+// ============= PAYMENT ROUTES (Must be before /:id route) =============
+// Process payment for a booking
+router.post('/:id/payment/process', auth, async (req, res) => {
+  console.log('Payment process route hit!');
+  try {
+    const { includeInsurance, insuranceAmount, totalAmount } = req.body;
+
+    // Find the booking (don't populate to avoid save issues)
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check if user is the renter
+    if (booking.renter_id.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Not authorized to pay for this booking' });
+    }
+
+    // Check if payment is already confirmed
+    if (booking.payment_confirmed) {
+      return res.status(400).json({ message: 'Payment already confirmed for this booking' });
+    }
+
+    // Create payment record
+    const payment = new Payment({
+      booking_id: booking._id,
+      payer_id: req.userId,
+      amount: totalAmount || booking.total_price,
+      insurance_amount: includeInsurance ? (insuranceAmount || 0) : 0,
+      skiswap_fee: booking.skiswap_fee || 0,
+      currency: 'EUR',
+      payment_status: 'completed'
+    });
+
+    await payment.save();
+
+    // Update booking with payment info using findByIdAndUpdate to avoid validation issues
+    await Booking.findByIdAndUpdate(
+      booking._id,
+      {
+        $set: {
+          payment_confirmed: true,
+          payment_id: payment._id,
+          insurance_flag: includeInsurance || false
+        }
+      },
+      { new: true }
+    );
+
+    // Return success
+    res.json({
+      message: 'Payment processed successfully',
+      payment: payment
+    });
+  } catch (error) {
+    console.error('Error processing payment:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message,
+      details: error.toString()
+    });
+  }
+});
+
+// Reject payment for a booking
+router.post('/:id/payment/reject', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check if user is the renter
+    if (booking.renter_id.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Not authorized to reject payment for this booking' });
+    }
+
+    // Create a failed payment record
+    const payment = new Payment({
+      booking_id: booking._id,
+      payer_id: req.userId,
+      amount: booking.total_price,
+      insurance_amount: 0,
+      skiswap_fee: booking.skiswap_fee || 0,
+      currency: 'EUR',
+      payment_status: 'failed',
+      refund_reason: 'Payment rejected by user'
+    });
+
+    await payment.save();
+
+    res.json({
+      message: 'Payment rejected',
+      payment: payment
+    });
+  } catch (error) {
+    console.error('Error rejecting payment:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get a single booking by ID
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -229,10 +335,10 @@ router.get('/:id', auth, async (req, res) => {
         populate: [
           { path: 'category_id', select: 'name' },
           { path: 'location_id' },
-          { path: 'owner_id', select: 'nickname first_name last_name profile_photo email rating_avg review_count' }
+          { path: 'owner_id', select: 'nickname first_name last_name profile_photo email rating_avg' }
         ]
       })
-      .populate('renter_id', 'nickname first_name last_name profile_photo email rating_avg review_count');
+      .populate('renter_id', 'nickname first_name last_name profile_photo email rating_avg');
 
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
@@ -494,7 +600,7 @@ router.get('/:id/confirmation', auth, async (req, res) => {
           { path: 'category_id', select: 'name' },
           { path: 'location_id' },
           { path: 'owner_id', select: 'nickname first_name last_name profile_photo email' }
-        ] 
+        ]
       })
       .populate({ path: 'renter_id', select: 'nickname first_name last_name profile_photo email'} )
       .populate('payment_id');
@@ -510,4 +616,5 @@ router.get('/:id/confirmation', auth, async (req, res) => {
   }
 });
 
+console.log('✅ bookingRoutes.js loaded successfully - all routes registered');
 module.exports = router;
