@@ -270,23 +270,23 @@ const authStore = useAuthStore();
 // Categories
 const categories = [
   { value: 'Skis', label: 'Skis', icon: '⛷️' },
+  { value: 'Skiing shoes', label: 'Skiing shoes', icon: '🎿' },
+  { value: 'Snowboarding shoes', label: 'Snowboarding shoes', icon: '👢' },
   { value: 'Snowboards', label: 'Snowboards', icon: '🏂' },
-  { value: 'Boots', label: 'Boots', icon: '🥾' },
-  { value: 'Poles', label: 'Poles', icon: '🎿' },
-  { value: 'Goggles', label: 'Goggles', icon: '🥽' },
-  { value: 'Helmets', label: 'Helmets', icon: '⛑️' },
-  { value: 'Accessories', label: 'Accessories', icon: '🎒' }
+  { value: 'Clothing', label: 'Clothing', icon: '🧥' },
+  { value: 'Accessories', label: 'Accessories', icon: '🥽' },
+  { value: 'For kids', label: 'For kids', icon: '👶' }
 ];
 
 // Suggested prices based on category
 const suggestedPrices = {
-  'Skis': 45,
-  'Snowboards': 40,
-  'Boots': 25,
-  'Poles': 10,
-  'Goggles': 15,
-  'Helmets': 12,
-  'Accessories': 8
+  'Skis': 35,
+  'Skiing shoes': 20,
+  'Snowboarding shoes': 18,
+  'Snowboards': 30,
+  'Clothing': 15,
+  'Accessories': 10,
+  'For kids': 12
 };
 
 // Listing data
