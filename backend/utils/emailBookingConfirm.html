@@ -1,14 +1,31 @@
 <!-- Booking Confirmation Email Template -->
-<div id="booking-confirmation-email">
-	<h2>Booking Confirmation: {{itemType}}</h2>
-	<p>Dear {{nickname}},</p>
-	<p>Your booking for {{itemName}} has been confirmed.</p>
-	<p>Details:</p>
-	<ul>
-	<li>Date: {{bookingDate}}</li>
-	<li>Time: {{bookingTime}}</li>
-	<li>Duration: {{bookingDuration}}</li>
-	<li>Price: ${{price}}</li>
-	</ul>
-	<p>Thank you for choosing SkiSwap!</p>
-</div>
+<!DOCTYPE html>
+<html>
+	<head>
+		<link href="emailStyles.css">
+	</head>
+
+	<body>
+		<div class="container" id="booking-confirmation-email">
+			<div class="header">
+				<h1>Booking Confirmation: {{itemType}}</h1>
+			</div>
+			<div class="content">
+				<p>Dear {{nickname}},</p>
+				<p>Your booking for {{itemName}} has been confirmed.</p>
+				<p>Details:</p>
+				<ul>
+					<li>Date: {{bookingDate}}</li>
+					<li>Time: {{bookingTime}}</li>
+					<li>Duration: {{bookingDuration}}</li>
+					<li>Price: {{price}}&euro;</li>
+				</ul>
+				<p>Thank you for choosing SkiSwap!</p>
+				<p>Best regards,<br>The SkiSwap Team</p>
+			</div>
+			<div class="footer">
+				<p>This is an automated email, please do not reply.</p>
+			</div>
+		</div>
+	</body>
+</html>

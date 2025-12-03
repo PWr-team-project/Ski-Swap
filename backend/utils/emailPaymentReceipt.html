@@ -1,14 +1,33 @@
 <!-- Payment Receipt Email Template -->
-<div id="receipt-email">
+<div>
 
-	<h2>Payment Receipt for {{itemType}}</h2>
-	<p>Dear {{nickname}},</p>
-	<p>This is a receipt for your payment for {{itemName}}.</p>
-	<p>Details:</p>
-	<ul>
-	<li>Date: {{paymentDate}}</li>
-	<li>Amount: ${{amount}}</li>
-	<li>Method: {{paymentMethod}}</li>
-	</ul>
-	<p>Thank you for your payment. Enjoy your rental!</p>
+	<h2></h2>
 </div>
+<!DOCTYPE html>
+<html>
+	<head>
+		<link href="emailStyles.css">
+	</head>
+
+	<body>
+		<div class="container" id="receipt-email">
+			<div class="header">
+				<h1>Payment Receipt for {{itemType}}</h1>
+			</div>
+			<div class="content">
+				<p>Dear {{nickname}},</p>
+				<p>This is a receipt for your payment for {{itemName}}.</p>
+				<p>Details:</p>
+				<ul>
+					<li>Date: {{paymentDate}}</li>
+					<li>Amount: ${{amount}}</li>
+					<li>Method: {{paymentMethod}}</li>
+				</ul>
+				<p>Thank you for your payment. Enjoy your rental!</p>
+			</div>
+			<div class="footer">
+				<p>This is an automated email, please do not reply.</p>
+			</div>
+		</div>
+	</body>
+</html>

@@ -2,7 +2,18 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
 
-// Create reusable transporter
+
+/**
+ * Creates a email transporter based on .env
+ *
+ * Requires environment variables:
+ *   EMAIL_SERVICE: email service provider, defaults to 'gmail'
+ *   EMAIL_USER: email address used for sending emails
+ *   EMAIL_PASSWORD: password for the email address
+ *
+ * @returns {Object} - a transporter object
+ */
+
 const createTransporter = () => {
   return nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE || 'gmail',
@@ -17,7 +28,9 @@ const createTransporter = () => {
  * Renders an HTML template with the given data.
  * Replaces all occurrences of {{\w+}} with the corresponding data value.
  * @param {string} templatePath The path to the HTML template file.
+ * @syntax In the template, use `{{variableName}}` to insert data.
  * @param {Object} replacements The data to render into the template.
+ * @syntax `{variableName: value, ...}`
  * @returns {string} The rendered HTML template.
  */
 const renderHtml = (templatePath, replacements) => {

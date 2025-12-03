@@ -1,12 +1,32 @@
 <!-- Welcome Email Template -->
-<div id="welcome-email">
-	<h2>Welcome to SkiSwap, {{nickname}}!</h2>
-	<p>We hope you enjoy our ski equipment rental marketplace.</p>
-	<p>{{message}}</p>
-	<p>Your account details:</p>
-	<ul>
-		<li>Email: {{email}}</li>
-		<li>First Name: {{firstName}}</li>
-		<li>Last Name: {{lastName}}</li>
-	</ul>
+<div>
+	<h2></h2>
 </div>
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<link href="emailStyles.css">
+	</head>
+
+	<body>
+		<div class="container" id="welcome-email">
+			<div class="header">
+				<h1>Welcome to SkiSwap, {{nickname}}!</h1>
+			</div>
+			<div class="content">
+				<p>We hope you enjoy our ski equipment rental marketplace.</p>
+				<p>{{message}}</p>
+				<p>Your account details:</p>
+				<ul>
+					<li>Email: {{email}}</li>
+					<li>First Name: {{firstName}}</li>
+					<li>Last Name: {{lastName}}</li>
+				</ul>
+			</div>
+			<div class="footer">
+				<p>This is an automated email, please do not reply.</p>
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,10 +1,26 @@
 <!-- Cancellation Notification Email Template -->
-<div id="cancellation-email">	
-	<h2>Cancellation Notification: {{itemType}}</h2>
-	<p>Dear {{nickname}},</p>
-	<p>Your booking for {{itemName}} has been cancelled.</p>
-	<p>Reason for cancellation: {{reason}}</p>
-	<p>If you need any assistance or have questions, please don't hesitate to contact us.</p>
-	<p>Best regards,</p>
-	<p>The SkiSwap Team</p>
-</div>
+<!DOCTYPE html>
+<html>
+	<head>
+		<link href="emailStyles.css">
+	</head>
+
+	<body>
+		<div class="container" id="cancellation-email">
+			<div class="header">
+				<h1>Cancellation Notification: {{itemType}}</h1>
+			</div>
+			<div class="content">
+				<p>Dear {{nickname}},</p>
+				<p>Your booking for {{itemName}} has been cancelled.</p>
+				<p>Reason for cancellation: {{reason}}</p>
+				<p>If you need any assistance or have questions, please don't hesitate to contact us.</p>
+				<p>Best regards,</p>
+				<p>The SkiSwap Team</p>
+			</div>
+			<div class="footer">
+				<p>This is an automated email, please do not reply.</p>
+			</div>
+		</div>
+	</body>
+</html>
