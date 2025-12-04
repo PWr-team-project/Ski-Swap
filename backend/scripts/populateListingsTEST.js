@@ -87,8 +87,8 @@ const getRandomImages = (category, count = 3) => {
     } while (usedIndices.has(randomIndex) && usedIndices.size < availablePhotos.length);
 
     usedIndices.add(randomIndex);
-    // Store as relative path that matches backend static file serving: uploads/listings/filename
-    images.push(`uploads/listings/${availablePhotos[randomIndex]}`);
+    // Store as absolute path that matches backend static file serving: /uploads/listings/filename
+    images.push(`/uploads/listings/${availablePhotos[randomIndex]}`);
   }
 
   return images;
