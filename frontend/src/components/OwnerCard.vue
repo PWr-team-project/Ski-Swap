@@ -143,8 +143,11 @@ const handleSendMessage = () => {
 }
 
 const navigateToProfile = () => {
-  if (props.owner?.id) {
-    // Navigate to public user profile page
+  if (props.owner?.nickname) {
+    // Navigate to public user profile page using nickname
+    window.location.href = `/user/${props.owner.nickname}`
+  } else if (props.owner?.id) {
+    // Fallback to ID if nickname is not available
     window.location.href = `/user/${props.owner.id}`
   }
 }
