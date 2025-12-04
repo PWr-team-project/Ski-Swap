@@ -13,7 +13,6 @@ const fs = require('fs');
  *
  * @returns {Object} - a transporter object
  */
-
 const createTransporter = () => {
   return nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE || 'gmail',
@@ -26,16 +25,16 @@ const createTransporter = () => {
 
 /**
  * Renders an HTML template with the given data.
- * Replaces all occurrences of {{\w+}} with the corresponding data value.
+ * Replaces all placeholders in the template with the corresponding data value.
  * @param {string} templatePath The path to the HTML template file.
- * @syntax In the template, use `{{variableName}}` to insert data.
+ * @syntax In the template, use `{{variableName}}` to insert data. Any valid JavaScript variable name should be allowed.
  * @param {Object} replacements The data to render into the template.
- * @syntax `{variableName: value, ...}`
+ * @syntax `{variableName: newValue, ...}`
  * @returns {string} The rendered HTML template.
  */
 const renderHtml = (templatePath, replacements) => {
   const templateContent = fs.readFileSync(templatePath, 'utf8');
-  return templateContent.replace(/{{(\w+)}}/g, (match) => replacements[match]);
+  return templateContent.replace(/{{\s*([\w$]+)\s*}}/g, (match, key) => replacements[key]);
 };
 const templateDir = path.join(__dirname, '..', 'utils');
 
@@ -45,7 +44,6 @@ const templateDir = path.join(__dirname, '..', 'utils');
  * @returns {Promise<Object>} A promise resolving to an object with the messageId property.
  * @throws {Error} If there is an error sending the email.
  */
-
 const sendEmail = async (data) => {
   try {
 
