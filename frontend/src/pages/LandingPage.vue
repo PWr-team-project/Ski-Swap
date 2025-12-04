@@ -126,7 +126,7 @@ const fetchListings = async () => {
       category: listing.category_id?.name || 'Unknown',
       name: listing.title,
       price: listing.daily_rate,
-      location: `${listing.location_id?.city}, ${listing.location_id?.country}`,
+      location: listing.location_id?.city,
       image: listing.photos && listing.photos.length > 0
         ? getFullImageUrl(listing.photos[0])
         : 'https://via.placeholder.com/400x300'

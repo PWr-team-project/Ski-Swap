@@ -401,6 +401,37 @@ router.delete('/account', auth, async (req, res) => {
   }
 });
 
+// Search users by query (NO AUTH REQUIRED - PUBLIC ROUTE)
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.trim() === '') {
+      return res.json({ users: [] });
+    }
+
+    const query = q.trim();
+    const searchRegex = new RegExp(query, 'i'); // Case-insensitive search
+
+    // Search by nickname, first_name, or last_name
+    const users = await User.find({
+      $or: [
+        { nickname: searchRegex },
+        { first_name: searchRegex },
+        { last_name: searchRegex }
+      ]
+    })
+    .populate('location_id')
+    .limit(20)
+    .select('nickname first_name last_name profile_photo location_id');
+
+    res.json({ users });
+  } catch (error) {
+    console.error('User search error:', error);
+    res.status(500).json({ message: 'Server error during user search' });
+  }
+});
+
 // Get public user profile by ID or nickname (NO AUTH REQUIRED - PUBLIC ROUTE)
 router.get('/public/:identifier', async (req, res) => {
   try {

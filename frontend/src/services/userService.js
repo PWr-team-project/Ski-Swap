@@ -81,5 +81,14 @@ export const userService = {
   async deleteAccount(data) {
     const response = await apiClient.delete('/api/users/account', { data });
     return response.data;
+  },
+
+  /**
+   * Search users by query
+   * @param {string} query - Search query (username, first name, or last name)
+   */
+  async searchUsers(query) {
+    const response = await apiClient.get(`/api/users/search?q=${encodeURIComponent(query)}`);
+    return response.data;
   }
 };

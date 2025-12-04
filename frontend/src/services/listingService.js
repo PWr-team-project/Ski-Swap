@@ -78,5 +78,13 @@ export const listingService = {
   async getBlockedDates(id) {
     const response = await apiClient.get(`/api/listings/${id}/blocked-dates`);
     return response.data;
+  },
+
+  /**
+   * Get all categories
+   */
+  async getCategories() {
+    const response = await apiClient.get('/api/listings/categories');
+    return response.data;
   }
 };

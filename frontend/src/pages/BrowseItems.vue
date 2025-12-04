@@ -54,12 +54,12 @@
 
         <!-- Filters Container -->
         <div class="filters-container">
-          <!-- Search Box for Brand/Type -->
+          <!-- Search Box for Listings and Users -->
           <div class="filter-group search-box">
             <span class="filter-icon">🔍</span>
             <input
               type="text"
-              placeholder="Search for brand or type..."
+              placeholder="Search listings or users..."
               v-model="searchParams.searchQuery"
               @input="handleFilterChange"
             />
@@ -70,9 +70,9 @@
             <label class="filter-label">Category</label>
             <select v-model="searchParams.category" @change="handleFilterChange">
               <option value="">All Categories</option>
-              <option value="Skis">Skis</option>
-              <option value="Snowboards">Snowboards</option>
-              <option value="Accessories">Accessories</option>
+              <option v-for="category in categories" :key="category._id" :value="category.name">
+                {{ category.name }}
+              </option>
             </select>
           </div>
 
@@ -96,15 +96,16 @@
 
         <!-- Results Count -->
         <div class="results-info">
-          <p>Showing {{ paginatedItems.length }} of {{ filteredItems.length }} items</p>
+          <p>Showing {{ totalDisplayedResults }} of {{ totalResults }} results ({{ filteredItems.length }} listings, {{ filteredUsers.length }} users)</p>
         </div>
       </div>
 
-      <!-- Items Grid -->
+      <!-- Items Grid (Mixed Listings and Users) -->
       <div class="items-grid">
+        <!-- Listings -->
         <div
-          v-for="item in paginatedItems"
-          :key="item.id"
+          v-for="item in paginatedListings"
+          :key="'listing-' + item.id"
           class="item-card"
           @click="handleItemClick(item)"
         >
@@ -120,16 +121,24 @@
             </div>
           </div>
         </div>
+
+        <!-- Users -->
+        <UserCard
+          v-for="user in paginatedUsers"
+          :key="'user-' + user._id"
+          :user="user"
+          @click="handleUserClick"
+        />
       </div>
 
       <!-- No Results Message -->
-      <div v-if="filteredItems.length === 0" class="no-results">
-        <p>No items found matching your criteria.</p>
+      <div v-if="filteredItems.length === 0 && filteredUsers.length === 0" class="no-results">
+        <p>No listings or users found matching your criteria.</p>
         <button @click="clearFilters" class="clear-filters-btn">Clear Filters</button>
       </div>
 
       <!-- Pagination -->
-      <div v-if="filteredItems.length > 0" class="pagination-section">
+      <div v-if="totalResults > 0" class="pagination-section">
         <div class="pagination-controls">
           <!-- Items Per Page Selector -->
           <div class="items-per-page">
@@ -180,10 +189,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { listingService } from '@/services/listingService';
+import { userService } from '@/services/userService';
 import { getFullImageUrl } from '@/utils/api';
+import { geocodeLocation, calculateDistance } from '@/utils/geolocation';
+import UserCard from '@/components/UserCard.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -207,7 +219,11 @@ const itemsPerPage = ref(20);
 
 // Real Items Data from API
 const allItems = ref([]);
+const allUsers = ref([]);
 const loading = ref(true);
+const categories = ref([]);
+const userLocationCoords = ref(null);
+const listingBlockedDates = ref({}); // Store blocked dates for each listing
 
 // Fetch real listings from API
 const fetchListings = async () => {
@@ -222,13 +238,20 @@ const fetchListings = async () => {
       category: listing.category_id?.name || 'Unknown',
       name: listing.title,
       brand: listing.brand || '',
+      description: listing.description || '',
       price: listing.daily_rate,
-      location: `${listing.location_id?.city}, ${listing.location_id?.country}`,
-      distance: Math.floor(Math.random() * 300 + 50), // Mock distance for now
+      location: listing.location_id?.city || 'Unknown',
+      locationData: listing.location_id,
+      distance: null, // Will be calculated if user location is provided
       image: listing.photos && listing.photos.length > 0
         ? getFullImageUrl(listing.photos[0])
         : 'https://via.placeholder.com/400x300'
     }));
+
+    // Calculate distances if user location is available
+    if (userLocationCoords.value) {
+      calculateDistances();
+    }
   } catch (error) {
     console.error('Error fetching listings:', error);
   } finally {
@@ -247,17 +270,35 @@ const dateRange = computed(() => {
 const filteredItems = computed(() => {
   let items = [...allItems.value];
 
+  // Filter by date availability
+  if (searchParams.value.startDate && searchParams.value.endDate) {
+    items = items.filter(item => {
+      return isListingAvailable(item.id, searchParams.value.startDate, searchParams.value.endDate);
+    });
+  }
+
+  // Filter by location (50km radius)
+  if (userLocationCoords.value && searchParams.value.location) {
+    items = items.filter(item => {
+      if (item.distance !== null && item.distance <= 50) {
+        return true;
+      }
+      return false;
+    });
+  }
+
   // Filter by category
   if (searchParams.value.category) {
     items = items.filter(item => item.category === searchParams.value.category);
   }
 
-  // Filter by search query (brand or type/name)
+  // Filter by search query (name, brand, description, or category)
   if (searchParams.value.searchQuery) {
     const query = searchParams.value.searchQuery.toLowerCase();
     items = items.filter(item =>
       item.name.toLowerCase().includes(query) ||
       item.brand.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
       item.category.toLowerCase().includes(query)
     );
   }
@@ -265,10 +306,18 @@ const filteredItems = computed(() => {
   // Sort items
   switch (searchParams.value.sortBy) {
     case 'location-nearest':
-      items.sort((a, b) => a.distance - b.distance);
+      items.sort((a, b) => {
+        if (a.distance === null) return 1;
+        if (b.distance === null) return -1;
+        return a.distance - b.distance;
+      });
       break;
     case 'location-farthest':
-      items.sort((a, b) => b.distance - a.distance);
+      items.sort((a, b) => {
+        if (a.distance === null) return 1;
+        if (b.distance === null) return -1;
+        return b.distance - a.distance;
+      });
       break;
     case 'price-asc':
       items.sort((a, b) => a.price - b.price);
@@ -285,8 +334,56 @@ const filteredItems = computed(() => {
   return items;
 });
 
+// Filter users based on search query
+const filteredUsers = computed(() => {
+  if (!searchParams.value.searchQuery || searchParams.value.searchQuery.trim() === '') {
+    return [];
+  }
+
+  const query = searchParams.value.searchQuery.toLowerCase();
+  return allUsers.value.filter(user =>
+    user.nickname.toLowerCase().includes(query) ||
+    user.first_name.toLowerCase().includes(query) ||
+    user.last_name.toLowerCase().includes(query)
+  );
+});
+
+const totalResults = computed(() => {
+  return filteredItems.value.length + filteredUsers.value.length;
+});
+
 const totalPages = computed(() => {
-  return Math.ceil(filteredItems.value.length / itemsPerPage.value);
+  return Math.ceil(totalResults.value / itemsPerPage.value);
+});
+
+const paginatedListings = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const listingsToShow = Math.min(itemsPerPage.value, filteredItems.value.length - start);
+
+  if (start >= filteredItems.value.length) {
+    return [];
+  }
+
+  const end = start + Math.max(0, listingsToShow);
+  return filteredItems.value.slice(start, end);
+});
+
+const paginatedUsers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const listingsShown = paginatedListings.value.length;
+  const usersToShow = itemsPerPage.value - listingsShown;
+
+  if (usersToShow <= 0) {
+    return [];
+  }
+
+  const userStart = Math.max(0, start - filteredItems.value.length);
+  const userEnd = userStart + usersToShow;
+  return filteredUsers.value.slice(userStart, userEnd);
+});
+
+const totalDisplayedResults = computed(() => {
+  return paginatedListings.value.length + paginatedUsers.value.length;
 });
 
 const paginatedItems = computed(() => {
@@ -325,6 +422,8 @@ const closeDatePicker = () => {
 const handleFilterChange = () => {
   // Reset to first page when filters change
   currentPage.value = 1;
+  // Search users if there's a search query
+  searchUsers();
 };
 
 const clearFilters = () => {
@@ -365,9 +464,164 @@ const handleItemClick = (item) => {
   router.push(`/listing/${item.id}`);
 };
 
+const handleUserClick = (user) => {
+  router.push(`/user/${user.nickname}`);
+};
+
+// Search users from API
+const searchUsers = async () => {
+  if (!searchParams.value.searchQuery || searchParams.value.searchQuery.trim() === '') {
+    allUsers.value = [];
+    return;
+  }
+
+  try {
+    const response = await userService.searchUsers(searchParams.value.searchQuery);
+    allUsers.value = response.users || [];
+  } catch (error) {
+    console.error('Error searching users:', error);
+    allUsers.value = [];
+  }
+};
+
+// Fetch categories from API
+const fetchCategories = async () => {
+  try {
+    const response = await listingService.getCategories();
+    categories.value = response.categories || [];
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+  }
+};
+
+// Geocode user's location
+const geocodeUserLocation = async () => {
+  if (!searchParams.value.location || searchParams.value.location.trim() === '') {
+    userLocationCoords.value = null;
+    // Reset all distances
+    allItems.value.forEach(item => {
+      item.distance = null;
+    });
+    return;
+  }
+
+  try {
+    const coords = await geocodeLocation(searchParams.value.location);
+    if (coords) {
+      userLocationCoords.value = coords;
+      calculateDistances();
+    } else {
+      userLocationCoords.value = null;
+      console.warn('Could not geocode location:', searchParams.value.location);
+    }
+  } catch (error) {
+    console.error('Error geocoding location:', error);
+    userLocationCoords.value = null;
+  }
+};
+
+// Calculate distances for all items
+const calculateDistances = () => {
+  if (!userLocationCoords.value) {
+    return;
+  }
+
+  allItems.value.forEach(item => {
+    if (item.locationData?.latitude && item.locationData?.longitude) {
+      item.distance = calculateDistance(
+        userLocationCoords.value.lat,
+        userLocationCoords.value.lon,
+        item.locationData.latitude,
+        item.locationData.longitude
+      );
+    } else {
+      item.distance = null;
+    }
+  });
+};
+
+// Fetch blocked dates for all listings
+const fetchAllBlockedDates = async () => {
+  if (!searchParams.value.startDate || !searchParams.value.endDate) {
+    listingBlockedDates.value = {};
+    return;
+  }
+
+  try {
+    const promises = allItems.value.map(async (item) => {
+      try {
+        const response = await listingService.getBlockedDates(item.id);
+        return { id: item.id, blockedDates: response.blockedDates || [] };
+      } catch (error) {
+        console.error(`Error fetching blocked dates for listing ${item.id}:`, error);
+        return { id: item.id, blockedDates: [] };
+      }
+    });
+
+    const results = await Promise.all(promises);
+    const blockedDatesMap = {};
+    results.forEach(result => {
+      blockedDatesMap[result.id] = result.blockedDates;
+    });
+    listingBlockedDates.value = blockedDatesMap;
+  } catch (error) {
+    console.error('Error fetching blocked dates:', error);
+  }
+};
+
+// Check if listing is available for selected dates
+const isListingAvailable = (listingId, startDate, endDate) => {
+  const blockedDates = listingBlockedDates.value[listingId];
+  if (!blockedDates || blockedDates.length === 0) {
+    return true; // No blocked dates, listing is available
+  }
+
+  const requestedStart = new Date(startDate);
+  const requestedEnd = new Date(endDate);
+
+  // Check if requested dates overlap with any blocked date range
+  for (const blocked of blockedDates) {
+    const blockedStart = new Date(blocked.start_date);
+    const blockedEnd = new Date(blocked.end_date);
+
+    // Check for overlap: (start1 <= end2) AND (end1 >= start2)
+    if (requestedStart <= blockedEnd && requestedEnd >= blockedStart) {
+      return false; // There's a conflict
+    }
+  }
+
+  return true; // No conflicts
+};
+
+// Watch for location changes
+watch(() => searchParams.value.location, () => {
+  geocodeUserLocation();
+});
+
+// Watch for date changes
+watch(() => [searchParams.value.startDate, searchParams.value.endDate], () => {
+  if (allItems.value.length > 0) {
+    fetchAllBlockedDates();
+  }
+});
+
+// Watch for search query changes
+watch(() => searchParams.value.searchQuery, () => {
+  searchUsers();
+});
+
 // Lifecycle
-onMounted(() => {
-  fetchListings();
+onMounted(async () => {
+  await fetchListings();
+  fetchCategories();
+  // Geocode location if provided from landing page
+  if (searchParams.value.location) {
+    geocodeUserLocation();
+  }
+  // Fetch blocked dates if dates are provided from landing page
+  if (searchParams.value.startDate && searchParams.value.endDate) {
+    fetchAllBlockedDates();
+  }
 });
 
 // Search parameters are automatically populated from route query on component initialization
