@@ -95,8 +95,8 @@ function handleMenuClick(action) {
   if (action === 'profile') {
     router.push('/profile')
   } else if (action === 'viewProfile') {
-    // Navigate to public profile view using current user's ID
-    router.push(`/user/${currentUser.value.id}`)
+    // Navigate to public profile view using current user's nickname
+    router.push(`/user/${currentUser.value.nickname || currentUser.value.id}`)
   } else if (action === 'listings') {
     router.push('/my-listings')
   } else if (action === 'bookings') {

@@ -13,6 +13,13 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0', // Bind to all network interfaces (required for Render)
     port: process.env.PORT || 4173, // Use Render's PORT env variable
-    strictPort: false // Allow fallback if port is taken
+    strictPort: false, // Allow fallback if port is taken
+    // SPA fallback: serve index.html for all non-asset routes
+    proxy: undefined,
+    cors: true
+  },
+  build: {
+    // Ensure _redirects file is copied from public to dist
+    copyPublicDir: true
   }
 })

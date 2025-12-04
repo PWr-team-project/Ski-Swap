@@ -1091,7 +1091,10 @@ const navigateToListing = () => {
 };
 
 const navigateToProfile = () => {
-  if (otherUser.value._id) {
+  if (otherUser.value.nickname) {
+    router.push(`/user/${otherUser.value.nickname}`);
+  } else if (otherUser.value._id) {
+    // Fallback to ID if nickname is not available
     router.push(`/user/${otherUser.value._id}`);
   }
 };
