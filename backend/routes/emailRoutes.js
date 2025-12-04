@@ -63,30 +63,27 @@ router.post('/welcome', auth, async (req, res) => {
       firstName, 
       lastName, 
       emailSubject = 'Welcome to SkiSwap!',
-      emailBody = 'Welcome to SkiSwap! We hope you enjoy our service.'
     } = req.body;
 
     if (!to || !firstName || !lastName) {
       return res.status(400).json({ error: 'To, FirstName, and LastName are required' });
     }
 
-    const welcomeEmail = {
+    const mailOptions = {
       to: to,
       subject: emailSubject,
-      html: renderHtml(path.join(templateDir, 'emailWelcome.html'), {
-        nickname: nickname,
-        firstName: firstName,
-        lastName: lastName,
-        name: `${firstName} ${lastName}`,
-        email: to,
-        message: emailBody
-      }),
       attachments: null,
       cc: [],
       bcc: []
     };
 
-    await sendEmail(welcomeEmail);
+    await sendEmailWithTemplate(mailOptions, 'emailWelcome.html', {
+      nickname: nickname,
+      firstName: firstName,
+      lastName: lastName,
+      name: `${firstName} ${lastName}`,
+      email: to
+    });
 
   } catch (error) {
     console.error('Error sending welcome email:', error);
