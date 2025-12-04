@@ -1,6 +1,8 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 const User = require('../models/User');
 const Category = require('../models/Category');
 const Location = require('../models/Location');
@@ -50,40 +52,45 @@ const accessoryListings = [
   { title: 'ThirtyTwo TM-2', brand: 'ThirtyTwo', model: 'TM-2', size: '11', description: 'Responsive snowboard boots with heat-moldable liners.', category: 'Boots' }
 ];
 
-// Unsplash image URLs
-const imageUrls = {
-  skis: [
-    'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1551524164-687a55dd1126?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1609390621955-48e37fe2d7de?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=800&h=600&fit=crop'
-  ],
-  snowboards: [
-    'https://images.unsplash.com/photo-1608447272409-a46ab38c6c90?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1519315901367-dd6f52257273?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1579189214311-f8e0f0f8f9f5?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1600362834097-1c1c4a212024?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop'
-  ],
-  accessories: [
-    'https://images.unsplash.com/photo-1605606274249-2e41f6e8a5b0?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1483381719261-1d24c6f0f7b0?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1585435465455-d1d0c66c5b7e?w=800&h=600&fit=crop'
-  ]
-};
+// Get all available photos from backend/uploads/listings directory
+const uploadsDir = path.join(__dirname, '..', 'uploads', 'listings');
+let availablePhotos = [];
+
+try {
+  availablePhotos = fs.readdirSync(uploadsDir).filter(file => {
+    const ext = path.extname(file).toLowerCase();
+    return ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.jfif'].includes(ext);
+  });
+  console.log(`Found ${availablePhotos.length} photos in ${uploadsDir}`);
+} catch (error) {
+  console.error('Error reading photos directory:', error.message);
+  availablePhotos = [];
+}
 
 // Helper functions
 const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 const getRandomImages = (category, count = 3) => {
-  const categoryImages = imageUrls[category] || imageUrls.accessories;
-  const images = [];
-  for (let i = 0; i < count; i++) {
-    images.push(getRandom(categoryImages));
+  if (availablePhotos.length === 0) {
+    console.warn('No photos available, listing will have no photos');
+    return [];
   }
+
+  const images = [];
+  const usedIndices = new Set();
+
+  // Get random unique photos
+  for (let i = 0; i < Math.min(count, availablePhotos.length); i++) {
+    let randomIndex;
+    do {
+      randomIndex = Math.floor(Math.random() * availablePhotos.length);
+    } while (usedIndices.has(randomIndex) && usedIndices.size < availablePhotos.length);
+
+    usedIndices.add(randomIndex);
+    // Store as relative path: listings/filename
+    images.push(`listings/${availablePhotos[randomIndex]}`);
+  }
+
   return images;
 };
 
@@ -185,6 +192,14 @@ async function populateListingsTEST() {
     console.log('Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
+
+    // Check if photos are available
+    if (availablePhotos.length === 0) {
+      console.error('WARNING: No photos found in backend/uploads/listings directory!');
+      console.error('Listings will be created without photos.');
+    } else {
+      console.log(`✓ Loaded ${availablePhotos.length} photos from backend/uploads/listings`);
+    }
 
     // Find Ski Swapper user
     const skiSwapper = await User.findOne({
