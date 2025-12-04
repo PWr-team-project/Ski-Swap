@@ -13,6 +13,6 @@ app.use(router)
 
 // Verify token on app start before mounting
 const authStore = useAuthStore()
-authStore.verifyToken().then(() => {
-  app.mount('#app')
-})
+authStore.verifyToken()
+
+app.mount('#app')
