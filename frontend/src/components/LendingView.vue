@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <!-- Bookings Requires Attention Section (Orange) -->
+    <!-- Bookings Requires Attention Section (Orange) - Always visible -->
     <div class="collapsible-section attention-section">
       <button
         class="section-header attention-header"
@@ -68,7 +68,18 @@
         <div class="section-header-left">
           <img src="/assets/icons/chevron_right.svg" alt="" class="chevron-icon" />
           <h2 class="section-title">Bookings which require attention</h2>
-          <span class="section-count attention-count">{{ attentionBookings.length }}</span>
+          <span class="section-count attention-count">{{ attentionBookingsRaw.length }}</span>
+        </div>
+        <!-- Status Badge Filters -->
+        <div v-if="availableAttentionBadges.length > 1 && expandedSections.attention" class="status-filters" @click.stop>
+          <button
+            v-for="badgeName in availableAttentionBadges"
+            :key="badgeName"
+            @click="toggleBadgeFilter('attention', badgeName)"
+            :class="['filter-badge', getBadgeClassForName(badgeName), { active: isBadgeActive('attention', badgeName) }]"
+          >
+            {{ badgeName }}
+          </button>
         </div>
       </button>
       <div v-show="expandedSections.attention" class="section-content">
@@ -97,7 +108,7 @@
     </div>
 
     <!-- Active & Upcoming Section -->
-    <div class="collapsible-section">
+    <div v-if="activeUpcomingBookingsRaw.length > 0" class="collapsible-section">
       <button
         class="section-header"
         @click="toggleSection('activeUpcoming')"
@@ -106,7 +117,18 @@
         <div class="section-header-left">
           <img src="/assets/icons/chevron_right.svg" alt="" class="chevron-icon" />
           <h2 class="section-title">Active & Upcoming</h2>
-          <span class="section-count">{{ activeUpcomingBookings.length }}</span>
+          <span class="section-count">{{ activeUpcomingBookingsRaw.length }}</span>
+        </div>
+        <!-- Status Badge Filters -->
+        <div v-if="availableActiveUpcomingBadges.length > 1 && expandedSections.activeUpcoming" class="status-filters" @click.stop>
+          <button
+            v-for="badgeName in availableActiveUpcomingBadges"
+            :key="badgeName"
+            @click="toggleBadgeFilter('activeUpcoming', badgeName)"
+            :class="['filter-badge', getBadgeClassForName(badgeName), { active: isBadgeActive('activeUpcoming', badgeName) }]"
+          >
+            {{ badgeName }}
+          </button>
         </div>
       </button>
       <div v-show="expandedSections.activeUpcoming" class="section-content">
@@ -136,7 +158,7 @@
     </div>
 
     <!-- Booking History Section -->
-    <div class="collapsible-section">
+    <div v-if="historyBookingsRaw.length > 0" class="collapsible-section">
       <button
         class="section-header"
         @click="toggleSection('history')"
@@ -145,7 +167,18 @@
         <div class="section-header-left">
           <img src="/assets/icons/chevron_right.svg" alt="" class="chevron-icon" />
           <h2 class="section-title">Booking History</h2>
-          <span class="section-count">{{ historyBookings.length }}</span>
+          <span class="section-count">{{ historyBookingsRaw.length }}</span>
+        </div>
+        <!-- Status Badge Filters -->
+        <div v-if="availableHistoryBadges.length > 1 && expandedSections.history" class="status-filters" @click.stop>
+          <button
+            v-for="badgeName in availableHistoryBadges"
+            :key="badgeName"
+            @click="toggleBadgeFilter('history', badgeName)"
+            :class="['filter-badge', getBadgeClassForName(badgeName), { active: isBadgeActive('history', badgeName) }]"
+          >
+            {{ badgeName }}
+          </button>
         </div>
       </button>
       <div v-show="expandedSections.history" class="section-content">
@@ -222,9 +255,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'view-details', 
-  'accept-request', 
-  'decline-request', 
+  'view-details',
+  'accept-request',
+  'decline-request',
   'contact-renter',
   'cancel-booking',
   'confirm-handoff',
@@ -242,9 +275,16 @@ const expandedSections = ref({
   history: false
 });
 
-// Compute bookings for "Requires Attention" section
+// Status filters for each section
+const statusFilters = ref({
+  attention: [],
+  activeUpcoming: [],
+  history: []
+});
+
+// Compute bookings for "Requires Attention" section (with filtering)
 // States: PENDING, PICKUP, PICKUP_OWNER, PICKUP_RENTER, RETURN, RETURN_OWNER, RETURN_RENTER
-const attentionBookings = computed(() => {
+const attentionBookingsRaw = computed(() => {
   const attentionStatuses = ['PENDING', 'PICKUP', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'];
   const allBookings = [
     ...props.bookings.pending,
@@ -257,10 +297,21 @@ const attentionBookings = computed(() => {
   ).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 });
 
-// Compute bookings for "Active & Upcoming" section
+const attentionBookings = computed(() => {
+  let bookings = attentionBookingsRaw.value;
+
+  // Apply status filter if any selected
+  if (statusFilters.value.attention.length > 0) {
+    bookings = bookings.filter(b => statusFilters.value.attention.includes(b.status));
+  }
+
+  return bookings;
+});
+
+// Compute bookings for "Active & Upcoming" section (with filtering)
 // States: ACCEPTED, IN_PROGRESS (sorted by closest start/end date, exclude passed dates)
-const activeUpcomingBookings = computed(() => {
-  const activeStatuses = ['ACCEPTED', 'IN_PROGRESS','PICKUP_OWNER'];
+const activeUpcomingBookingsRaw = computed(() => {
+  const activeStatuses = ['ACCEPTED', 'IN_PROGRESS', 'PICKUP_OWNER'];
   const now = new Date();
 
   const allBookings = [
@@ -281,9 +332,20 @@ const activeUpcomingBookings = computed(() => {
   });
 });
 
-// Compute bookings for "History" section
+const activeUpcomingBookings = computed(() => {
+  let bookings = activeUpcomingBookingsRaw.value;
+
+  // Apply status filter if any selected
+  if (statusFilters.value.activeUpcoming.length > 0) {
+    bookings = bookings.filter(b => statusFilters.value.activeUpcoming.includes(b.status));
+  }
+
+  return bookings;
+});
+
+// Compute bookings for "History" section (with filtering)
 // States: COMPLETED, REVIEWED, CANCELLED, DECLINED, DISPUTED, DISPUTE_RESOLVED
-const historyBookings = computed(() => {
+const historyBookingsRaw = computed(() => {
   const historyStatuses = ['COMPLETED', 'REVIEWED', 'CANCELLED', 'DECLINED', 'DISPUTED', 'DISPUTE_RESOLVED'];
 
   return props.bookings.history.filter(booking =>
@@ -291,21 +353,144 @@ const historyBookings = computed(() => {
   ).sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
 });
 
+const historyBookings = computed(() => {
+  let bookings = historyBookingsRaw.value;
+
+  // Apply status filter if any selected
+  if (statusFilters.value.history.length > 0) {
+    bookings = bookings.filter(b => statusFilters.value.history.includes(b.status));
+  }
+
+  return bookings;
+});
+
 // Total bookings count
 const totalBookings = computed(() => {
-  return attentionBookings.value.length +
-         activeUpcomingBookings.value.length +
-         historyBookings.value.length;
+  return attentionBookingsRaw.value.length +
+         activeUpcomingBookingsRaw.value.length +
+         historyBookingsRaw.value.length;
 });
+
+// Get available unique badge names for each section (for badge filtering)
+const availableAttentionBadges = computed(() => {
+  const badgeNames = new Set(attentionBookingsRaw.value.map(b => getStatusBadgeName(b.status)));
+  return Array.from(badgeNames);
+});
+
+const availableActiveUpcomingBadges = computed(() => {
+  const badgeNames = new Set(activeUpcomingBookingsRaw.value.map(b => getStatusBadgeName(b.status)));
+  return Array.from(badgeNames);
+});
+
+const availableHistoryBadges = computed(() => {
+  const badgeNames = new Set(historyBookingsRaw.value.map(b => getStatusBadgeName(b.status)));
+  return Array.from(badgeNames);
+});
+
+// Get statuses for a badge name
+const getStatusesForBadge = (badgeName) => {
+  const labels = {
+    'PENDING': 'Pending',
+    'ACCEPTED': 'Accepted',
+    'PICKUP': 'Pickup',
+    'PICKUP_OWNER': 'Active',
+    'PICKUP_RENTER': 'Pickup',
+    'IN_PROGRESS': 'Active',
+    'RETURN': 'Return',
+    'RETURN_RENTER': 'Return',
+    'RETURN_OWNER': 'Return',
+    'COMPLETED': 'Completed',
+    'REVIEWED': 'Reviewed',
+    'CANCELLED': 'Cancelled',
+    'DECLINED': 'Declined',
+    'DISPUTED': 'Disputed',
+    'DISPUTE_RESOLVED': 'Resolved'
+  };
+
+  return Object.keys(labels).filter(status => labels[status] === badgeName);
+};
+
+// Toggle badge filter (filters by badge name, which maps to multiple statuses)
+const toggleBadgeFilter = (section, badgeName) => {
+  const statuses = getStatusesForBadge(badgeName);
+
+  // Check if any of these statuses are currently filtered
+  const hasAny = statuses.some(status => statusFilters.value[section].includes(status));
+
+  if (hasAny) {
+    // Remove all statuses for this badge
+    statusFilters.value[section] = statusFilters.value[section].filter(
+      status => !statuses.includes(status)
+    );
+  } else {
+    // Add all statuses for this badge
+    statuses.forEach(status => {
+      if (!statusFilters.value[section].includes(status)) {
+        statusFilters.value[section].push(status);
+      }
+    });
+  }
+};
+
+// Check if a badge is currently active (any of its statuses are in the filter)
+const isBadgeActive = (section, badgeName) => {
+  const statuses = getStatusesForBadge(badgeName);
+  return statuses.some(status => statusFilters.value[section].includes(status));
+};
+
+// Get badge class for a badge name
+const getBadgeClassForName = (badgeName) => {
+  // Map badge names to their color classes
+  if (['Cancelled', 'Declined', 'Disputed'].includes(badgeName)) return 'badge-error';
+  if (['Completed', 'Resolved'].includes(badgeName)) return 'badge-completed';
+  if (['Active', 'Pickup', 'Return'].includes(badgeName)) return 'badge-active';
+  if (['Pending'].includes(badgeName)) return 'badge-pending';
+  if (['Accepted'].includes(badgeName)) return 'badge-upcoming';
+  if (['Reviewed'].includes(badgeName)) return 'badge-reviewed';
+  return 'badge-default';
+};
+
+// Get badge display name
+const getStatusBadgeName = (status) => {
+  const labels = {
+    'PENDING': 'Pending',
+    'ACCEPTED': 'Accepted',
+    'PICKUP': 'Pickup',
+    'PICKUP_OWNER': 'Active',
+    'PICKUP_RENTER': 'Pickup',
+    'IN_PROGRESS': 'Active',
+    'RETURN': 'Return',
+    'RETURN_RENTER': 'Return',
+    'RETURN_OWNER': 'Return',
+    'COMPLETED': 'Completed',
+    'REVIEWED': 'Reviewed',
+    'CANCELLED': 'Cancelled',
+    'DECLINED': 'Declined',
+    'DISPUTED': 'Disputed',
+    'DISPUTE_RESOLVED': 'Resolved'
+  };
+  return labels[status] || status;
+};
+
+// Get badge color class
+const getStatusBadgeClass = (status) => {
+  if (['CANCELLED', 'DECLINED', 'DISPUTED'].includes(status)) return 'badge-error';
+  if (['COMPLETED', 'DISPUTE_RESOLVED'].includes(status)) return 'badge-completed';
+  if (['IN_PROGRESS', 'PICKUP', 'PICKUP_OWNER', 'PICKUP_RENTER', 'RETURN', 'RETURN_OWNER', 'RETURN_RENTER'].includes(status)) return 'badge-active';
+  if (['PENDING'].includes(status)) return 'badge-pending';
+  if (['ACCEPTED'].includes(status)) return 'badge-upcoming';
+  if (['REVIEWED'].includes(status)) return 'badge-reviewed';
+  return 'badge-default';
+};
 
 // Determine which section to expand by default
 const initializeExpandedSections = () => {
   // Priority: Attention > Active & Upcoming > History
-  if (attentionBookings.value.length > 0) {
+  if (attentionBookingsRaw.value.length > 0) {
     expandedSections.value.attention = true;
-  } else if (activeUpcomingBookings.value.length > 0) {
+  } else if (activeUpcomingBookingsRaw.value.length > 0) {
     expandedSections.value.activeUpcoming = true;
-  } else if (historyBookings.value.length > 0) {
+  } else if (historyBookingsRaw.value.length > 0) {
     expandedSections.value.history = true;
   }
 };
@@ -566,6 +751,75 @@ const viewMyListings = () => {
 
 .empty-section p {
   margin: 0;
+}
+
+/* Status Filters */
+.status-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+  padding-left: 1rem;
+}
+
+.filter-badge {
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  border: 2px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-badge:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+/* Active badge colors matching RentalCard/BookingCard */
+.filter-badge.badge-pending.active {
+  background: #fbbf24;
+  border-color: #fbbf24;
+  color: white;
+}
+
+.filter-badge.badge-upcoming.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.filter-badge.badge-active.active {
+  background: #f97316;
+  border-color: #f97316;
+  color: white;
+}
+
+.filter-badge.badge-completed.active {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.filter-badge.badge-error.active {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+}
+
+.filter-badge.badge-reviewed.active {
+  background: #8b5cf6;
+  border-color: #8b5cf6;
+  color: white;
+}
+
+.filter-badge.badge-default.active {
+  background: #6b7280;
+  border-color: #6b7280;
+  color: white;
 }
 
 /* Booking List */
