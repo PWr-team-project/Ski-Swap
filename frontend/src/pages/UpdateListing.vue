@@ -278,6 +278,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { listingService } from '@/services/listingService';
+import { getFullImageUrl } from '@/utils/api';
 
 const router = useRouter();
 const route = useRoute();
@@ -345,8 +346,7 @@ const getPhotoUrl = (photo) => {
   }
   // If it's an existing photo path
   if (typeof photo === 'string') {
-    if (photo.startsWith('http')) return photo;
-    return `http://localhost:5000${photo}`;
+    return getFullImageUrl(photo) || '/assets/images/placeholder.jpg';
   }
   return '/assets/images/placeholder.jpg';
 };

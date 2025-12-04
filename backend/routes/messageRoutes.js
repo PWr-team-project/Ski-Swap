@@ -9,6 +9,9 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const {auth, isAdmin} = require('../middleware/auth');
 
+// Get API URL from environment variable
+const API_URL = process.env.API_URL || 'http://localhost:5000';
+
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/messages');
 if (!fs.existsSync(uploadsDir)) {
@@ -166,7 +169,7 @@ router.get('/conversation/:conversationId', auth, async (req, res) => {
           title: msg.listing_id.title,
           dailyRate: msg.listing_id.daily_rate,
           photo: msg.listing_id.photos && msg.listing_id.photos.length > 0
-            ? (msg.listing_id.photos[0].startsWith('http') ? msg.listing_id.photos[0] : `http://localhost:5000${msg.listing_id.photos[0]}`)
+            ? (msg.listing_id.photos[0].startsWith('http') ? msg.listing_id.photos[0] : `${API_URL}${msg.listing_id.photos[0]}`)
             : null,
           category: msg.listing_id.category_id?.name || 'Unknown',
           location: msg.listing_id.location_id ? `${msg.listing_id.location_id.city}, ${msg.listing_id.location_id.country}` : 'Unknown'
@@ -412,7 +415,7 @@ router.post('/start-listing-conversation', auth, async (req, res) => {
         title: listing.title,
         dailyRate: listing.daily_rate,
         photo: listing.photos && listing.photos.length > 0
-          ? (listing.photos[0].startsWith('http') ? listing.photos[0] : `http://localhost:5000${listing.photos[0]}`)
+          ? (listing.photos[0].startsWith('http') ? listing.photos[0] : `${API_URL}${listing.photos[0]}`)
           : null,
         category: listing.category_id?.name || 'Unknown',
         location: listing.location_id ? `${listing.location_id.city}, ${listing.location_id.country}` : 'Unknown'

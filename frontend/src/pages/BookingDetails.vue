@@ -445,6 +445,7 @@ import BookingProgressBar from '../components/BookingProgressBar.vue';
 import BookingChat from '../components/booking/BookingChat.vue';
 import { reviewService } from '@/services/reviewService';
 import ReviewModal from '../components/ReviewModal.vue';
+import { getFullImageUrl } from '@/utils/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -1054,8 +1055,7 @@ const uploadPhotos = async () => {
 // Helpers
 const getImageUrl = (photoPath) => {
   if (!photoPath) return '/assets/images/image.png';
-  if (photoPath.startsWith('http')) return photoPath;
-  return `http://localhost:5000${photoPath}`;
+  return getFullImageUrl(photoPath) || '/assets/images/image.png';
 };
 
 const handleImageError = (e) => {

@@ -87,6 +87,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { getFullImageUrl } from '@/utils/api';
 
 const props = defineProps({
   bookingId: String,
@@ -155,8 +156,7 @@ const showOwnerShowReview = computed(() => props.bookingStatus === 'REVIEWED');
 // Helper functions
 const getImageUrl = (photoPath) => {
   if (!photoPath) return '/assets/images/image.png';
-  if (photoPath.startsWith('http')) return photoPath;
-  return `http://localhost:5000${photoPath}`;
+  return getFullImageUrl(photoPath) || '/assets/images/image.png';
 };
 
 const handleImageError = (e) => {

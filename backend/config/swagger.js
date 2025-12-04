@@ -13,8 +13,8 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5000',
-        description: 'Development server',
+        url: process.env.API_URL || 'http://localhost:5000',
+        description: 'API Server',
       },
     ],
     components: {
@@ -280,12 +280,17 @@ const options = {
     tags: [
       { name: 'Authentication', description: 'User authentication and registration' },
       { name: 'Google OAuth', description: 'Google OAuth 2.0 authentication' },
+      { name: 'Password Reset', description: 'Password reset functionality' },
       { name: 'Users', description: 'User profile management' },
       { name: 'Listings', description: 'Equipment listing management' },
       { name: 'Bookings', description: 'Booking management' },
       { name: 'Booking Status', description: 'Booking state transitions and actions' },
       { name: 'Booking Photos', description: 'Booking photo uploads for pickup/return/dispute' },
+      { name: 'Booking Messages', description: 'Booking-specific chat messages' },
+      { name: 'Reviews', description: 'User and booking reviews' },
       { name: 'Messages', description: 'Messaging and conversations' },
+      { name: 'Verification', description: 'ID verification requests and admin management' },
+      { name: 'Admin', description: 'Admin-only user management endpoints' },
       { name: 'Locations', description: 'Location management' },
     ],
     paths: {
@@ -399,6 +404,141 @@ const options = {
             },
             401: {
               description: 'Invalid or expired token',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Error' },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      // Password Reset routes
+      '/api/password/forgot-password': {
+        post: {
+          tags: ['Password Reset'],
+          summary: 'Request password reset',
+          description: 'Send a 6-digit reset code to user email',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['email'],
+                  properties: {
+                    email: { type: 'string', format: 'email' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Reset code sent to email',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'User not found or OAuth user',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Error' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/password/verify-reset-code': {
+        post: {
+          tags: ['Password Reset'],
+          summary: 'Verify reset code',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['email', 'code'],
+                  properties: {
+                    email: { type: 'string', format: 'email' },
+                    code: { type: 'string', description: '6-digit reset code' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Code is valid',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Invalid or expired code',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Error' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/password/reset-password': {
+        post: {
+          tags: ['Password Reset'],
+          summary: 'Reset password',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['email', 'code', 'newPassword'],
+                  properties: {
+                    email: { type: 'string', format: 'email' },
+                    code: { type: 'string', description: '6-digit reset code' },
+                    newPassword: { type: 'string', minLength: 6 },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Password reset successful',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Invalid code or validation error',
               content: {
                 'application/json': {
                   schema: { $ref: '#/components/schemas/Error' },
@@ -663,6 +803,40 @@ const options = {
               content: {
                 'application/json': {
                   schema: { $ref: '#/components/schemas/Error' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/users/search': {
+        get: {
+          tags: ['Users'],
+          summary: 'Search users (public)',
+          description: 'Search users by nickname, first name, or last name',
+          parameters: [
+            {
+              name: 'query',
+              in: 'query',
+              required: true,
+              description: 'Search query',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Search results',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      users: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/User' },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -996,6 +1170,46 @@ const options = {
                     properties: {
                       message: { type: 'string' },
                       available: { type: 'boolean' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/listings/{id}/blocked-dates': {
+        get: {
+          tags: ['Listings'],
+          summary: 'Get blocked dates for listing',
+          description: 'Returns dates that are unavailable due to existing bookings',
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'Listing ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Blocked dates',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      blockedDates: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            start_date: { type: 'string', format: 'date' },
+                            end_date: { type: 'string', format: 'date' },
+                          },
+                        },
+                      },
                     },
                   },
                 },
@@ -1385,6 +1599,99 @@ const options = {
                       message: { type: 'string' },
                     },
                   },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/bookings/{id}/payment/process': {
+        post: {
+          tags: ['Bookings'],
+          summary: 'Process booking payment',
+          description: 'Confirm payment for booking',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'Booking ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Payment processed',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                      booking: { $ref: '#/components/schemas/Booking' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/bookings/{id}/payment/reject': {
+        post: {
+          tags: ['Bookings'],
+          summary: 'Reject booking payment',
+          description: 'Mark payment as failed or rejected',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'Booking ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Payment rejected',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                      booking: { $ref: '#/components/schemas/Booking' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/bookings/{id}/confirmation': {
+        get: {
+          tags: ['Bookings'],
+          summary: 'Get booking confirmation data',
+          description: 'Retrieve booking confirmation details for display',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'Booking ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Booking confirmation data',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Booking' },
                 },
               },
             },
@@ -2108,6 +2415,593 @@ const options = {
                     type: 'object',
                     properties: {
                       message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      // Review routes
+      '/api/reviews/bookings/{bookingId}/reviews': {
+        get: {
+          tags: ['Reviews'],
+          summary: 'Get reviews for booking',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'bookingId',
+              in: 'path',
+              required: true,
+              description: 'Booking ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Booking reviews',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      reviews: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/Review' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ['Reviews'],
+          summary: 'Submit review for booking',
+          description: 'Renter submits review for completed booking',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'bookingId',
+              in: 'path',
+              required: true,
+              description: 'Booking ID',
+              schema: { type: 'string' },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['rating', 'comment'],
+                  properties: {
+                    rating: { type: 'number', minimum: 1, maximum: 5 },
+                    comment: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: 'Review submitted',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                      review: { $ref: '#/components/schemas/Review' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/reviews/users/{userId}/reviews': {
+        get: {
+          tags: ['Reviews'],
+          summary: 'Get all reviews for user (public)',
+          parameters: [
+            {
+              name: 'userId',
+              in: 'path',
+              required: true,
+              description: 'User ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'User reviews',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      reviews: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/Review' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      // Booking Messages routes
+      '/api/bookings/{bookingId}/messages': {
+        get: {
+          tags: ['Booking Messages'],
+          summary: 'Get booking chat messages',
+          description: 'Get all messages in booking-specific chat (available after booking acceptance)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'bookingId',
+              in: 'path',
+              required: true,
+              description: 'Booking ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Booking messages',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      messages: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/Message' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ['Booking Messages'],
+          summary: 'Send booking chat message',
+          description: 'Send message in booking chat with optional image attachment',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'bookingId',
+              in: 'path',
+              required: true,
+              description: 'Booking ID',
+              schema: { type: 'string' },
+            },
+          ],
+          requestBody: {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    image: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: 'Message sent',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { $ref: '#/components/schemas/Message' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      // Verification routes
+      '/api/verification/submit': {
+        post: {
+          tags: ['Verification'],
+          summary: 'Submit ID verification request',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  required: ['firstName', 'lastName', 'dateOfBirth', 'nationality', 'idNumber', 'idDocument'],
+                  properties: {
+                    firstName: { type: 'string' },
+                    lastName: { type: 'string' },
+                    dateOfBirth: { type: 'string', format: 'date' },
+                    nationality: { type: 'string' },
+                    idNumber: { type: 'string' },
+                    idDocument: { type: 'string', format: 'binary', description: '5MB limit, JPEG/PNG/PDF' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: 'Verification request submitted',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                      verificationRequest: {
+                        type: 'object',
+                        properties: {
+                          _id: { type: 'string' },
+                          status: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/verification/my-request': {
+        get: {
+          tags: ['Verification'],
+          summary: 'Get user verification request status',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: {
+              description: 'Verification request status',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      request: {
+                        type: 'object',
+                        properties: {
+                          _id: { type: 'string' },
+                          status: { type: 'string', enum: ['pending', 'approved', 'rejected'] },
+                          submittedAt: { type: 'string', format: 'date-time' },
+                          rejectionReason: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/verification/admin/requests': {
+        get: {
+          tags: ['Verification'],
+          summary: 'Get all verification requests (admin)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'status',
+              in: 'query',
+              description: 'Filter by status',
+              schema: { type: 'string', enum: ['pending', 'approved', 'rejected'] },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Verification requests',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      requests: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            _id: { type: 'string' },
+                            user: { $ref: '#/components/schemas/User' },
+                            status: { type: 'string' },
+                            submittedAt: { type: 'string', format: 'date-time' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/verification/admin/requests/{id}': {
+        get: {
+          tags: ['Verification'],
+          summary: 'Get verification request details (admin)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'Verification request ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Verification request details',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      request: {
+                        type: 'object',
+                        properties: {
+                          _id: { type: 'string' },
+                          user: { $ref: '#/components/schemas/User' },
+                          firstName: { type: 'string' },
+                          lastName: { type: 'string' },
+                          dateOfBirth: { type: 'string' },
+                          nationality: { type: 'string' },
+                          idNumber: { type: 'string' },
+                          idDocumentPath: { type: 'string' },
+                          status: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/verification/admin/requests/{id}/approve': {
+        post: {
+          tags: ['Verification'],
+          summary: 'Approve verification request (admin)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'Verification request ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Request approved',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/verification/admin/requests/{id}/reject': {
+        post: {
+          tags: ['Verification'],
+          summary: 'Reject verification request (admin)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'Verification request ID',
+              schema: { type: 'string' },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['reason'],
+                  properties: {
+                    reason: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Request rejected',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      // Admin routes
+      '/api/admin/users': {
+        get: {
+          tags: ['Admin'],
+          summary: 'Get all users with filters (admin)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'search',
+              in: 'query',
+              description: 'Search by email, nickname, or name',
+              schema: { type: 'string' },
+            },
+            {
+              name: 'verified',
+              in: 'query',
+              description: 'Filter by verification status',
+              schema: { type: 'boolean' },
+            },
+            {
+              name: 'blocked',
+              in: 'query',
+              description: 'Filter by blocked status',
+              schema: { type: 'boolean' },
+            },
+            {
+              name: 'userType',
+              in: 'query',
+              description: 'Filter by user type',
+              schema: { type: 'string', enum: ['individual', 'company'] },
+            },
+            {
+              name: 'page',
+              in: 'query',
+              description: 'Page number for pagination',
+              schema: { type: 'integer', default: 1 },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              description: 'Items per page',
+              schema: { type: 'integer', default: 20 },
+            },
+            {
+              name: 'sortBy',
+              in: 'query',
+              description: 'Sort field',
+              schema: { type: 'string', default: 'createdAt' },
+            },
+            {
+              name: 'order',
+              in: 'query',
+              description: 'Sort order',
+              schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Users list',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      users: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/User' },
+                      },
+                      pagination: {
+                        type: 'object',
+                        properties: {
+                          total: { type: 'integer' },
+                          page: { type: 'integer' },
+                          pages: { type: 'integer' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/admin/users/{id}': {
+        get: {
+          tags: ['Admin'],
+          summary: 'Get user details (admin)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'User ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'User details',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      user: { $ref: '#/components/schemas/User' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/admin/users/{id}/stats': {
+        get: {
+          tags: ['Admin'],
+          summary: 'Get user statistics (admin)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'User ID',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'User statistics',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      listings: { type: 'integer' },
+                      bookingsAsRenter: { type: 'integer' },
+                      bookingsAsOwner: { type: 'integer' },
+                      totalEarnings: { type: 'number' },
+                      averageRating: { type: 'number' },
                     },
                   },
                 },

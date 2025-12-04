@@ -94,9 +94,9 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import verificationService from '../../services/verificationService'
+import { getFullImageUrl } from '@/utils/api'
 
 const router = useRouter()
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const loading = ref(true)
 const error = ref('')
@@ -144,8 +144,7 @@ function viewRequest(requestId) {
 
 function getPhotoUrl(photoPath) {
   if (!photoPath) return null
-  if (photoPath.startsWith('http')) return photoPath
-  return `${API_URL}${photoPath}`
+  return getFullImageUrl(photoPath)
 }
 
 function formatDate(dateString) {

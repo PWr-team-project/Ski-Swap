@@ -213,6 +213,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import adminService from '../../services/adminService';
+import { getFullImageUrl } from '@/utils/api';
 
 export default {
   name: 'UserDetail',
@@ -261,10 +262,8 @@ export default {
     };
 
     const getUserAvatar = (user) => {
-      if (user.profile_photo && user.profile_photo.startsWith('http')) {
-        return user.profile_photo;
-      } else if (user.profile_photo) {
-        return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/${user.profile_photo}`;
+      if (user.profile_photo) {
+        return getFullImageUrl(user.profile_photo) || 'https://via.placeholder.com/150';
       }
       return 'https://via.placeholder.com/150';
     };
