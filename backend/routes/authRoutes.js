@@ -83,11 +83,11 @@ router.post(
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
       );
       
-      // Send welcome email
-      await axios.post(process.env.API_URL + '/api/email/welcome', welcomeEmailDetails);
-
       // Save user
       await newUser.save();
+      
+      // Send welcome email
+      await axios.post(process.env.API_URL + '/api/email/welcome', welcomeEmailDetails);
 
       res.status(201).json({
         message: 'User registered successfully',

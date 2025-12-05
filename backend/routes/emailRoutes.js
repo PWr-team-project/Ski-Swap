@@ -12,6 +12,10 @@ const path = require('path');
 const fs = require('fs');
 
 
+router.get('/', (req, res) => {
+  res.send('Email routes are working');
+});
+
 // POST endpoint for sending generic email
 router.post('/', auth, async (req, res) => {
   try {
@@ -77,13 +81,17 @@ router.post('/welcome', auth, async (req, res) => {
       bcc: []
     };
 
-    await sendEmailWithTemplate(mailOptions, 'emailWelcome.html', {
+    const fillValues = {
       nickname: nickname,
       firstName: firstName,
       lastName: lastName,
       name: `${firstName} ${lastName}`,
       email: to
-    });
+    };
+
+    await sendEmailWithTemplate(mailOptions, 'emailWelcome.html', fillValues);
+
+    res.status(200).json({ message: 'Welcome email sent successfully' });
 
   } catch (error) {
     console.error('Error sending welcome email:', error);
@@ -129,6 +137,8 @@ router.post('/booking-confirmation', auth, async (req, res) => {
 
     await sendEmailWithTemplate(mailOptions, 'emailBookingConfirm.html', fillValues);
 
+    res.status(200).json({ message: 'Booking confirmation email sent successfully' });
+
   } catch (error) {
     console.error('Error sending booking confirmation email:', error);
     res.status(500).json({ error: 'Failed to send booking confirmation email' });
@@ -171,6 +181,8 @@ router.post('/payment-receipt', auth, async (req, res) => {
 
     await sendEmailWithTemplate(mailOptions, 'emailPaymentReceipt.html', fillValues);
 
+    res.status(200).json({ message: 'Payment receipt email sent successfully' });
+
   } catch (error) {
     console.error('Error sending payment receipt email:', error);
     res.status(500).json({ error: 'Failed to send payment receipt email' });
@@ -207,6 +219,8 @@ router.post('/cancel-booking', auth, async (req, res) => {
     };
 
     await sendEmailWithTemplate(mailOptions, 'emailCancel.html', fillValues);
+
+    res.status(200).json({ message: 'Cancellation email sent successfully' });
 
   } catch (error) {
     console.error('Error sending cancellation email:', error);
